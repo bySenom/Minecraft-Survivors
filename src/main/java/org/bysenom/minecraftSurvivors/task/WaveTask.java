@@ -24,6 +24,8 @@ public class WaveTask extends BukkitRunnable {
             return;
         }
         gameManager.nextWave(wave);
-        wave++;
+        // ensure GameManager's currentWaveNumber stays in sync
+        gameManager.incrementWaveNumber();
+        wave = gameManager.getCurrentWaveNumber();
     }
 }

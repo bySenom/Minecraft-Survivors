@@ -158,19 +158,9 @@ public class GuiManager {
                 break;
             case APPLE:
                 sp.addExtraHearts(cfgExtraHearts);
-                // Apply extra hearts to player immediately
-                try {
-                    double extraHealth = cfgExtraHearts * 0.5 * 2.0; // cfgExtraHearts are half-hearts; convert to HP (1 heart = 2HP)
-                    // Simpler: each unit represents half-heart -> convert to HP: half-hearts * 1.0
-                    double hpToAdd = cfgExtraHearts * 1.0; // 1 half-heart = 1 HP
-                    org.bukkit.attribute.AttributeInstance maxHealth = player.getAttribute(org.bukkit.attribute.Attribute.GENERIC_MAX_HEALTH);
-                    if (maxHealth != null) {
-                        double newMax = Math.max(1.0, maxHealth.getBaseValue() + hpToAdd);
-                        maxHealth.setBaseValue(newMax);
-                        player.setHealth(Math.min(newMax, player.getHealth() + hpToAdd));
-                    }
-                } catch (Throwable ignored) {}
-                player.sendMessage(Component.text("§aDu hast +" + (cfgExtraHearts / 2.0) + " Herzen erhalten."));
+                // Only update the internal model here; manipulating Bukkit entity attributes is
+                // implementation/version-specific and may be added later.
+                player.sendMessage(Component.text("§aDu hast +" + (cfgExtraHearts / 2.0) + " Herzen erhalten. (Modell aktualisiert)"));
                 break;
             default:
                 sp.addCoins(5);
@@ -207,6 +197,10 @@ public class GuiManager {
      */
     public void openLevelUpMenu(Player p, int level) {
         if (p == null) return;
+        // Pause the game while the player chooses a level reward
+        try {
+            if (gameManager != null) gameManager.pauseForGui();
+        } catch (Throwable ignored) {}
         LevelUpMenu menu = new LevelUpMenu(level);
         p.openInventory(menu.getInventory());
     }

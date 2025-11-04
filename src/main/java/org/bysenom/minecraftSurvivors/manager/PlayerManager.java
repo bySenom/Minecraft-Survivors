@@ -15,6 +15,10 @@ public class PlayerManager {
         return players.computeIfAbsent(uuid, SurvivorPlayer::new);
     }
 
+    public java.util.Collection<SurvivorPlayer> getAll() {
+        return players.values();
+    }
+
     public void remove(UUID uuid) {
         players.remove(uuid);
     }

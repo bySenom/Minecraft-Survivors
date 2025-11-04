@@ -4,5 +4,6 @@ package org.bysenom.minecraftSurvivors.model;
 public enum GameState {
     LOBBY,
     RUNNING,
+    PAUSED,
     ENDED
 }

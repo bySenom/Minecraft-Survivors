@@ -4,6 +4,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.ItemStack;
 
 public class LevelUpMenuListener implements Listener {
@@ -46,5 +47,16 @@ public class LevelUpMenuListener implements Listener {
         } else {
             guiManager.handleLevelChoice(player, display.getType().name(), level); // String-Overload
         }
+    }
+
+    @EventHandler
+    public void onInventoryClose(InventoryCloseEvent e) {
+        String title = e.getView().title().toString();
+        if (!title.contains("Level Up")) return;
+        try {
+            if (guiManager != null && guiManager.getGameManager() != null) {
+                guiManager.getGameManager().resumeFromGui();
+            }
+        } catch (Throwable ignored) {}
     }
 }

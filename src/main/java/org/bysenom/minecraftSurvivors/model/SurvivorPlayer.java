@@ -39,12 +39,21 @@ public class SurvivorPlayer {
         this.kills++;
     }
 
+    // Setter for persistence
+    public void setKills(int kills) {
+        this.kills = Math.max(0, kills);
+    }
+
     public int getCoins() {
         return coins;
     }
 
     public void addCoins(int amount) {
         this.coins += amount;
+    }
+
+    public void setCoins(int coins) {
+        this.coins = Math.max(0, coins);
     }
 
     public void reset() {
@@ -86,6 +95,14 @@ public class SurvivorPlayer {
         return xpToNext;
     }
 
+    public void setXp(int xp) {
+        this.xp = Math.max(0, xp);
+    }
+
+    public void setXpToNext(int xpToNext) {
+        this.xpToNext = Math.max(1, xpToNext);
+    }
+
     /**
      * Fügt XP hinzu. Falls genügend XP für ein Level vorhanden sind, wird das Level erhöht
      * und true zurückgegeben (sonst false). Bei mehreren Levelups wird true zurückgegeben
@@ -118,12 +135,20 @@ public class SurvivorPlayer {
         this.bonusDamage += val;
     }
 
+    public void setBonusDamage(double bonusDamage) {
+        this.bonusDamage = bonusDamage;
+    }
+
     public int getBonusStrikes() {
         return bonusStrikes;
     }
 
     public void addBonusStrikes(int val) {
         this.bonusStrikes += val;
+    }
+
+    public void setBonusStrikes(int bonusStrikes) {
+        this.bonusStrikes = bonusStrikes;
     }
 
     public double getFlatDamage() {
@@ -134,11 +159,19 @@ public class SurvivorPlayer {
         this.flatDamage += val;
     }
 
+    public void setFlatDamage(double flatDamage) {
+        this.flatDamage = flatDamage;
+    }
+
     public int getExtraHearts() {
         return extraHearts;
     }
 
     public void addExtraHearts(int val) {
         this.extraHearts += val;
+    }
+
+    public void setExtraHearts(int extraHearts) {
+        this.extraHearts = extraHearts;
     }
 }
