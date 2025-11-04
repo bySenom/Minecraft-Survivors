@@ -11,6 +11,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.NamespacedKey;
 import org.bukkit.persistence.PersistentDataType;
 import net.kyori.adventure.text.Component;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,11 +37,12 @@ public class SpawnManager {
         double scale = plugin.getConfigUtil().getDouble("wave.scale-per-wave", 0.5);
         int perPlayer = Math.max(1, base + (int) Math.floor(waveNumber * scale)); // skalierung
         boolean shouldGlow = plugin.getConfigUtil().getBoolean("spawn.glowing", true);
+        int glowDurationTicks = plugin.getConfigUtil().getInt("spawn.glowing-duration-ticks", 20 * 60 * 5); // default 5min
         for (Player player : Bukkit.getOnlinePlayers()) {
             for (int i = 0; i < perPlayer; i++) {
                 Location spawnLoc = randomNearby(player.getLocation(), 3, 6);
                 LivingEntity mob = (LivingEntity) player.getWorld().spawnEntity(spawnLoc, EntityType.ZOMBIE);
-                // Setze glowing und modernen Component-Namen
+                // Setze glowing (vanilla) und modernen Component-Namen
                 mob.setGlowing(shouldGlow);
                 mob.setCustomName("WaveMob");
                 mob.setCustomNameVisible(false);
@@ -47,6 +50,12 @@ public class SpawnManager {
                 playSpawnAnimation(spawnLoc);
                 // Markiere mit PersistentDataContainer statt veralteter Metadata-API
                 mob.getPersistentDataContainer().set(waveKey, PersistentDataType.BYTE, (byte) 1);
+                // Zusätzlicher PotionEffect damit Spieler eindeutig die Wave-Mobs sehen (falls gewünscht)
+                if (shouldGlow) {
+                    try {
+                        mob.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, Math.max(20, glowDurationTicks), 0, true, false, false));
+                    } catch (Throwable ignored) {}
+                }
             }
         }
     }
@@ -82,56 +91,33 @@ public class SpawnManager {
     }
 
     /**
-     * Sicherer Blitz mit Schaden (World#strikeLightning). Immer auf Haupt-Thread ausführen.
+     * Visuellen Blitz-Effekt auslösen und gezielt Schaden an einem Ziel anwenden.
+     * Wichtig: verwendet kein World#strikeLightning (das Schaden an allen Entities in der Nähe verursacht),
+     * sondern spielt nur den Effekt und wendet dann gezielt Damage auf das angegebene Ziel an.
      */
-    public void strikeLightningSafe(Location loc) {
-        if (loc == null) return;
-        World w = loc.getWorld();
-        if (w == null) return;
+    public void strikeLightningAtTarget(LivingEntity target, double damage, Player source) {
+        if (target == null) return;
+        Location loc = target.getLocation();
+        if (loc == null || loc.getWorld() == null) return;
 
-        // Sicherstellen, dass der Aufruf auf dem Haupt-Thread läuft
-        if (Bukkit.isPrimaryThread()) {
-            w.strikeLightning(loc); // schadet Entities
-        } else {
-            Bukkit.getScheduler().runTask(plugin, () -> w.strikeLightning(loc));
-        }
-    }
-
-    /**
-     * Sicherer Blitz-Effekt ohne Schaden (World#strikeLightningEffect).
-     * Nützlich, wenn nur visuelles Feedback erwünscht ist.
-     */
-    public void strikeLightningEffectSafe(Location loc) {
-        if (loc == null) return;
-        World w = loc.getWorld();
-        if (w == null) return;
-
-        Runnable effect = () -> {
-            w.strikeLightningEffect(loc); // nur Effekt
-            // zusätzlich: Sound und Partikel, damit der Effekt sicher sichtbar ist
+        // Play visual effect on main thread and then apply damage to the targeted entity only
+        Runnable r = () -> {
             try {
-                w.playSound(loc, org.bukkit.Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1.0f, 1.0f);
-            } catch (Exception ignored) {}
+                loc.getWorld().strikeLightningEffect(loc); // nur visueller Blitz
+            } catch (Throwable ignored) {}
             try {
-                w.spawnParticle(org.bukkit.Particle.CRIT, loc.add(0, 1, 0), 30, 0.5, 0.5, 0.5);
-            } catch (Exception ignored) {}
+                // Apply damage directly to target; use source as damager so kills are attributed
+                target.damage(damage, source);
+            } catch (Throwable ex) {
+                plugin.getLogger().warning("strikeLightningAtTarget: failed to damage target: " + ex.getMessage());
+            }
         };
 
         if (Bukkit.isPrimaryThread()) {
-            effect.run();
+            r.run();
         } else {
-            Bukkit.getScheduler().runTask(plugin, effect);
+            Bukkit.getScheduler().runTask(plugin, r);
         }
-    }
-
-    private Location randomNearby(Location base, double minRadius, double maxRadius) {
-        double angle = random.nextDouble() * Math.PI * 2;
-        double distance = minRadius + random.nextDouble() * (maxRadius - minRadius);
-        double dx = Math.cos(angle) * distance;
-        double dz = Math.sin(angle) * distance;
-        Location loc = base.clone().add(dx, 0, dz);
-        loc.setY(base.getWorld().getHighestBlockYAt(loc) + 1);
-        return loc;
     }
 
     /**
@@ -184,5 +170,15 @@ public class SpawnManager {
                 tick++;
             }
         }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private Location randomNearby(Location base, double minRadius, double maxRadius) {
+        double angle = random.nextDouble() * Math.PI * 2;
+        double distance = minRadius + random.nextDouble() * (maxRadius - minRadius);
+        double dx = Math.cos(angle) * distance;
+        double dz = Math.sin(angle) * distance;
+        Location loc = base.clone().add(dx, 0, dz);
+        loc.setY(base.getWorld().getHighestBlockYAt(loc) + 1);
+        return loc;
     }
 }

@@ -133,21 +133,49 @@ public class GuiManager {
      */
     public void handleLevelChoice(Player player, ItemStack display, int level) {
         if (player == null || display == null) return;
-        String name = "Unbekannt";
-        ItemMeta meta = display.getItemMeta();
-        if (meta != null && meta.hasDisplayName()) {
-            Component dn = meta.displayName();
-            if (dn != null) name = dn.toString();
-        }
-
         player.closeInventory();
-        // Beispiel: 5 Münzen gewähren (PlayerManager vorhanden)
-        try {
-            plugin.getPlayerManager().get(player.getUniqueId()).addCoins(5);
-            player.sendMessage(Component.text("§aAusgewählt: " + name + " (Level " + level + ") — §e+5 Münzen"));
-        } catch (Exception ex) {
-            // Fallback: nur Nachricht, falls PlayerManager nicht verfügbar ist
-            player.sendMessage(Component.text("§aAusgewählt: " + name + " (Level " + level + ")"));
+        org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = plugin.getPlayerManager().get(player.getUniqueId());
+        org.bukkit.Material mat = display.getType();
+
+        // Lese konfigurierbare Werte
+        double cfgBonusDamage = plugin.getConfigUtil().getDouble("levelup.values.bonus-damage", 1.5);
+        int cfgBonusStrikes = plugin.getConfigUtil().getInt("levelup.values.bonus-strikes", 1);
+        double cfgFlatDamage = plugin.getConfigUtil().getDouble("levelup.values.flat-damage", 2.0);
+        int cfgExtraHearts = plugin.getConfigUtil().getInt("levelup.values.extra-hearts", 2);
+
+        switch (mat) {
+            case DIAMOND_SWORD:
+                sp.addBonusDamage(cfgBonusDamage);
+                player.sendMessage(Component.text("§aDu hast +" + cfgBonusDamage + " Bonus-Schaden erhalten."));
+                break;
+            case TRIDENT:
+                sp.addBonusStrikes(cfgBonusStrikes);
+                player.sendMessage(Component.text("§aDu hast +" + cfgBonusStrikes + " Treffer (Strike) erhalten."));
+                break;
+            case IRON_INGOT:
+                sp.addFlatDamage(cfgFlatDamage);
+                player.sendMessage(Component.text("§aDu hast +" + cfgFlatDamage + " Flacher Schaden erhalten."));
+                break;
+            case APPLE:
+                sp.addExtraHearts(cfgExtraHearts);
+                // Apply extra hearts to player immediately
+                try {
+                    double extraHealth = cfgExtraHearts * 0.5 * 2.0; // cfgExtraHearts are half-hearts; convert to HP (1 heart = 2HP)
+                    // Simpler: each unit represents half-heart -> convert to HP: half-hearts * 1.0
+                    double hpToAdd = cfgExtraHearts * 1.0; // 1 half-heart = 1 HP
+                    org.bukkit.attribute.AttributeInstance maxHealth = player.getAttribute(org.bukkit.attribute.Attribute.GENERIC_MAX_HEALTH);
+                    if (maxHealth != null) {
+                        double newMax = Math.max(1.0, maxHealth.getBaseValue() + hpToAdd);
+                        maxHealth.setBaseValue(newMax);
+                        player.setHealth(Math.min(newMax, player.getHealth() + hpToAdd));
+                    }
+                } catch (Throwable ignored) {}
+                player.sendMessage(Component.text("§aDu hast +" + (cfgExtraHearts / 2.0) + " Herzen erhalten."));
+                break;
+            default:
+                sp.addCoins(5);
+                player.sendMessage(Component.text("§aDu hast 5 Coins erhalten."));
+                break;
         }
     }
 
@@ -170,8 +198,17 @@ public class GuiManager {
         Inventory inv = Bukkit.createInventory(null, 9, Component.text("MinecraftSurvivors - Info").color(NamedTextColor.YELLOW));
         fillBorder(inv, Material.BLACK_STAINED_GLASS_PANE);
         inv.setItem(4, createGuiItem(Material.PAPER, Component.text("Über das Spiel").color(NamedTextColor.GOLD),
-                List.of(Component.text("Vampire Survivors like Minigame"), Component.text("Entwickler: bySenom").color(NamedTextColor.GRAY)), "info_close"));
+                List.of(Component.text("V: Vampire Survivors like Mini-Game"), Component.text("bySenom").color(NamedTextColor.GRAY)), "info_close"));
         p.openInventory(inv);
+    }
+
+    /**
+     * Öffnet das Level-Up-Menü für einen Spieler mit einer Auswahl entsprechend `level`.
+     */
+    public void openLevelUpMenu(Player p, int level) {
+        if (p == null) return;
+        LevelUpMenu menu = new LevelUpMenu(level);
+        p.openInventory(menu.getInventory());
     }
 
     private Material materialForClass(PlayerClass pc) {

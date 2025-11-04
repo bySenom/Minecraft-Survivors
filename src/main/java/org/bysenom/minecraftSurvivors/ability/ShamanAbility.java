@@ -35,29 +35,38 @@ public class ShamanAbility implements Ability {
         double radius = plugin.getConfigUtil().getDouble("shaman.radius", 10.0);
         List<LivingEntity> mobs = spawnManager.getNearbyWaveMobs(playerLoc, radius);
 
-        plugin.getLogger().info("[ShamanAbility] tick for " + player.getName() + " — found mobs: " + mobs.size());
+        boolean debug = plugin.getConfigUtil().getBoolean("debug.shaman-log", true);
+        if (debug) plugin.getLogger().info("[ShamanAbility] tick for " + player.getName() + " — found mobs: " + mobs.size());
 
         if (mobs.isEmpty()) return;
 
-        int strikes = plugin.getConfigUtil().getInt("shaman.strikes-per-tick", 1);
+        int baseStrikes = plugin.getConfigUtil().getInt("shaman.strikes-per-tick", 1);
+        int strikes = baseStrikes + (sp != null ? sp.getBonusStrikes() : 0);
         double baseDamage = plugin.getConfigUtil().getDouble("shaman.base-damage", 6.0);
-        int level = Math.max(1, sp.getClassLevel());
+        int level = Math.max(1, sp != null ? sp.getClassLevel() : 1);
+
+        // Berechne finalen Schaden: base * level + bonusDamage + flatDamage
         double damage = baseDamage * level;
+        if (sp != null) {
+            damage += sp.getBonusDamage();
+            damage += sp.getFlatDamage();
+        }
 
         for (int s = 0; s < strikes && !mobs.isEmpty(); s++) {
             LivingEntity target = mobs.get(random.nextInt(mobs.size()));
             if (target == null) continue;
+            // Defensive: skip players (nur Mobs sollen Schaden erhalten)
+            if (target instanceof Player) {
+                mobs.remove(target);
+                continue;
+            }
             Location strikeLoc = target.getLocation();
-            plugin.getLogger().info("[ShamanAbility] striking at " + strikeLoc.getBlockX() + "," + strikeLoc.getBlockY() + "," + strikeLoc.getBlockZ()
+            if (debug) plugin.getLogger().info("[ShamanAbility] striking at " + strikeLoc.getBlockX() + "," + strikeLoc.getBlockY() + "," + strikeLoc.getBlockZ()
                     + " target=" + target.getType() + " (mainThread=" + Bukkit.isPrimaryThread() + ")");
 
-            // visueller Effekt und gezielter Schaden am Mob (keine Spieler durch Target-Liste)
-            spawnManager.strikeLightningEffectSafe(strikeLoc);
-            try {
-                target.damage(damage, player);
-            } catch (Exception ex) {
-                plugin.getLogger().warning("Failed to apply shaman damage: " + ex.getMessage());
-            }
+            // visueller Effekt und gezielter Schaden nur auf das Ziel (SpawnManager sorgt für Thread-Safety)
+            spawnManager.strikeLightningAtTarget(target, damage, player);
+
             // optional: entferne getroffenen Mob aus Liste, damit nicht erneut getroffen wird
             mobs.remove(target);
         }

@@ -17,7 +17,6 @@ public class LevelUpMenuListener implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent e) {
         if (e.getClickedInventory() == null) return;
-        // Prismatische Titelprüfung: nutzt Component->string
         String title = e.getView().title().toString();
         if (!title.contains("Level Up")) return;
 
@@ -25,8 +24,22 @@ public class LevelUpMenuListener implements Listener {
         ItemStack display = e.getCurrentItem();
         if (display == null) return;
 
+        // Versuche die Level-Nummer aus dem Titel zu parsen: "... (Level X)"
+        int level = 1;
+        try {
+            int idx = title.lastIndexOf("Level ");
+            if (idx >= 0) {
+                String sub = title.substring(idx + "Level ".length()).trim();
+                // sub enthält z.B. "3)" oder "3)" – entferne nicht-digit-zeichen
+                String num = sub.replaceAll("[^0-9]", "");
+                if (!num.isEmpty()) {
+                    level = Integer.parseInt(num);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
         Player player = (Player) e.getWhoClicked();
-        int level = 1; // Level aus Kontext ziehen oder berechnen
 
         if (display.getItemMeta() != null && display.getItemMeta().hasDisplayName()) {
             guiManager.handleLevelChoice(player, display, level); // ItemStack-Overload

@@ -5,7 +5,6 @@ import org.bysenom.minecraftSurvivors.command.OpenGuiCommand;
 import org.bysenom.minecraftSurvivors.command.StartCommand;
 import org.bysenom.minecraftSurvivors.gui.GuiClickListener;
 import org.bysenom.minecraftSurvivors.gui.GuiManager;
-import org.bysenom.minecraftSurvivors.listener.EntityDeathListener;
 import org.bysenom.minecraftSurvivors.listener.PlayerDeathListener;
 import org.bysenom.minecraftSurvivors.manager.GameManager;
 import org.bysenom.minecraftSurvivors.manager.PlayerManager;
@@ -47,9 +46,11 @@ public final class MinecraftSurvivors extends JavaPlugin {
                 getCommand("msconfig").setExecutor(new org.bysenom.minecraftSurvivors.command.MsConfigCommand(gameManager));
             }
 
-            getServer().getPluginManager().registerEvents(new EntityDeathListener(playerManager), this);
+            // EntityDeathListener benötigt nun ConfigUtil zur Bestimmung von XP pro Kill
+            getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.EntityDeathListener(playerManager, guiManager, this.configUtil), this);
             getServer().getPluginManager().registerEvents(new PlayerDeathListener(gameManager, playerManager), this);
             getServer().getPluginManager().registerEvents(new GuiClickListener(this, guiManager), this);
+            getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.gui.LevelUpMenuListener(guiManager), this);
 
             getLogger().info("MinecraftSurvivors enabled (registrations done on main thread).");
         } catch (Throwable t) {

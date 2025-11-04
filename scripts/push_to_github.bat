@@ -48,4 +48,5 @@ if %ERRORLEVEL% neq 0 (
   echo Push completed successfully.
 )
 
-pause
+REM Removed interactive pause to avoid issues when running from PowerShell/CI
+echo Push script finished.
