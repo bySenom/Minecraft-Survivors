@@ -16,9 +16,18 @@ shaman:
   allow-player-damage: false  # Ob durch Shaman-Blitze Spieler Schaden nehmen dürfen
   strikes-per-tick: 1         # Anzahl Ziele pro Tick (kann später durch Powerups erhöht werden)
 
+# LevelUp / Upgrade Werte (konfigurierbar)
+levelup:
+  values:
+    bonus-damage: 1.5         # additive Bonus-Schaden, wenn +Schaden gewählt wird
+    bonus-strikes: 1          # zusätzliche Strikes, wenn +Treffer gewählt wird
+    flat-damage: 2.0          # flacher zusätzlicher Schaden, wenn +FlatDmg gewählt wird
+    extra-hearts: 2          # Anzahl halber Herzen (2 = 1 Herz), wenn +Herzen gewählt wird
+
 # Mob visuals
 spawn:
   glowing: true               # Ob gespawnte Wave-Mobs glowing sein sollen
+  glowing-duration-ticks: 6000 # Dauer des Glowing-Effekts in Ticks (20 * 60 * 5 = 5 Minuten)
   particle: END_ROD           # Partikeltyp beim Spawn (z. B. END_ROD, FLAME, NOTE)
   particle-duration: 10       # Dauer der Partikel-Animation in Ticks
   particle-points: 16         # Anzahl Punkte im Ring pro Tick
