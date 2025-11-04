@@ -18,6 +18,7 @@ shaman:
 
 # LevelUp / Upgrade Werte (konfigurierbar)
 levelup:
+  xp-per-kill: 1              # XP, die ein Spieler pro Kill erhält (kann pro Mob / Kill konfiguriert werden)
   values:
     bonus-damage: 1.5         # additive Bonus-Schaden, wenn +Schaden gewählt wird
     bonus-strikes: 1          # zusätzliche Strikes, wenn +Treffer gewählt wird
