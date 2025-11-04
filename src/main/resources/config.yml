@@ -1,0 +1,64 @@
+# MinecraftSurvivors default configuration
+# Waves
+wave:
+  interval-seconds: 10         # Zeit zwischen Waves in Sekunden (WaveTask verwendet derzeit eigene Scheduling)
+  spawn-per-player-base: 1    # Basisanzahl Mobs pro Spieler
+  scale-per-wave: 0.5         # zusätzliche Mobs pro Wave (perPlayer = base + floor(wave * scale))
+
+# Ability / Gameplay
+ability:
+  interval-ticks: 30          # Ticks zwischen Ability-Ticks (20 ticks = 1s). Default 30 = 1.5s
+
+# Shaman specific
+shaman:
+  base-damage: 6.0            # Basisschaden pro Strike (Minecraft Damage; 1.0 = 1 HP)
+  radius: 10.0                # Suchradius um den Spieler (Blitz-Ziele in dieser Distanz)
+  allow-player-damage: false  # Ob durch Shaman-Blitze Spieler Schaden nehmen dürfen
+  strikes-per-tick: 1         # Anzahl Ziele pro Tick (kann später durch Powerups erhöht werden)
+
+# Mob visuals
+spawn:
+  glowing: true               # Ob gespawnte Wave-Mobs glowing sein sollen
+  particle: END_ROD           # Partikeltyp beim Spawn (z. B. END_ROD, FLAME, NOTE)
+  particle-duration: 10       # Dauer der Partikel-Animation in Ticks
+  particle-points: 16         # Anzahl Punkte im Ring pro Tick
+  particle-count: 2           # Partikelanzahl pro Punkt
+  particle-spread: 0.1        # spread/offset für Partikel (offsetX/Y/Z)
+  # Redstone color (falls particle = REDSTONE)
+  redstone-r: 255
+  redstone-g: 255
+  redstone-b: 255
+
+# Debug / Logging
+debug:
+  shaman-log: true            # ob ShamanAbility Logs geschrieben werden sollen
+
+# Presets für Spawn-Particles - können per /msconfig preset <name> angewendet werden
+presets:
+  subtle:
+    particle: END_ROD
+    particle-duration: 8
+    particle-points: 12
+    particle-count: 1
+    particle-spread: 0.06
+    redstone-r: 200
+    redstone-g: 200
+    redstone-b: 255
+  flashy:
+    particle: FLAME
+    particle-duration: 14
+    particle-points: 20
+    particle-count: 3
+    particle-spread: 0.12
+    redstone-r: 255
+    redstone-g: 180
+    redstone-b: 60
+  epic:
+    particle: REDSTONE
+    particle-duration: 20
+    particle-points: 28
+    particle-count: 4
+    particle-spread: 0.18
+    redstone-r: 128
+    redstone-g: 50
+    redstone-b: 200

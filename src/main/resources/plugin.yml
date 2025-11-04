@@ -1,0 +1,31 @@
+# language: yaml
+name: MinecraftSurvivors
+version: '1.0-SNAPSHOT'
+main: org.bysenom.minecraftSurvivors.MinecraftSurvivors
+api-version: '1.21'
+description: "Vampire Survivors like Minigame"
+authors:
+  - bySenom
+commands:
+  # Ergänzung zu vorhandener plugin.yml — unter commands: einfügen
+  msmenu:
+    description: "Öffnet das MinecraftSurvivors Menü (Admin)."
+    usage: "/msmenu"
+    permission: minecraftsurvivors.admin
+    permission-message: "§cKeine Berechtigung."
+
+  msstart:
+    description: "Startet das Spiel (Admin/Op)."
+    usage: "/msstart"
+    permission: minecraftsurvivors.admin
+    permission-message: "§cKeine Berechtigung."
+
+  msconfig:
+    description: "Verwaltet MinecraftSurvivors Konfiguration (reload)."
+    usage: "/msconfig reload"
+    permission: minecraftsurvivors.admin
+    permission-message: "§cKeine Berechtigung."
+permissions:
+  minecraftsurvivors.admin:
+    description: "Erlaubnis zum Starten/Stoppen und Admin-Kommandos"
+    default: op
