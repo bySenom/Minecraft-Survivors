@@ -55,7 +55,8 @@ public class LevelUpMenuListener implements Listener {
         if (!title.contains("Level Up")) return;
         try {
             if (guiManager != null && guiManager.getGameManager() != null) {
-                guiManager.getGameManager().resumeFromGui();
+                java.util.UUID uuid = e.getPlayer().getUniqueId();
+                guiManager.getGameManager().resumeForPlayer(uuid);
             }
         } catch (Throwable ignored) {}
     }

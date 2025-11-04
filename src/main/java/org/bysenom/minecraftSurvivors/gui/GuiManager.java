@@ -197,9 +197,9 @@ public class GuiManager {
      */
     public void openLevelUpMenu(Player p, int level) {
         if (p == null) return;
-        // Pause the game while the player chooses a level reward
+        // Pause only this player while they choose a level reward (local pause)
         try {
-            if (gameManager != null) gameManager.pauseForGui();
+            if (gameManager != null) gameManager.pauseForPlayer(p.getUniqueId());
         } catch (Throwable ignored) {}
         LevelUpMenu menu = new LevelUpMenu(level);
         p.openInventory(menu.getInventory());

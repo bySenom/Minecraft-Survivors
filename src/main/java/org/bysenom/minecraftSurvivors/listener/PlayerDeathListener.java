@@ -14,10 +14,12 @@ public class PlayerDeathListener implements Listener {
 
     private final GameManager gameManager;
     private final PlayerManager playerManager;
+    private final org.bysenom.minecraftSurvivors.util.PlayerDataManager dataManager;
 
-    public PlayerDeathListener(GameManager gameManager, PlayerManager playerManager) {
+    public PlayerDeathListener(GameManager gameManager, PlayerManager playerManager, org.bysenom.minecraftSurvivors.util.PlayerDataManager dataManager) {
         this.gameManager = gameManager;
         this.playerManager = playerManager;
+        this.dataManager = dataManager;
     }
 
     @EventHandler
@@ -25,6 +27,17 @@ public class PlayerDeathListener implements Listener {
         Player player = e.getPlayer();
         if (gameManager.getState() == GameState.RUNNING) {
             // Spiel stoppen, Spieler-Daten aufräumen und Broadcast
+            // Reset XP but preserve coins: save coins to disk first
+            org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = playerManager.get(player.getUniqueId());
+            if (sp != null) {
+                // reset XP
+                sp.setXp(0);
+                sp.setXpToNext(Math.max(1, 5 * sp.getClassLevel()));
+                // persist coins (and other permanent fields) via dataManager if available
+                try {
+                    if (dataManager != null) dataManager.save(sp);
+                } catch (Throwable ignored) {}
+            }
             gameManager.stopGame();
             if (playerManager != null) {
                 playerManager.remove(player.getUniqueId());

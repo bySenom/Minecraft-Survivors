@@ -12,12 +12,14 @@ public class AbilityManager {
 
     private final MinecraftSurvivors plugin;
     private final PlayerManager playerManager;
+    private final GameManager gameManager;
     private BukkitRunnable task;
     private final ShamanAbility shamanAbility;
 
-    public AbilityManager(MinecraftSurvivors plugin, PlayerManager playerManager, SpawnManager spawnManager) {
+    public AbilityManager(MinecraftSurvivors plugin, PlayerManager playerManager, SpawnManager spawnManager, GameManager gameManager) {
         this.plugin = plugin;
         this.playerManager = playerManager;
+        this.gameManager = gameManager;
         this.shamanAbility = new ShamanAbility(plugin, spawnManager);
     }
 
@@ -47,6 +49,10 @@ public class AbilityManager {
         for (Player p : Bukkit.getOnlinePlayers()) {
             SurvivorPlayer sp = playerManager.get(p.getUniqueId());
             if (sp == null) continue;
+            // skip players who are paused (choosing a level/powerup)
+            try {
+                if (gameManager != null && gameManager.isPlayerPaused(p.getUniqueId())) continue;
+            } catch (Throwable ignored) {}
             if (sp.getSelectedClass() == PlayerClass.SHAMAN) {
                 shamanAbility.tick(p, sp);
             }

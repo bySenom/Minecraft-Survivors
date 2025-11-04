@@ -20,12 +20,13 @@ public class GameManager {
     private BukkitTask xpHudTask;
     private int currentWaveNumber = 1;
     private int pauseCounter = 0; // counts GUI pauses (e.g., multiple players)
+    private final java.util.Set<java.util.UUID> pausedPlayers = new java.util.HashSet<>();
 
     public GameManager(MinecraftSurvivors plugin, PlayerManager playerManager) {
         this.plugin = plugin;
         this.playerManager = playerManager;
         this.spawnManager = new SpawnManager(plugin, playerManager);
-        this.abilityManager = new AbilityManager(plugin, playerManager, spawnManager);
+        this.abilityManager = new AbilityManager(plugin, playerManager, spawnManager, this);
     }
 
     private void startWaveTask() {
@@ -108,6 +109,30 @@ public class GameManager {
         } else {
             plugin.getLogger().info("Resume requested but pauseCount=" + pauseCounter + ", state=" + state);
         }
+    }
+
+    // --- per-player pause (local pause) ---
+    public synchronized void pauseForPlayer(java.util.UUID playerUuid) {
+        if (playerUuid == null) return;
+        pausedPlayers.add(playerUuid);
+        // send player a notice/UI if online
+        org.bukkit.entity.Player p = org.bukkit.Bukkit.getPlayer(playerUuid);
+        if (p != null && p.isOnline()) {
+            try { p.sendActionBar(Component.text("§eSpiel pausiert für dich — wähle deine Belohnung")); } catch (Throwable ignored) {}
+        }
+    }
+
+    public synchronized void resumeForPlayer(java.util.UUID playerUuid) {
+        if (playerUuid == null) return;
+        pausedPlayers.remove(playerUuid);
+        org.bukkit.entity.Player p = org.bukkit.Bukkit.getPlayer(playerUuid);
+        if (p != null && p.isOnline()) {
+            try { p.sendActionBar(Component.text("§aAuswahl abgeschlossen — Spiel fortgesetzt")); } catch (Throwable ignored) {}
+        }
+    }
+
+    public synchronized boolean isPlayerPaused(java.util.UUID playerUuid) {
+        return playerUuid != null && pausedPlayers.contains(playerUuid);
     }
 
     public GameState getState() {

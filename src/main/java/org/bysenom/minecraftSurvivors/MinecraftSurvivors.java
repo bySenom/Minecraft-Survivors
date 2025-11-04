@@ -17,6 +17,7 @@ public final class MinecraftSurvivors extends JavaPlugin {
     private PlayerManager playerManager;
     private GameManager gameManager;
     private ConfigUtil configUtil;
+    private org.bysenom.minecraftSurvivors.util.PlayerDataManager playerDataManager;
 
     @Override
     public void onLoad() {
@@ -28,6 +29,7 @@ public final class MinecraftSurvivors extends JavaPlugin {
         // Initiale Objekte erzeugen
         this.configUtil = new ConfigUtil(this);
         this.playerManager = new PlayerManager();
+        this.playerDataManager = new org.bysenom.minecraftSurvivors.util.PlayerDataManager(this, playerManager);
         this.gameManager = new GameManager(this, playerManager);
 
         // GuiManager einmal erstellen
@@ -48,7 +50,9 @@ public final class MinecraftSurvivors extends JavaPlugin {
 
             // EntityDeathListener benötigt nun ConfigUtil zur Bestimmung von XP pro Kill
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.EntityDeathListener(playerManager, guiManager, this.configUtil), this);
-            getServer().getPluginManager().registerEvents(new PlayerDeathListener(gameManager, playerManager), this);
+            getServer().getPluginManager().registerEvents(new PlayerDeathListener(gameManager, playerManager, this.playerDataManager), this);
+            // Also register PlayerDataListener for join/quit
+            getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.PlayerDataListener(this.playerDataManager, playerManager), this);
             getServer().getPluginManager().registerEvents(new GuiClickListener(this, guiManager), this);
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.gui.LevelUpMenuListener(guiManager), this);
 
