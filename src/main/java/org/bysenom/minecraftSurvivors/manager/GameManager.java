@@ -119,6 +119,10 @@ public class GameManager {
         org.bukkit.entity.Player p = org.bukkit.Bukkit.getPlayer(playerUuid);
         if (p != null && p.isOnline()) {
             try { p.sendActionBar(Component.text("§eSpiel pausiert für dich — wähle deine Belohnung")); } catch (Throwable ignored) {}
+            // freeze nearby wave mobs relative to this player so they don't move toward them
+            try {
+                spawnManager.freezeMobsForPlayer(playerUuid, p.getLocation(), plugin.getConfigUtil().getDouble("spawn.freeze-radius", 10.0));
+            } catch (Throwable ignored) {}
         }
     }
 
@@ -128,6 +132,9 @@ public class GameManager {
         org.bukkit.entity.Player p = org.bukkit.Bukkit.getPlayer(playerUuid);
         if (p != null && p.isOnline()) {
             try { p.sendActionBar(Component.text("§aAuswahl abgeschlossen — Spiel fortgesetzt")); } catch (Throwable ignored) {}
+            try {
+                spawnManager.unfreezeMobsForPlayer(playerUuid);
+            } catch (Throwable ignored) {}
         }
     }
 

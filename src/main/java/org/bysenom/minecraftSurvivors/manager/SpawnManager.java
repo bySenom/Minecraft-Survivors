@@ -17,6 +17,10 @@ import org.bukkit.potion.PotionEffectType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class SpawnManager {
 
@@ -24,6 +28,7 @@ public class SpawnManager {
     private final PlayerManager playerManager;
     private final Random random = new Random();
     private final NamespacedKey waveKey;
+    private final Map<UUID, Set<UUID>> frozenByPlayer = new ConcurrentHashMap<>();
 
     public SpawnManager(MinecraftSurvivors plugin, PlayerManager playerManager) {
         this.plugin = plugin;
@@ -38,9 +43,12 @@ public class SpawnManager {
         int perPlayer = Math.max(1, base + (int) Math.floor(waveNumber * scale)); // skalierung
         boolean shouldGlow = plugin.getConfigUtil().getBoolean("spawn.glowing", true);
         int glowDurationTicks = plugin.getConfigUtil().getInt("spawn.glowing-duration-ticks", 20 * 60 * 5); // default 5min
+        // read spawn distances from config; default to further distances to avoid spawns too close
+        double minDist = plugin.getConfigUtil().getDouble("spawn.min-distance", 8.0);
+        double maxDist = plugin.getConfigUtil().getDouble("spawn.max-distance", 16.0);
         for (Player player : Bukkit.getOnlinePlayers()) {
             for (int i = 0; i < perPlayer; i++) {
-                Location spawnLoc = randomNearby(player.getLocation(), 3, 6);
+                Location spawnLoc = randomNearby(player.getLocation(), minDist, maxDist);
                 LivingEntity mob = (LivingEntity) player.getWorld().spawnEntity(spawnLoc, EntityType.ZOMBIE);
                 // Setze glowing (vanilla) und modernen Component-Namen
                 mob.setGlowing(shouldGlow);
@@ -180,5 +188,58 @@ public class SpawnManager {
         Location loc = base.clone().add(dx, 0, dz);
         loc.setY(base.getWorld().getHighestBlockYAt(loc) + 1);
         return loc;
+    }
+
+    /**
+     * Freeze nearby wave mobs for a specific player by applying strong Slowness and
+     * optionally disabling AI when supported. The freeze is tracked so it can be undone.
+     */
+    public void freezeMobsForPlayer(UUID playerUuid, Location center, double radius) {
+        if (playerUuid == null || center == null) return;
+        List<LivingEntity> mobs = getNearbyWaveMobs(center, radius);
+        if (mobs.isEmpty()) return;
+        Set<UUID> set = frozenByPlayer.computeIfAbsent(playerUuid, k -> ConcurrentHashMap.newKeySet());
+        for (LivingEntity le : mobs) {
+            try {
+                // mark as frozen for this player
+                set.add(le.getUniqueId());
+                // strong slowness to effectively freeze
+                org.bukkit.potion.PotionEffectType slowType = org.bukkit.potion.PotionEffectType.getByName("SLOW");
+                if (slowType == null) slowType = org.bukkit.potion.PotionEffectType.getByName("SLOWNESS");
+                if (slowType != null) {
+                    le.addPotionEffect(new org.bukkit.potion.PotionEffect(slowType, 20 * 60 * 60, 10, true, false, false));
+                }
+                // try to disable AI if available (Paper/Spigot 1.14+)
+                try {
+                    le.getClass().getMethod("setAI", boolean.class).invoke(le, false);
+                } catch (NoSuchMethodException nsme) {
+                    // ignore if setAI not available
+                }
+            } catch (Throwable ignored) {}
+        }
+    }
+
+    public void unfreezeMobsForPlayer(UUID playerUuid) {
+        if (playerUuid == null) return;
+        Set<UUID> set = frozenByPlayer.remove(playerUuid);
+        if (set == null || set.isEmpty()) return;
+        for (UUID eu : set) {
+            try {
+                Entity ent = Bukkit.getEntity(eu);
+                if (ent instanceof LivingEntity) {
+                    LivingEntity le = (LivingEntity) ent;
+                    // remove slowness
+                    org.bukkit.potion.PotionEffectType slowType = org.bukkit.potion.PotionEffectType.getByName("SLOW");
+                    if (slowType == null) slowType = org.bukkit.potion.PotionEffectType.getByName("SLOWNESS");
+                    if (slowType != null) le.removePotionEffect(slowType);
+                    // try to re-enable AI
+                    try {
+                        le.getClass().getMethod("setAI", boolean.class).invoke(le, true);
+                    } catch (NoSuchMethodException nsme) {
+                        // ignore
+                    }
+                }
+            } catch (Throwable ignored) {}
+        }
     }
 }
