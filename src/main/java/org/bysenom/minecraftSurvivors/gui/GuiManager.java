@@ -85,12 +85,17 @@ public class GuiManager {
         Inventory inv = Bukkit.createInventory(null, 27, title);
         fillBorder(inv, Material.GRAY_STAINED_GLASS_PANE);
 
-        // Shamanen item with icon and tooltip symbol
         org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = plugin.getPlayerManager().get(p.getUniqueId());
-        PlayerClass current = sp != null ? sp.getSelectedClass() : null;
-        boolean isSelected = current == PlayerClass.SHAMAN;
-        inv.setItem(12, createGuiItem(materialForClass(PlayerClass.SHAMAN), Component.text("Shamanen ⚡").color(NamedTextColor.LIGHT_PURPLE),
-                List.of(Component.text("Main: Blitz"), Component.text("Wird später per Level stärker").color(NamedTextColor.GRAY)), "select_shaman", isSelected));
+        org.bysenom.minecraftSurvivors.model.PlayerClass current = sp != null ? sp.getSelectedClass() : null;
+
+        inv.setItem(10, createGuiItem(materialForClass(org.bysenom.minecraftSurvivors.model.PlayerClass.SHAMAN), Component.text("Shamanen ⚡").color(NamedTextColor.LIGHT_PURPLE),
+                List.of(Component.text("Main: Blitz"), Component.text("Solider Allrounder").color(NamedTextColor.GRAY)), "select_shaman", current == org.bysenom.minecraftSurvivors.model.PlayerClass.SHAMAN));
+        inv.setItem(12, createGuiItem(materialForClass(org.bysenom.minecraftSurvivors.model.PlayerClass.PYROMANCER), Component.text("Pyromant 🔥").color(NamedTextColor.GOLD),
+                List.of(Component.text("Main: Feuer & DoT"), Component.text("Nahbereich-AoE").color(NamedTextColor.GRAY)), "select_pyromancer", current == org.bysenom.minecraftSurvivors.model.PlayerClass.PYROMANCER));
+        inv.setItem(14, createGuiItem(materialForClass(org.bysenom.minecraftSurvivors.model.PlayerClass.RANGER), Component.text("Waldläufer 🏹").color(NamedTextColor.GREEN),
+                List.of(Component.text("Main: Fernschuss"), Component.text("Single-Target").color(NamedTextColor.GRAY)), "select_ranger", current == org.bysenom.minecraftSurvivors.model.PlayerClass.RANGER));
+        inv.setItem(16, createGuiItem(materialForClass(org.bysenom.minecraftSurvivors.model.PlayerClass.PALADIN), Component.text("Paladin ✨").color(NamedTextColor.AQUA),
+                List.of(Component.text("Main: Heilige Nova"), Component.text("AoE + Heal").color(NamedTextColor.GRAY)), "select_paladin", current == org.bysenom.minecraftSurvivors.model.PlayerClass.PALADIN));
 
         inv.setItem(22, createGuiItem(Material.ARROW, Component.text("Zurück").color(NamedTextColor.RED), List.of(Component.text("Zurück zum Hauptmenü")), "back"));
         p.openInventory(inv);
@@ -137,34 +142,57 @@ public class GuiManager {
         org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = plugin.getPlayerManager().get(player.getUniqueId());
         org.bukkit.Material mat = display.getType();
 
-        // Lese konfigurierbare Werte
         double cfgBonusDamage = plugin.getConfigUtil().getDouble("levelup.values.bonus-damage", 1.5);
         int cfgBonusStrikes = plugin.getConfigUtil().getInt("levelup.values.bonus-strikes", 1);
         double cfgFlatDamage = plugin.getConfigUtil().getDouble("levelup.values.flat-damage", 2.0);
         int cfgExtraHearts = plugin.getConfigUtil().getInt("levelup.values.extra-hearts", 2);
 
+        double sizeStep = plugin.getConfigUtil().getDouble("levelup.weapon.size-step", 0.15);
+        double atkMultStep = plugin.getConfigUtil().getDouble("levelup.weapon.attackpower-step", 0.20);
+        int igniteStep = plugin.getConfigUtil().getInt("levelup.pyromancer.ignite-step", 20);
+        double kbStep = plugin.getConfigUtil().getDouble("levelup.ranger.knockback-step", 0.10);
+        double healStep = plugin.getConfigUtil().getDouble("levelup.paladin.heal-step", 0.5);
+
         switch (mat) {
             case DIAMOND_SWORD:
                 sp.addBonusDamage(cfgBonusDamage);
-                player.sendMessage(Component.text("§aDu hast +" + cfgBonusDamage + " Bonus-Schaden erhalten."));
+                player.sendMessage(Component.text("§a+" + cfgBonusDamage + " Bonus-Schaden"));
                 break;
             case TRIDENT:
                 sp.addBonusStrikes(cfgBonusStrikes);
-                player.sendMessage(Component.text("§aDu hast +" + cfgBonusStrikes + " Treffer (Strike) erhalten."));
+                player.sendMessage(Component.text("§a+" + cfgBonusStrikes + " Treffer (Strikes)"));
                 break;
             case IRON_INGOT:
                 sp.addFlatDamage(cfgFlatDamage);
-                player.sendMessage(Component.text("§aDu hast +" + cfgFlatDamage + " Flacher Schaden erhalten."));
+                player.sendMessage(Component.text("§a+" + cfgFlatDamage + " flacher Schaden"));
                 break;
             case APPLE:
                 sp.addExtraHearts(cfgExtraHearts);
-                // Only update the internal model here; manipulating Bukkit entity attributes is
-                // implementation/version-specific and may be added later.
-                player.sendMessage(Component.text("§aDu hast +" + (cfgExtraHearts / 2.0) + " Herzen erhalten. (Modell aktualisiert)"));
+                player.sendMessage(Component.text("§a+" + (cfgExtraHearts / 2.0) + " Herzen (Modell)"));
+                break;
+            case BLAZE_POWDER:
+                sp.addRadiusMult(sizeStep);
+                player.sendMessage(Component.text("§6Radius +" + (int)(sizeStep * 100) + "%"));
+                break;
+            case GOLDEN_SWORD:
+                sp.addDamageMult(atkMultStep);
+                player.sendMessage(Component.text("§6Attackpower +" + (int)(atkMultStep * 100) + "%"));
+                break;
+            case MAGMA_CREAM:
+                sp.addIgniteBonusTicks(igniteStep);
+                player.sendMessage(Component.text("§6Burn Dauer +" + igniteStep + "t"));
+                break;
+            case BOW:
+                sp.addKnockbackBonus(kbStep);
+                player.sendMessage(Component.text("§6Knockback +" + (int)(kbStep * 100) + "%"));
+                break;
+            case GOLDEN_APPLE:
+                sp.addHealBonus(healStep);
+                player.sendMessage(Component.text("§6Heilung +" + healStep));
                 break;
             default:
                 sp.addCoins(5);
-                player.sendMessage(Component.text("§aDu hast 5 Coins erhalten."));
+                player.sendMessage(Component.text("§a+5 Coins"));
                 break;
         }
     }
@@ -201,17 +229,19 @@ public class GuiManager {
         try {
             if (gameManager != null) gameManager.pauseForPlayer(p.getUniqueId());
         } catch (Throwable ignored) {}
-        LevelUpMenu menu = new LevelUpMenu(level);
+        org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = plugin.getPlayerManager().get(p.getUniqueId());
+        LevelUpMenu menu = new LevelUpMenu(p, sp, level);
         p.openInventory(menu.getInventory());
     }
 
-    private Material materialForClass(PlayerClass pc) {
+    private Material materialForClass(org.bysenom.minecraftSurvivors.model.PlayerClass pc) {
         if (pc == null) return Material.POPPED_CHORUS_FRUIT;
         switch (pc) {
-            case SHAMAN:
-                return Material.ENCHANTED_BOOK; // symbolisch
-            default:
-                return Material.POPPED_CHORUS_FRUIT;
+            case SHAMAN: return Material.ENCHANTED_BOOK;
+            case PYROMANCER: return Material.BLAZE_POWDER;
+            case RANGER: return Material.BOW;
+            case PALADIN: return Material.SHIELD;
+            default: return Material.POPPED_CHORUS_FRUIT;
         }
     }
 }

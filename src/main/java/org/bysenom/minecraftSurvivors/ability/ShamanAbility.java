@@ -32,7 +32,8 @@ public class ShamanAbility implements Ability {
         Location playerLoc = player.getLocation();
         if (playerLoc.getWorld() == null) return;
 
-        double radius = plugin.getConfigUtil().getDouble("shaman.radius", 10.0);
+        double baseRadius = plugin.getConfigUtil().getDouble("shaman.radius", 10.0);
+        double radius = baseRadius * (1.0 + (sp != null ? sp.getRadiusMult() : 0.0));
         List<LivingEntity> mobs = spawnManager.getNearbyWaveMobs(playerLoc, radius);
 
         boolean debug = plugin.getConfigUtil().getBoolean("debug.shaman-log", true);
@@ -50,7 +51,20 @@ public class ShamanAbility implements Ability {
         if (sp != null) {
             damage += sp.getBonusDamage();
             damage += sp.getFlatDamage();
+            damage *= (1.0 + sp.getDamageMult());
         }
+
+        // ambient spark ring around player
+        try {
+            int points = 18;
+            for (int i = 0; i < points; i++) {
+                double ang = 2 * Math.PI * i / points;
+                double x = playerLoc.getX() + Math.cos(ang) * 0.8;
+                double z = playerLoc.getZ() + Math.sin(ang) * 0.8;
+                playerLoc.getWorld().spawnParticle(org.bukkit.Particle.ELECTRIC_SPARK, new Location(playerLoc.getWorld(), x, playerLoc.getY() + 1.2, z), 1, 0.02, 0.02, 0.02, 0.0);
+            }
+            player.playSound(playerLoc, org.bukkit.Sound.BLOCK_AMETHYST_BLOCK_RESONATE, 0.35f, 1.7f);
+        } catch (Throwable ignored) {}
 
         for (int s = 0; s < strikes && !mobs.isEmpty(); s++) {
             LivingEntity target = mobs.get(random.nextInt(mobs.size()));
@@ -61,8 +75,21 @@ public class ShamanAbility implements Ability {
                 continue;
             }
             Location strikeLoc = target.getLocation();
-            if (debug) plugin.getLogger().info("[ShamanAbility] striking at " + strikeLoc.getBlockX() + "," + strikeLoc.getBlockY() + "," + strikeLoc.getBlockZ()
-                    + " target=" + target.getType() + " (mainThread=" + Bukkit.isPrimaryThread() + ")");
+
+            // draw particle arc from player head to target
+            try {
+                Location from = playerLoc.clone().add(0, 1.6, 0);
+                Location to = strikeLoc.clone().add(0, 1.0, 0);
+                org.bukkit.util.Vector dir = to.toVector().subtract(from.toVector());
+                int steps = Math.max(6, (int) Math.min(30, from.distance(to) * 4));
+                for (int i = 0; i <= steps; i++) {
+                    double t = i / (double) steps;
+                    org.bukkit.util.Vector pt = from.toVector().add(dir.clone().multiply(t));
+                    Location pLoc = new Location(from.getWorld(), pt.getX(), pt.getY(), pt.getZ());
+                    from.getWorld().spawnParticle(org.bukkit.Particle.END_ROD, pLoc, 1, 0.01, 0.01, 0.01, 0.0);
+                }
+                player.playSound(playerLoc, org.bukkit.Sound.BLOCK_ENCHANTMENT_TABLE_USE, 0.5f, 2.0f);
+            } catch (Throwable ignored) {}
 
             // visueller Effekt und gezielter Schaden nur auf das Ziel (SpawnManager sorgt für Thread-Safety)
             spawnManager.strikeLightningAtTarget(target, damage, player);

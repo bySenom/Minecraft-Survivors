@@ -39,9 +39,9 @@ public class GuiClickListener implements Listener {
 
         switch (action) {
             case "start":
-                guiManager.getGameManager().startGame();
+                guiManager.getGameManager().startGameWithCountdown(5);
                 player.closeInventory();
-                player.sendMessage("§aSpiel gestartet.");
+                player.sendMessage("§aStart in 5 Sekunden...");
                 break;
             case "class":
                 // Öffne Klassenwahl
@@ -69,6 +69,21 @@ public class GuiClickListener implements Listener {
             case "powerup":
                 player.closeInventory();
                 player.sendMessage("§dPowerup-Auswahl folgt später.");
+                break;
+            case "select_pyromancer":
+                plugin.getPlayerManager().get(player.getUniqueId()).setSelectedClass(org.bysenom.minecraftSurvivors.model.PlayerClass.PYROMANCER);
+                player.closeInventory();
+                player.sendMessage("§aKlasse gewählt: Pyromant");
+                break;
+            case "select_ranger":
+                plugin.getPlayerManager().get(player.getUniqueId()).setSelectedClass(org.bysenom.minecraftSurvivors.model.PlayerClass.RANGER);
+                player.closeInventory();
+                player.sendMessage("§aKlasse gewählt: Waldläufer");
+                break;
+            case "select_paladin":
+                plugin.getPlayerManager().get(player.getUniqueId()).setSelectedClass(org.bysenom.minecraftSurvivors.model.PlayerClass.PALADIN);
+                player.closeInventory();
+                player.sendMessage("§aKlasse gewählt: Paladin");
                 break;
             default:
                 break;

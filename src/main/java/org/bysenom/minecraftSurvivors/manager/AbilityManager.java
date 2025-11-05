@@ -2,6 +2,9 @@ package org.bysenom.minecraftSurvivors.manager;
 
 import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
 import org.bysenom.minecraftSurvivors.ability.ShamanAbility;
+import org.bysenom.minecraftSurvivors.ability.PyromancerAbility;
+import org.bysenom.minecraftSurvivors.ability.RangerAbility;
+import org.bysenom.minecraftSurvivors.ability.PaladinAbility;
 import org.bysenom.minecraftSurvivors.model.PlayerClass;
 import org.bysenom.minecraftSurvivors.model.SurvivorPlayer;
 import org.bukkit.Bukkit;
@@ -15,12 +18,18 @@ public class AbilityManager {
     private final GameManager gameManager;
     private BukkitRunnable task;
     private final ShamanAbility shamanAbility;
+    private final PyromancerAbility pyromancerAbility;
+    private final RangerAbility rangerAbility;
+    private final PaladinAbility paladinAbility;
 
     public AbilityManager(MinecraftSurvivors plugin, PlayerManager playerManager, SpawnManager spawnManager, GameManager gameManager) {
         this.plugin = plugin;
         this.playerManager = playerManager;
         this.gameManager = gameManager;
         this.shamanAbility = new ShamanAbility(plugin, spawnManager);
+        this.pyromancerAbility = new PyromancerAbility(plugin, spawnManager);
+        this.rangerAbility = new RangerAbility(plugin, spawnManager);
+        this.paladinAbility = new PaladinAbility(plugin, spawnManager);
     }
 
     public synchronized void start() {
@@ -53,10 +62,24 @@ public class AbilityManager {
             try {
                 if (gameManager != null && gameManager.isPlayerPaused(p.getUniqueId())) continue;
             } catch (Throwable ignored) {}
-            if (sp.getSelectedClass() == PlayerClass.SHAMAN) {
-                shamanAbility.tick(p, sp);
+            PlayerClass pc = sp.getSelectedClass();
+            if (pc == null) continue;
+            switch (pc) {
+                case SHAMAN:
+                    shamanAbility.tick(p, sp);
+                    break;
+                case PYROMANCER:
+                    pyromancerAbility.tick(p, sp);
+                    break;
+                case RANGER:
+                    rangerAbility.tick(p, sp);
+                    break;
+                case PALADIN:
+                    paladinAbility.tick(p, sp);
+                    break;
+                default:
+                    shamanAbility.tick(p, sp);
             }
-            // weitere Klassen hier ergänzen
         }
     }
 }

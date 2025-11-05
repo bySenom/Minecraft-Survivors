@@ -13,7 +13,7 @@ public class GameManager {
 
     private final MinecraftSurvivors plugin;
     private final PlayerManager playerManager;
-    private final SpawnManager spawnManager;
+    private final SpawnManager spawnManager; // replaced Backup class with new SpawnManager
     private final AbilityManager abilityManager;
     private GameState state = GameState.LOBBY;
     private WaveTask currentWaveTask;
@@ -22,6 +22,8 @@ public class GameManager {
     private int pauseCounter = 0; // counts GUI pauses (e.g., multiple players)
     private final java.util.Set<java.util.UUID> pausedPlayers = new java.util.HashSet<>();
     private final java.util.Map<java.util.UUID, org.bukkit.scheduler.BukkitTask> pauseTimeoutTasks = new java.util.concurrent.ConcurrentHashMap<>();
+    private volatile boolean starting = false;
+    private org.bukkit.scheduler.BukkitTask countdownTask;
 
     public GameManager(MinecraftSurvivors plugin, PlayerManager playerManager) {
         this.plugin = plugin;
@@ -56,6 +58,8 @@ public class GameManager {
 
     public synchronized void startGame() {
         if (state == GameState.RUNNING) return;
+        if (countdownTask != null) { countdownTask.cancel(); countdownTask = null; }
+        starting = false;
         state = GameState.RUNNING;
         playerManager.resetAll();
         this.currentWaveNumber = 1;
@@ -66,8 +70,14 @@ public class GameManager {
                 sp.setSelectedClass(org.bysenom.minecraftSurvivors.model.PlayerClass.SHAMAN);
             }
         }
-        startWaveTask();
-        // Ability-Task starten (z.\u00a0B. Shaman-Blitz alle 1.5s)
+        // Start either continuous or wave-based spawning
+        boolean continuous = plugin.getConfigUtil().getBoolean("spawn.continuous.enabled", true);
+        if (continuous) {
+            spawnManager.startContinuousIfEnabled();
+        } else {
+            startWaveTask();
+        }
+        // Ability-Task starten (z. B. Shaman-Blitz alle 1.5s)
         abilityManager.start();
         // Start XP-HUD task (shows XP progress on ActionBar periodically)
         startHudTask();
@@ -78,6 +88,7 @@ public class GameManager {
         if (state == GameState.ENDED) return;
         state = GameState.ENDED;
         if (currentWaveTask != null) currentWaveTask.cancel();
+        spawnManager.stopContinuous();
         spawnManager.clearWaveMobs();
         // Ability-Task stoppen
         abilityManager.stop();
@@ -94,6 +105,7 @@ public class GameManager {
         if (state == GameState.RUNNING) {
             state = GameState.PAUSED;
             if (currentWaveTask != null) currentWaveTask.cancel();
+            spawnManager.pauseContinuous();
             abilityManager.stop();
             if (xpHudTask != null) xpHudTask.cancel();
             plugin.getLogger().info("Game paused for GUI (pauseCount=" + pauseCounter + ")");
@@ -104,10 +116,15 @@ public class GameManager {
         if (pauseCounter > 0) pauseCounter--;
         if (pauseCounter == 0 && state == GameState.PAUSED) {
             state = GameState.RUNNING;
-            // restart ability & HUD & waves
+            // restart ability & HUD & spawns
             abilityManager.start();
             startHudTask();
-            startWaveTask();
+            boolean continuous = plugin.getConfigUtil().getBoolean("spawn.continuous.enabled", true);
+            if (continuous) {
+                spawnManager.resumeContinuous();
+            } else {
+                startWaveTask();
+            }
             plugin.getLogger().info("Game resumed from GUI");
         } else {
             plugin.getLogger().info("Resume requested but pauseCount=" + pauseCounter + ", state=" + state);
@@ -115,6 +132,7 @@ public class GameManager {
     }
 
     // --- per-player pause (local pause) ---
+    @SuppressWarnings("deprecation")
     public synchronized void pauseForPlayer(java.util.UUID playerUuid) {
         if (playerUuid == null) return;
         pausedPlayers.add(playerUuid);
@@ -122,8 +140,10 @@ public class GameManager {
         org.bukkit.entity.Player p = org.bukkit.Bukkit.getPlayer(playerUuid);
         if (p != null && p.isOnline()) {
             try {
-                // show Title + Subtitle (fadeIn, stay, fadeOut)
-                p.sendTitle("§eAuswahl", "§7Wähle dein Powerup... (Spiel pausiert für dich)", 5, 300, 5);
+                // show Title + Subtitle (Adventure Title API)
+                net.kyori.adventure.title.Title.Times times = net.kyori.adventure.title.Title.Times.of(java.time.Duration.ofMillis(250), java.time.Duration.ofSeconds(15), java.time.Duration.ofMillis(250));
+                net.kyori.adventure.title.Title title = net.kyori.adventure.title.Title.title(net.kyori.adventure.text.Component.text("Auswahl", net.kyori.adventure.text.format.NamedTextColor.YELLOW), net.kyori.adventure.text.Component.text("Wähle dein Powerup... (Spiel pausiert für dich)", net.kyori.adventure.text.format.NamedTextColor.GRAY), times);
+                p.showTitle(title);
             } catch (Throwable ignored) {}
             // freeze nearby wave mobs relative to this player so they don't move toward them
             try {
@@ -159,6 +179,7 @@ public class GameManager {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public synchronized void resumeForPlayer(java.util.UUID playerUuid) {
         if (playerUuid == null) return;
         pausedPlayers.remove(playerUuid);
@@ -170,7 +191,9 @@ public class GameManager {
         org.bukkit.entity.Player p = org.bukkit.Bukkit.getPlayer(playerUuid);
         if (p != null && p.isOnline()) {
             try {
-                p.sendTitle("§aFortgesetzt", "§7Viel Erfolg!", 5, 60, 5);
+                net.kyori.adventure.title.Title.Times times = net.kyori.adventure.title.Title.Times.of(java.time.Duration.ofMillis(250), java.time.Duration.ofSeconds(3), java.time.Duration.ofMillis(250));
+                net.kyori.adventure.title.Title title = net.kyori.adventure.title.Title.title(net.kyori.adventure.text.Component.text("Fortgesetzt", net.kyori.adventure.text.format.NamedTextColor.GREEN), net.kyori.adventure.text.Component.text("Viel Erfolg!", net.kyori.adventure.text.format.NamedTextColor.GRAY), times);
+                p.showTitle(title);
             } catch (Throwable ignored) {}
             try {
                 spawnManager.unfreezeMobsForPlayer(playerUuid);
@@ -187,8 +210,14 @@ public class GameManager {
     }
 
     public void nextWave(int waveNumber) {
-        spawnManager.spawnWave(waveNumber);
-        Bukkit.getServer().sendMessage(net.kyori.adventure.text.Component.text("Wave " + waveNumber + " started!"));
+        boolean continuous = plugin.getConfigUtil().getBoolean("spawn.continuous.enabled", true);
+        if (continuous) {
+            // In continuous mode, waves are not used; keep for compatibility/logging only.
+            Bukkit.getServer().sendMessage(net.kyori.adventure.text.Component.text("Time " + getCurrentWaveNumber() + "m running..."));
+        } else {
+            spawnManager.spawnWave(waveNumber);
+            Bukkit.getServer().sendMessage(net.kyori.adventure.text.Component.text("Wave " + waveNumber + " started!"));
+        }
     }
 
     // Zusätzlich Exporte, falls andere Klassen Zugriff benötigen
@@ -224,5 +253,45 @@ public class GameManager {
 
     public synchronized void setCurrentWaveNumber(int n) {
         this.currentWaveNumber = n;
+    }
+
+    public synchronized void startGameWithCountdown(int seconds) {
+        if (starting || state == GameState.RUNNING) {
+            plugin.getLogger().info("Start requested but game already starting/running");
+            return;
+        }
+        starting = true;
+        final int total = Math.max(1, seconds);
+        final int[] remaining = { total };
+        // Broadcast countdown via Title/ActionBar and tick sound
+        if (countdownTask != null) countdownTask.cancel();
+        countdownTask = org.bukkit.Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            try {
+                for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
+                    try {
+                        net.kyori.adventure.title.Title.Times times = net.kyori.adventure.title.Title.Times.of(java.time.Duration.ofMillis(80), java.time.Duration.ofMillis(900), java.time.Duration.ofMillis(20));
+                        net.kyori.adventure.title.Title t = net.kyori.adventure.title.Title.title(
+                                net.kyori.adventure.text.Component.text(String.valueOf(remaining[0]), net.kyori.adventure.text.format.NamedTextColor.GOLD),
+                                net.kyori.adventure.text.Component.text("Spiel startet...", net.kyori.adventure.text.format.NamedTextColor.GRAY), times);
+                        p.showTitle(t);
+                        p.sendActionBar(net.kyori.adventure.text.Component.text("Start in " + remaining[0] + "s"));
+                        try { p.playSound(p.getLocation(), org.bukkit.Sound.BLOCK_NOTE_BLOCK_HAT, 0.8f, 1.9f); } catch (Throwable ignored) {}
+                    } catch (Throwable ignored) {}
+                }
+                if (remaining[0] <= 0) {
+                    try {
+                        for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
+                            try { p.playSound(p.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 0.9f, 1.2f); } catch (Throwable ignored) {}
+                        }
+                    } catch (Throwable ignored) {}
+                    org.bukkit.scheduler.BukkitTask t = countdownTask; if (t != null) t.cancel();
+                    countdownTask = null;
+                    starting = false;
+                    startGame();
+                    return;
+                }
+                remaining[0]--;
+            } catch (Throwable ignored) {}
+        }, 0L, 20L);
     }
 }

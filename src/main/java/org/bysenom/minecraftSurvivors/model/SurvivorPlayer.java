@@ -22,6 +22,11 @@ public class SurvivorPlayer {
     private int bonusStrikes = 0;        // zusätzliche Treffer pro Tick
     private double flatDamage = 0.0;     // flacher zusätzlicher Schaden
     private int extraHearts = 0;         // zusätzliche halbe Herzen (2 = 1 Herz)
+    private double radiusMult = 0.0;     // +% radius (0.15 => +15%)
+    private double damageMult = 0.0;     // +% damage multiplier
+    private int igniteBonusTicks = 0;    // extra burn duration for Pyromancer
+    private double knockbackBonus = 0.0; // +% knockback for Ranger
+    private double healBonus = 0.0;      // + heal amount for Paladin
 
     public SurvivorPlayer(UUID uuid) {
         this.uuid = uuid;
@@ -67,6 +72,30 @@ public class SurvivorPlayer {
         this.bonusStrikes = 0;
         this.flatDamage = 0.0;
         this.extraHearts = 0;
+        this.radiusMult = 0.0;
+        this.damageMult = 0.0;
+        this.igniteBonusTicks = 0;
+        this.knockbackBonus = 0.0;
+        this.healBonus = 0.0;
+    }
+
+    public void softReset() {
+        // preserve selectedClass; reset stats
+        // keep level at 1 for new run
+        this.kills = 0;
+        this.coins = 0;
+        this.classLevel = 1;
+        this.xp = 0;
+        this.xpToNext = 5;
+        this.bonusDamage = 0.0;
+        this.bonusStrikes = 0;
+        this.flatDamage = 0.0;
+        this.extraHearts = 0;
+        this.radiusMult = 0.0;
+        this.damageMult = 0.0;
+        this.igniteBonusTicks = 0;
+        this.knockbackBonus = 0.0;
+        this.healBonus = 0.0;
     }
 
     // Neue Methoden zur Klassenverwaltung
@@ -174,4 +203,25 @@ public class SurvivorPlayer {
     public void setExtraHearts(int extraHearts) {
         this.extraHearts = extraHearts;
     }
+
+    // --- new upgrade stats ---
+    public double getRadiusMult() { return radiusMult; }
+    public void addRadiusMult(double delta) { this.radiusMult = Math.max(0.0, this.radiusMult + delta); }
+    public void setRadiusMult(double radiusMult) { this.radiusMult = Math.max(0.0, radiusMult); }
+
+    public double getDamageMult() { return damageMult; }
+    public void addDamageMult(double delta) { this.damageMult = Math.max(0.0, this.damageMult + delta); }
+    public void setDamageMult(double damageMult) { this.damageMult = Math.max(0.0, damageMult); }
+
+    public int getIgniteBonusTicks() { return igniteBonusTicks; }
+    public void addIgniteBonusTicks(int delta) { this.igniteBonusTicks = Math.max(0, this.igniteBonusTicks + delta); }
+    public void setIgniteBonusTicks(int igniteBonusTicks) { this.igniteBonusTicks = Math.max(0, igniteBonusTicks); }
+
+    public double getKnockbackBonus() { return knockbackBonus; }
+    public void addKnockbackBonus(double delta) { this.knockbackBonus = Math.max(0.0, this.knockbackBonus + delta); }
+    public void setKnockbackBonus(double knockbackBonus) { this.knockbackBonus = Math.max(0.0, knockbackBonus); }
+
+    public double getHealBonus() { return healBonus; }
+    public void addHealBonus(double delta) { this.healBonus = Math.max(0.0, this.healBonus + delta); }
+    public void setHealBonus(double healBonus) { this.healBonus = Math.max(0.0, healBonus); }
 }

@@ -1,0 +1,152 @@
+package org.bysenom.minecraftSurvivors.manager;
+
+import net.kyori.adventure.bossbar.BossBar;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+public class StatsDisplayManager {
+
+    public enum Mode { ACTIONBAR, BOSSBAR, SCOREBOARD, OFF }
+
+    private final org.bysenom.minecraftSurvivors.MinecraftSurvivors plugin;
+    private Mode mode;
+    private final StatsMeterManager meter;
+    private final Map<UUID, BossBar> bossbarsDps = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Map<UUID, BossBar> bossbarsHps = new java.util.concurrent.ConcurrentHashMap<>();
+    private org.bukkit.scheduler.BukkitTask task;
+    private org.bukkit.scheduler.BukkitTask broadcastTask;
+
+    public StatsDisplayManager(org.bysenom.minecraftSurvivors.MinecraftSurvivors plugin, StatsMeterManager meter) {
+        this.plugin = plugin;
+        this.meter = meter;
+        this.mode = parseMode(plugin.getConfigUtil().getString("stats.mode", "actionbar"));
+    }
+
+    public synchronized void setMode(Mode m) {
+        this.mode = m;
+        restart();
+        plugin.getConfig().set("stats.mode", m.name().toLowerCase());
+        plugin.saveConfig();
+    }
+
+    public synchronized Mode getMode() { return mode; }
+
+    public synchronized void toggle() {
+        switch (mode) {
+            case ACTIONBAR: setMode(Mode.BOSSBAR); break;
+            case BOSSBAR: setMode(Mode.SCOREBOARD); break;
+            case SCOREBOARD: setMode(Mode.OFF); break;
+            case OFF: setMode(Mode.ACTIONBAR); break;
+        }
+    }
+
+    public synchronized void start() { restart(); }
+
+    public synchronized void stop() {
+        if (task != null) { task.cancel(); task = null; }
+        if (broadcastTask != null) { broadcastTask.cancel(); broadcastTask = null; }
+        clearBossbars();
+    }
+
+    private void restart() {
+        if (task != null) { task.cancel(); task = null; }
+        if (broadcastTask != null) { broadcastTask.cancel(); broadcastTask = null; }
+        clearBossbars();
+        if (mode == Mode.OFF) return;
+        int period = Math.max(10, plugin.getConfigUtil().getInt("stats.update-interval-ticks", 20));
+        task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 0L, period);
+        // periodic broadcast of top
+        boolean enableBroadcast = plugin.getConfigUtil().getBoolean("stats.broadcast-top.enabled", false);
+        if (enableBroadcast) {
+            int everySec = Math.max(5, plugin.getConfigUtil().getInt("stats.broadcast-top.interval-seconds", 30));
+            broadcastTask = Bukkit.getScheduler().runTaskTimer(plugin, this::broadcastTop, 20L * everySec, 20L * everySec);
+        }
+    }
+
+    private void tick() {
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            double dps = meter.getDps(p.getUniqueId());
+            double hps = meter.getHps(p.getUniqueId());
+            switch (mode) {
+                case ACTIONBAR:
+                    // include XP/Lvl for convenience
+                    org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = plugin.getPlayerManager().get(p.getUniqueId());
+                    int currentXp = sp != null ? sp.getXp() : 0;
+                    int xpToNext = sp != null ? sp.getXpToNext() : 1;
+                    int lvl = sp != null ? sp.getClassLevel() : 1;
+                    p.sendActionBar(Component.text(String.format("XP %d/%d • Lvl %d • DPS %.1f • HPS %.1f", currentXp, xpToNext, lvl, dps, hps)));
+                    break;
+                case BOSSBAR:
+                    updateBossbars(p, dps, hps);
+                    break;
+                case SCOREBOARD:
+                    // handled by ScoreboardManager HUD
+                    break;
+            }
+        }
+    }
+
+    private void broadcastTop() {
+        // top DPS and HPS snapshot
+        java.util.List<Player> players = Bukkit.getOnlinePlayers().stream().collect(Collectors.toList());
+        if (players.isEmpty()) return;
+        class Pair { final String n; final double v; Pair(String n,double v){this.n=n;this.v=v;} }
+        int n = Math.max(1, plugin.getConfigUtil().getInt("stats.broadcast-top.n", 3));
+        java.util.List<Pair> topDps = players.stream()
+                .map(pl -> new Pair(pl.getName(), meter.getDps(pl.getUniqueId())))
+                .sorted(java.util.Comparator.comparingDouble((Pair a) -> a.v).reversed())
+                .limit(n).collect(Collectors.toList());
+        java.util.List<Pair> topHps = players.stream()
+                .map(pl -> new Pair(pl.getName(), meter.getHps(pl.getUniqueId())))
+                .sorted(java.util.Comparator.comparingDouble((Pair a) -> a.v).reversed())
+                .limit(n).collect(Collectors.toList());
+        Bukkit.broadcast(Component.text("Top DPS:", NamedTextColor.GOLD));
+        int i = 1;
+        for (Pair p : topDps) Bukkit.broadcast(Component.text(String.format(" %d. %s - %.1f", i++, p.n, p.v), NamedTextColor.YELLOW));
+        Bukkit.broadcast(Component.text("Top HPS:", NamedTextColor.AQUA));
+        i = 1;
+        for (Pair p : topHps) Bukkit.broadcast(Component.text(String.format(" %d. %s - %.1f", i++, p.n, p.v), NamedTextColor.GREEN));
+    }
+
+    private void updateBossbars(Player p, double dps, double hps) {
+        // Auto-zoom scale: set progress relative to dynamic cap
+        double dCap = Math.max(1.0, plugin.getConfigUtil().getDouble("stats.auto-cap.dps", 50.0));
+        double hCap = Math.max(1.0, plugin.getConfigUtil().getDouble("stats.auto-cap.hps", 30.0));
+        double dProg = Math.min(1.0, dps / dCap);
+        double hProg = Math.min(1.0, hps / hCap);
+        BossBar d = bossbarsDps.computeIfAbsent(p.getUniqueId(), id -> BossBar.bossBar(Component.text("DPS"), 0.0f, BossBar.Color.RED, BossBar.Overlay.PROGRESS));
+        BossBar h = bossbarsHps.computeIfAbsent(p.getUniqueId(), id -> BossBar.bossBar(Component.text("HPS"), 0.0f, BossBar.Color.GREEN, BossBar.Overlay.PROGRESS));
+        d.name(Component.text(String.format("DPS %.1f (cap %.0f)", dps, dCap), NamedTextColor.GOLD));
+        h.name(Component.text(String.format("HPS %.1f (cap %.0f)", hps, hCap), NamedTextColor.AQUA));
+        d.progress((float) dProg);
+        h.progress((float) hProg);
+        p.showBossBar(d);
+        p.showBossBar(h);
+    }
+
+    private void clearBossbars() {
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            BossBar d = bossbarsDps.remove(p.getUniqueId());
+            BossBar h = bossbarsHps.remove(p.getUniqueId());
+            try { if (d != null) p.hideBossBar(d); } catch (Throwable ignored) {}
+            try { if (h != null) p.hideBossBar(h); } catch (Throwable ignored) {}
+        }
+    }
+
+    private Mode parseMode(String s) {
+        if (s == null) return Mode.ACTIONBAR;
+        switch (s.toLowerCase()) {
+            case "bossbar": return Mode.BOSSBAR;
+            case "scoreboard": return Mode.SCOREBOARD;
+            case "off": return Mode.OFF;
+            default: return Mode.ACTIONBAR;
+        }
+    }
+}
+

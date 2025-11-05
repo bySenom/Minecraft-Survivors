@@ -7,7 +7,6 @@ description: "Vampire Survivors like Minigame"
 authors:
   - bySenom
 commands:
-  # Ergänzung zu vorhandener plugin.yml — unter commands: einfügen
   msmenu:
     description: "Öffnet das MinecraftSurvivors Menü (Admin)."
     usage: "/msmenu"
@@ -23,6 +22,12 @@ commands:
   msconfig:
     description: "Verwaltet MinecraftSurvivors Konfiguration (reload)."
     usage: "/msconfig reload"
+    permission: minecraftsurvivors.admin
+    permission-message: "§cKeine Berechtigung."
+
+  msstats:
+    description: "DPS/HPS Anzeige: /msstats mode <actionbar|bossbar|scoreboard|off> | toggle | top [dps|hps] [n] | show"
+    usage: "/msstats <sub>"
     permission: minecraftsurvivors.admin
     permission-message: "§cKeine Berechtigung."
 permissions:

@@ -5,33 +5,35 @@ wave:
   spawn-per-player-base: 1    # Basisanzahl Mobs pro Spieler
   scale-per-wave: 0.5         # zusätzliche Mobs pro Wave (perPlayer = base + floor(wave * scale))
 
-# Ability / Gameplay
-ability:
-  interval-ticks: 30          # Ticks zwischen Ability-Ticks (20 ticks = 1s). Default 30 = 1.5s
-
-# Shaman specific
-shaman:
-  base-damage: 6.0            # Basisschaden pro Strike (Minecraft Damage; 1.0 = 1 HP)
-  radius: 10.0                # Suchradius um den Spieler (Blitz-Ziele in dieser Distanz)
-  allow-player-damage: false  # Ob durch Shaman-Blitze Spieler Schaden nehmen dürfen
-  strikes-per-tick: 1         # Anzahl Ziele pro Tick (kann später durch Powerups erhöht werden)
-
-# LevelUp / Upgrade Werte (konfigurierbar)
-levelup:
-  xp-per-kill: 1              # XP, die ein Spieler pro Kill erhält (kann pro Mob / Kill konfiguriert werden)
-  values:
-    bonus-damage: 1.5         # additive Bonus-Schaden, wenn +Schaden gewählt wird
-    bonus-strikes: 1          # zusätzliche Strikes, wenn +Treffer gewählt wird
-    flat-damage: 2.0          # flacher zusätzlicher Schaden, wenn +FlatDmg gewählt wird
-    extra-hearts: 2          # Anzahl halber Herzen (2 = 1 Herz), wenn +Herzen gewählt wird
-  hud-interval-ticks: 100    # Interval in ticks for the XP ActionBar HUD (default 100)
-  choice-max-seconds: 20     # Maximalzeit in Sekunden für LevelUp Entscheidungen
-
-# Mob visuals
+# Continuous spawn (Vampire Survivors style)
 spawn:
-  glowing: true               # Ob gespawnte Wave-Mobs glowing sein sollen
+  continuous:
+    enabled: true              # Wenn true, spawnen Gegner kontinuierlich statt in Waves
+    ticks-per-cycle: 20        # Zyklus in Ticks (20 = 1s)
+    base-per-player: 0.4       # früher 0.6, reduziert Early-Game-Dichte
+    # Feineres Difficulty-Scaling in Schritten (z. B. alle 30s)
+    use-steps: true            # true = benutze growth-per-step alle step-seconds; false = growth-per-minute linear
+    step-seconds: 30           # Schrittweite in Sekunden
+    growth-per-step: 0.2       # Zuwachs pro Schritt (alle step-seconds)
+    growth-per-minute: 0.25    # Fallback/Legacy: Zuwachs pro Minute (nur wenn use-steps=false)
+    # Warmup-Ramp zum sanften Einstieg (reduziert frühe Spawns deutlich)
+    warmup-seconds: 90         # in den ersten 90s schrittweise hochfahren
+    warmup-mult-start: 0.25    # Start-Multiplikator der Rate im Warmup (25%)
+    max-per-player: 8          # Obergrenze pro Spieler und Zyklus
+    # Dynamische Caps je nach Spielerzahl
+    cap:
+      dynamic: true
+      base-per-player: 60      # Basis-Limit je Spieler
+      add-per-player: 30       # zusätzliches Limit pro weiterem Online-Spieler
+      max-per-player: 180      # Obergrenze je Spieler nach Dynamik
+    cap-total-nearby-per-player: 60 # Legacy/Fallback: statisches Limit (verwendet wenn cap.dynamic=false)
+    radius-per-player: 40.0    # Radius zum Zählen der bereits vorhandenen Gegner
+    min-distance: 8.0          # minimaler Spawnabstand zum Spieler
+    max-distance: 16.0         # maximaler Spawnabstand zum Spieler
+  # Mob visuals
+  glowing: true               # Ob gespawnte Wave-/Continuous-Mobs glowing sein sollen
   glowing-duration-ticks: 6000 # Dauer des Glowing-Effekts in Ticks (20 * 60 * 5 = 5 Minuten)
-  particle: END_ROD           # Partikeltyp beim Spawn (z. B. END_ROD, FLAME, NOTE)
+  particle: FLAME           # Partikeltyp beim Spawn (z. B. END_ROD, FLAME, NOTE)
   particle-duration: 10       # Dauer der Partikel-Animation in Ticks
   particle-points: 16         # Anzahl Punkte im Ring pro Tick
   particle-count: 2           # Partikelanzahl pro Punkt
@@ -45,6 +47,84 @@ spawn:
   max-distance: 16.0
   # Radius used when freezing nearby mobs for a paused player
   freeze-radius: 10.0
+
+# Mob Variety (gewichtete Typen, verfügbar ab bestimmter Minute)
+# Nur EntityType-Namen verwenden, die lebende Mobs sind.
+spawnMobTypes:
+  - type: ZOMBIE
+    weight: 5
+    minMinute: 0
+  - type: SKELETON
+    weight: 3
+    minMinute: 1
+  - type: SPIDER
+    weight: 2
+    minMinute: 2
+  - type: HUSK
+    weight: 2
+    minMinute: 3
+  - type: STRAY
+    weight: 2
+    minMinute: 4
+  - type: DROWNED
+    weight: 2
+    minMinute: 5
+
+# Scaling (verstärkt Gegner über Zeit)
+scaling:
+  health-mult-per-minute: 0.10   # +10% Max-Health pro Minute
+  speed-mult-per-minute: 0.05    # +5% Movement-Speed pro Minute
+  damage-add-per-minute: 0.5     # +0.5 Schaden pro Minute (falls Mob den Attributtyp hat)
+
+# Ability / Gameplay
+ability:
+  interval-ticks: 30          # Ticks zwischen Ability-Ticks (20 ticks = 1s). Default 30 = 1.5s
+
+# Shaman specific
+shaman:
+  base-damage: 6.0            # Basisschaden pro Strike (Minecraft Damage; 1.0 = 1 HP)
+  radius: 10.0                # Suchradius um den Spieler (Blitz-Ziele in dieser Distanz)
+  allow-player-damage: false  # Ob durch Shaman-Blitze Spieler Schaden nehmen dürfen
+  strikes-per-tick: 1         # Anzahl Ziele pro Tick (kann später durch Powerups erhöht werden)
+
+# Pyromancer
+pyromancer:
+  base-damage: 4.0
+  radius: 8.0
+  targets-per-tick: 2
+  ignite-ticks: 60
+
+# Ranger
+ranger:
+  base-damage: 7.0
+  min-range: 8.0
+  max-range: 20.0
+
+# Paladin
+paladin:
+  base-damage: 2.5
+  radius: 5.5
+  heal: 1.0
+
+# LevelUp / Upgrade Werte (konfigurierbar)
+levelup:
+  xp-per-kill: 1              # XP, die ein Spieler pro Kill erhält (kann pro Mob / Kill konfiguriert werden)
+  values:
+    bonus-damage: 1.5         # additive Bonus-Schaden, wenn +Schaden gewählt wird
+    bonus-strikes: 1          # zusätzliche Strikes, wenn +Treffer gewählt wird
+    flat-damage: 2.0          # flacher zusätzlicher Schaden, wenn +FlatDmg gewählt wird
+    extra-hearts: 2          # Anzahl halber Herzen (2 = 1 Herz), wenn +Herzen gewählt wird
+  weapon:
+    size-step: 0.15          # +15% Radius
+    attackpower-step: 0.20   # +20% Damage-Multiplikator
+  pyromancer:
+    ignite-step: 20          # +20 Ticks Brenndauer pro Upgrade
+  ranger:
+    knockback-step: 0.10     # +10% Knockback pro Upgrade
+  paladin:
+    heal-step: 0.5           # +0.5 Heilung pro Upgrade
+  hud-interval-ticks: 100    # Interval in ticks for the XP ActionBar HUD (default 100)
+  choice-max-seconds: 20     # Maximalzeit in Sekunden für LevelUp Entscheidungen
 
 # Debug / Logging
 debug:
@@ -79,3 +159,15 @@ presets:
     redstone-r: 128
     redstone-g: 50
     redstone-b: 200
+
+stats:
+  window-seconds: 10
+  mode: actionbar           # actionbar | bossbar | scoreboard | off
+  update-interval-ticks: 20 # Update-Frequenz der Anzeige
+  auto-cap:
+    dps: 50.0               # Bossbar Auto-Cap Startwert (wird nicht automatisch angepasst, nur Skala)
+    hps: 30.0
+  broadcast-top:
+    enabled: false          # Falls true, alle n Sekunden Top-DPS/HPS broadcasten
+    interval-seconds: 30
+    n: 3

@@ -24,6 +24,6 @@ public class PlayerManager {
     }
 
     public void resetAll() {
-        players.values().forEach(SurvivorPlayer::reset);
+        players.values().forEach(SurvivorPlayer::softReset);
     }
 }

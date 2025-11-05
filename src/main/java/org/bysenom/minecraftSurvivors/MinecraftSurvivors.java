@@ -1,6 +1,5 @@
 package org.bysenom.minecraftSurvivors;
 
-import org.bukkit.Bukkit;
 import org.bysenom.minecraftSurvivors.command.OpenGuiCommand;
 import org.bysenom.minecraftSurvivors.command.StartCommand;
 import org.bysenom.minecraftSurvivors.gui.GuiClickListener;
@@ -18,6 +17,9 @@ public final class MinecraftSurvivors extends JavaPlugin {
     private GameManager gameManager;
     private ConfigUtil configUtil;
     private org.bysenom.minecraftSurvivors.util.PlayerDataManager playerDataManager;
+    private org.bysenom.minecraftSurvivors.manager.ScoreboardManager scoreboardManager;
+    private org.bysenom.minecraftSurvivors.manager.StatsMeterManager statsMeterManager;
+    private org.bysenom.minecraftSurvivors.manager.StatsDisplayManager statsDisplayManager;
 
     @Override
     public void onLoad() {
@@ -31,6 +33,9 @@ public final class MinecraftSurvivors extends JavaPlugin {
         this.playerManager = new PlayerManager();
         this.playerDataManager = new org.bysenom.minecraftSurvivors.util.PlayerDataManager(this, playerManager);
         this.gameManager = new GameManager(this, playerManager);
+        this.scoreboardManager = new org.bysenom.minecraftSurvivors.manager.ScoreboardManager(this, playerManager, gameManager);
+        this.statsMeterManager = new org.bysenom.minecraftSurvivors.manager.StatsMeterManager(this.configUtil.getInt("stats.window-seconds", 10));
+        this.statsDisplayManager = new org.bysenom.minecraftSurvivors.manager.StatsDisplayManager(this, this.statsMeterManager);
 
         // GuiManager einmal erstellen
         final GuiManager guiManager = new GuiManager(this, gameManager);
@@ -47,14 +52,26 @@ public final class MinecraftSurvivors extends JavaPlugin {
             if (getCommand("msconfig") != null) {
                 getCommand("msconfig").setExecutor(new org.bysenom.minecraftSurvivors.command.MsConfigCommand(gameManager));
             }
+            if (getCommand("msstats") != null) {
+                getCommand("msstats").setExecutor(new org.bysenom.minecraftSurvivors.command.MsStatsCommand(this));
+            }
 
             // EntityDeathListener benötigt nun ConfigUtil zur Bestimmung von XP pro Kill
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.EntityDeathListener(playerManager, guiManager, this.configUtil), this);
             getServer().getPluginManager().registerEvents(new PlayerDeathListener(gameManager, playerManager, this.playerDataManager), this);
             // Also register PlayerDataListener for join/quit
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.PlayerDataListener(this.playerDataManager, playerManager), this);
+            // SpawnFreezeListener: freeze mobs that spawn while players are selecting upgrades
+            getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.SpawnFreezeListener(gameManager, gameManager.getSpawnManager()), this);
             getServer().getPluginManager().registerEvents(new GuiClickListener(this, guiManager), this);
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.gui.LevelUpMenuListener(guiManager), this);
+            // Damage tracker for DPS
+            getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.DamageHealListener(this), this);
+
+            // Scoreboard starten
+            this.scoreboardManager.start();
+            // start stats display
+            try { this.statsDisplayManager.start(); } catch (Throwable ignored) {}
 
             getLogger().info("MinecraftSurvivors enabled (registrations done on main thread).");
         } catch (Throwable t) {
@@ -65,6 +82,8 @@ public final class MinecraftSurvivors extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        try { if (this.scoreboardManager != null) this.scoreboardManager.stop(); } catch (Throwable ignored) {}
+        try { if (this.statsDisplayManager != null) this.statsDisplayManager.stop(); } catch (Throwable ignored) {}
         getLogger().info("MinecraftSurvivors disabled.");
     }
 
@@ -82,5 +101,13 @@ public final class MinecraftSurvivors extends JavaPlugin {
 
     public ConfigUtil getConfigUtil() {
         return configUtil;
+    }
+
+    public org.bysenom.minecraftSurvivors.manager.StatsMeterManager getStatsMeterManager() {
+        return statsMeterManager;
+    }
+
+    public org.bysenom.minecraftSurvivors.manager.StatsDisplayManager getStatsDisplayManager() {
+        return statsDisplayManager;
     }
 }
