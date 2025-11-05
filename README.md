@@ -1,9 +1,12 @@
 # MinecraftSurvivors
 
-[![Build](https://github.com/${{ github.repository }}/actions/workflows/build.yml/badge.svg)](https://github.com/${{ github.repository }}/actions/workflows/build.yml)
-[![Release](https://github.com/${{ github.repository }}/actions/workflows/release.yml/badge.svg)](https://github.com/${{ github.repository }}/actions/workflows/release.yml)
+[Hinweis: Ersetze OWNER/REPO unten durch dein GitHub Repo z. B. bySenom/MinecraftSurvivors]
 
-eeeeeeeeeeEin kompaktes, erweiterbares Minecraft (Paper/Spigot) Minigame im Stil von "Vampire Survivors". Enthält Klassen, kontinuierliche Gegner-Spawns, Level‑Ups mit Upgrades, ein ausgebautes GUI (Party/Stats/Config steuerbar) und einen DPS/HPS‑Meter mit umschaltbaren Anzeigemodi.
+[![Build](https://github.com/OWNER/REPO/actions/workflows/build.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/build.yml)
+[![Release](https://github.com/OWNER/REPO/actions/workflows/release.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/release.yml)
+[![CodeQL](https://github.com/OWNER/REPO/actions/workflows/codeql.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/codeql.yml)
+
+Ein kompaktes, erweiterbares Minecraft (Paper/Spigot) Minigame im Stil von "Vampire Survivors". Enthält Klassen, kontinuierliche Gegner-Spawns, Level‑Ups mit Upgrades, ein ausgebautes GUI (Party/Stats/Config steuerbar) und einen DPS/HPS‑Meter mit umschaltbaren Anzeigemodi.
 
 ---
 
@@ -99,9 +102,9 @@ eeeeeeeeeeEin kompaktes, erweiterbares Minecraft (Paper/Spigot) Minigame im Stil
 
 - Build (Windows + Ubuntu):
   - Linter/Format: `spotlessCheck`
-  - Build: `clean build -x test`
-  - Artefakt-Upload des Plugin-JARs
-- Release: siehe Abschnitt „Version & Release“
+  - Tests + Build: `clean test build`
+  - Artefakte: Plugin-JAR und Testberichte werden hochgeladen
+- Release: siehe Abschnitt „Version & Release“ (inkl. Auto-Release-Notes und Testreports)
 
 ---
 
