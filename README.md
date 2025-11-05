@@ -147,10 +147,18 @@ Hinweis: Der Start‑Countdown ist derzeit fest 5s (konfigurierbar auf Wunsch na
 
 ## Roadmap / Ideen
 
-- Klassen‑Auswahl erzwingen (Start erst nach Wahl)
-- Persistenz: Klasse/Upgrades zwischen Sessions abspeichern
-- Projectile‑Schaden sauber dem Schützen zuordnen (für Ranger‑Pfeile)
-- Optionale Bossbar‑Skalen: dynamisch an "Max der letzten X Sekunden" knüpfen
+Kurzfristig
+- Klassen‑Auswahl erzwingen (Start erst nach Wahl) – Start‑Button bleibt deaktiviert bis eine Klasse gewählt ist; deutlicher Hinweis im GUI.
+- Itemshop (GUI‑Shop, Coins) – Kategorien: Waffen‑Upgrades, Klassen‑Perks, Utility (Heals/Revives/Movement). Öffnung über Hauptmenü; Preise/Pool per config.
+- Optionale Pausen zwischen Wellen/Phasen – auch bei Continuous‑Spawns kurze Verschnaufpausen (config): z. B. `spawn.continuous.rest-every-seconds`, `rest-duration-seconds`; währenddessen Spawn‑Rate→0, Aggro resetten, dezente Effekte.
+- Projectile‑Schaden sauber dem Schützen zuordnen (für Ranger‑Pfeile) – Pfeile mit Shooter/Ability‑Tags; DPS/HPS klar dem Verursacher gutschreiben.
+
+Mittelfristig
+- Persistenz: Klasse/Upgrades zwischen Sessions abspeichern (YAML/JSON via PlayerData; Schema‑Versionierung/Migration berücksichtigen).
+- Optionale Bossbar‑Skalen: dynamisch an „Max der letzten X Sekunden“ koppeln (Auto‑Zoom), per Config und GUI umschaltbar.
+
+Langfristig
+- Mehr Klassen/Perks & Synergien, Events/Bosse, Map‑Affixe, Meta‑Progression.
 
 ---
 
