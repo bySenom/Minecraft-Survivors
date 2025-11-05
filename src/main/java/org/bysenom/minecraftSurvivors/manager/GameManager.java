@@ -21,6 +21,7 @@ public class GameManager {
     private int currentWaveNumber = 1;
     private int pauseCounter = 0; // counts GUI pauses (e.g., multiple players)
     private final java.util.Set<java.util.UUID> pausedPlayers = new java.util.HashSet<>();
+    private final java.util.Map<java.util.UUID, org.bukkit.scheduler.BukkitTask> pauseTimeoutTasks = new java.util.concurrent.ConcurrentHashMap<>();
 
     public GameManager(MinecraftSurvivors plugin, PlayerManager playerManager) {
         this.plugin = plugin;
@@ -41,6 +42,8 @@ public class GameManager {
         xpHudTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             for (Player p : Bukkit.getOnlinePlayers()) {
                 try {
+                    // Skip HUD for players who are currently paused (choose reward)
+                    if (isPlayerPaused(p.getUniqueId())) continue;
                     org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = playerManager.get(p.getUniqueId());
                     if (sp == null) continue;
                     int currentXp = sp.getXp();
@@ -118,10 +121,40 @@ public class GameManager {
         // send player a notice/UI if online
         org.bukkit.entity.Player p = org.bukkit.Bukkit.getPlayer(playerUuid);
         if (p != null && p.isOnline()) {
-            try { p.sendActionBar(Component.text("§eSpiel pausiert für dich — wähle deine Belohnung")); } catch (Throwable ignored) {}
+            try {
+                // show Title + Subtitle (fadeIn, stay, fadeOut)
+                p.sendTitle("§eAuswahl", "§7Wähle dein Powerup... (Spiel pausiert für dich)", 5, 300, 5);
+            } catch (Throwable ignored) {}
             // freeze nearby wave mobs relative to this player so they don't move toward them
             try {
                 spawnManager.freezeMobsForPlayer(playerUuid, p.getLocation(), plugin.getConfigUtil().getDouble("spawn.freeze-radius", 10.0));
+            } catch (Throwable ignored) {}
+            // schedule countdown + auto-resume
+            try {
+                int maxSeconds = plugin.getConfigUtil().getInt("levelup.choice-max-seconds", 20);
+                // cancel existing
+                org.bukkit.scheduler.BukkitTask prev = pauseTimeoutTasks.remove(playerUuid);
+                if (prev != null) prev.cancel();
+                final int[] remaining = new int[]{Math.max(1, maxSeconds)};
+                org.bukkit.scheduler.BukkitTask task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+                    try {
+                        if (!p.isOnline() || !pausedPlayers.contains(playerUuid)) {
+                            // cancel
+                            org.bukkit.scheduler.BukkitTask t = pauseTimeoutTasks.remove(playerUuid);
+                            if (t != null) t.cancel();
+                            return;
+                        }
+                        // show ActionBar countdown
+                        p.sendActionBar(Component.text("Wähle deine Belohnung — Zeit übrig: " + remaining[0] + "s"));
+                        if (remaining[0] <= 0) {
+                            org.bukkit.scheduler.BukkitTask t = pauseTimeoutTasks.remove(playerUuid);
+                            if (t != null) t.cancel();
+                            resumeForPlayer(playerUuid);
+                        }
+                        remaining[0]--;
+                    } catch (Throwable ignored) {}
+                }, 0L, 20L);
+                pauseTimeoutTasks.put(playerUuid, task);
             } catch (Throwable ignored) {}
         }
     }
@@ -129,9 +162,16 @@ public class GameManager {
     public synchronized void resumeForPlayer(java.util.UUID playerUuid) {
         if (playerUuid == null) return;
         pausedPlayers.remove(playerUuid);
+        // cancel timeout task if present
+        try {
+            org.bukkit.scheduler.BukkitTask t = pauseTimeoutTasks.remove(playerUuid);
+            if (t != null) t.cancel();
+        } catch (Throwable ignored) {}
         org.bukkit.entity.Player p = org.bukkit.Bukkit.getPlayer(playerUuid);
         if (p != null && p.isOnline()) {
-            try { p.sendActionBar(Component.text("§aAuswahl abgeschlossen — Spiel fortgesetzt")); } catch (Throwable ignored) {}
+            try {
+                p.sendTitle("§aFortgesetzt", "§7Viel Erfolg!", 5, 60, 5);
+            } catch (Throwable ignored) {}
             try {
                 spawnManager.unfreezeMobsForPlayer(playerUuid);
             } catch (Throwable ignored) {}

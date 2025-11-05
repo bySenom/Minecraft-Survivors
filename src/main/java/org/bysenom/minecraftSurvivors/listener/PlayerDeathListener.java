@@ -35,7 +35,7 @@ public class PlayerDeathListener implements Listener {
                 sp.setXpToNext(Math.max(1, 5 * sp.getClassLevel()));
                 // persist coins (and other permanent fields) via dataManager if available
                 try {
-                    if (dataManager != null) dataManager.save(sp);
+                    if (dataManager != null) dataManager.saveCoins(sp.getUuid(), sp.getCoins());
                 } catch (Throwable ignored) {}
             }
             gameManager.stopGame();

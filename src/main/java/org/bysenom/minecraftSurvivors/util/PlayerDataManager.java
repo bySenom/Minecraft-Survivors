@@ -82,5 +82,20 @@ public class PlayerDataManager {
             save(sp);
         }
     }
-}
 
+    /**
+     * Persist only coins for a player (used on death to preserve coins while other fields may reset).
+     */
+    public void saveCoins(UUID uuid, int coins) {
+        if (uuid == null) return;
+        File f = new File(playersDir, uuid.toString() + ".yml");
+        FileConfiguration cfg = YamlConfiguration.loadConfiguration(f);
+        cfg.set("uuid", uuid.toString());
+        cfg.set("coins", coins);
+        try {
+            cfg.save(f);
+        } catch (IOException e) {
+            plugin.getLogger().severe("Failed to save coins for " + uuid + ": " + e.getMessage());
+        }
+    }
+}

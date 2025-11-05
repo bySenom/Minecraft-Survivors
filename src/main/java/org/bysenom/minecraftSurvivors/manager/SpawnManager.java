@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import org.bukkit.entity.Creature;
 
 public class SpawnManager {
 
@@ -196,11 +197,25 @@ public class SpawnManager {
      */
     public void freezeMobsForPlayer(UUID playerUuid, Location center, double radius) {
         if (playerUuid == null || center == null) return;
+        boolean onlyTargeting = plugin.getConfigUtil().getBoolean("spawn.freeze-only-targeting", true);
         List<LivingEntity> mobs = getNearbyWaveMobs(center, radius);
         if (mobs.isEmpty()) return;
         Set<UUID> set = frozenByPlayer.computeIfAbsent(playerUuid, k -> ConcurrentHashMap.newKeySet());
         for (LivingEntity le : mobs) {
             try {
+                boolean shouldFreeze = false;
+                if (onlyTargeting) {
+                    if (le instanceof Creature) {
+                        Creature c = (Creature) le;
+                        org.bukkit.entity.LivingEntity target = c.getTarget();
+                        if (target != null && target.getUniqueId().equals(playerUuid)) {
+                            shouldFreeze = true;
+                        }
+                    }
+                } else {
+                    shouldFreeze = true;
+                }
+                if (!shouldFreeze) continue;
                 // mark as frozen for this player
                 set.add(le.getUniqueId());
                 // strong slowness to effectively freeze

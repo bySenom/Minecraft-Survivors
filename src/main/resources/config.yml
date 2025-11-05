@@ -24,6 +24,8 @@ levelup:
     bonus-strikes: 1          # zusätzliche Strikes, wenn +Treffer gewählt wird
     flat-damage: 2.0          # flacher zusätzlicher Schaden, wenn +FlatDmg gewählt wird
     extra-hearts: 2          # Anzahl halber Herzen (2 = 1 Herz), wenn +Herzen gewählt wird
+  hud-interval-ticks: 100    # Interval in ticks for the XP ActionBar HUD (default 100)
+  choice-max-seconds: 20     # Maximalzeit in Sekunden für LevelUp Entscheidungen
 
 # Mob visuals
 spawn:
@@ -38,6 +40,11 @@ spawn:
   redstone-r: 255
   redstone-g: 255
   redstone-b: 255
+  # Spawn distance (min/max) for waves (prevents spawns too close to player)
+  min-distance: 8.0
+  max-distance: 16.0
+  # Radius used when freezing nearby mobs for a paused player
+  freeze-radius: 10.0
 
 # Debug / Logging
 debug:
