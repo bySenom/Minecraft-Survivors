@@ -82,30 +82,50 @@ public class ScoreboardManager {
         UUID uuid = p.getUniqueId();
         SurvivorPlayer sp = playerManager.get(uuid);
         String state = String.valueOf(gameManager.getState());
-        int wave = gameManager.getCurrentWaveNumber();
-        String clazz = sp.getSelectedClass() == null ? "-" : sp.getSelectedClass().name();
+        String clazzDisplay;
+        try {
+            clazzDisplay = sp.getSelectedClass() == null ? "-" : sp.getSelectedClass().getDisplayName();
+        } catch (Throwable t) {
+            clazzDisplay = sp.getSelectedClass() == null ? "-" : sp.getSelectedClass().name();
+        }
         int lvl = sp.getClassLevel();
         int xp = sp.getXp();
         int xpNext = sp.getXpToNext();
         int kills = sp.getKills();
         int coins = sp.getCoins();
         int online = Bukkit.getOnlinePlayers().size();
+        // party + stats mode
+        String mode = "-";
+        try { mode = plugin.getStatsDisplayManager().getMode().name().toLowerCase(); } catch (Throwable ignored) {}
+        PartyManager pm = plugin.getPartyManager();
+        PartyManager.Party party = pm != null ? pm.getPartyOf(uuid) : null;
+        String partyLine = party == null ? "keine" : (pm.onlineMembers(party).size() + "/" + party.getMembers().size());
 
-        // Einträge (von oben nach unten absteigend)
+        // Nicer status icon
+        String statusIcon;
+        ChatColor statusColor;
+        switch (state) {
+            case "RUNNING": statusIcon = "▶"; statusColor = ChatColor.GREEN; break;
+            case "PAUSED": statusIcon = "⏸"; statusColor = ChatColor.YELLOW; break;
+            case "ENDED": statusIcon = "■"; statusColor = ChatColor.RED; break;
+            default: statusIcon = "●"; statusColor = ChatColor.WHITE; break;
+        }
+
+        // Einträge (von oben nach unten absteigend) — Wave entfernt
         int line = 15;
-        addLine(obj, ChatColor.DARK_GRAY + "----------------", line--);
-        addLine(obj, ChatColor.WHITE + "Status: " + colorByState(state) + state, line--);
-        addLine(obj, ChatColor.WHITE + "Wave: " + ChatColor.AQUA + wave, line--);
+        addLine(obj, ChatColor.DARK_GRAY + "──────────────", line--);
+        addLine(obj, ChatColor.WHITE + "Status " + statusColor + statusIcon + ChatColor.GRAY + " • " + statusColor + state, line--);
         addLine(obj, ChatColor.DARK_GRAY + "", line--);
-        addLine(obj, ChatColor.WHITE + "Klasse: " + ChatColor.GREEN + clazz, line--);
-        addLine(obj, ChatColor.WHITE + "Level:  " + ChatColor.GREEN + lvl, line--);
-        addLine(obj, ChatColor.WHITE + "XP:     " + ChatColor.GREEN + xp + ChatColor.GRAY + "/" + ChatColor.GREEN + xpNext, line--);
+        addLine(obj, ChatColor.WHITE + "Klasse " + ChatColor.GREEN + clazzDisplay, line--);
+        addLine(obj, ChatColor.WHITE + "Lvl " + ChatColor.AQUA + lvl + ChatColor.GRAY + " • " + ChatColor.WHITE + "XP " + ChatColor.GREEN + xp + ChatColor.GRAY + "/" + ChatColor.GREEN + xpNext, line--);
         addLine(obj, ChatColor.DARK_GRAY + " ", line--);
-        addLine(obj, ChatColor.WHITE + "Kills:  " + ChatColor.YELLOW + kills, line--);
-        addLine(obj, ChatColor.WHITE + "Coins:  " + ChatColor.GOLD + coins, line--);
+        addLine(obj, ChatColor.WHITE + "⚔ Kills " + ChatColor.YELLOW + kills, line--);
+        addLine(obj, ChatColor.WHITE + "⛃ Coins " + ChatColor.GOLD + coins, line--);
         addLine(obj, ChatColor.DARK_GRAY + "  ", line--);
-        addLine(obj, ChatColor.WHITE + "Online: " + ChatColor.AQUA + online, line--);
-        addLine(obj, ChatColor.DARK_GRAY + "-----------------", line--);
+        addLine(obj, ChatColor.WHITE + "👥 Online " + ChatColor.AQUA + online, line--);
+        addLine(obj, ChatColor.WHITE + "Party " + ChatColor.AQUA + partyLine, line--);
+        addLine(obj, ChatColor.WHITE + "Stats " + ChatColor.AQUA + mode, line--);
+        addLine(obj, ChatColor.DARK_GRAY + "───────────────", line--);
 
         p.setScoreboard(sb);
     }

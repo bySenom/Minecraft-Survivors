@@ -67,6 +67,15 @@ public class ConfigUtil {
         return cfg.getString(path, def);
     }
 
+    public void setValue(String path, Object value) {
+        try {
+            cfg.set(path, value);
+            plugin.saveConfig();
+        } catch (Throwable t) {
+            plugin.getLogger().warning("Failed to set config value for " + path + ": " + t.getMessage());
+        }
+    }
+
     public FileConfiguration getConfig() {
         return cfg;
     }

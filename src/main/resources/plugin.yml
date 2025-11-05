@@ -30,6 +30,10 @@ commands:
     usage: "/msstats <sub>"
     permission: minecraftsurvivors.admin
     permission-message: "§cKeine Berechtigung."
+
+  party:
+    description: "Party-System: /party create|invite|join|leave|disband|list"
+    usage: "/party <sub>"
 permissions:
   minecraftsurvivors.admin:
     description: "Erlaubnis zum Starten/Stoppen und Admin-Kommandos"

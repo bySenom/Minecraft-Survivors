@@ -15,6 +15,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.SkullType;
+import org.bukkit.inventory.meta.SkullMeta;
 
 import java.util.List;
 
@@ -42,36 +44,59 @@ public class GuiManager {
      */
     public void openMainMenu(Player p) {
         if (p == null) return;
-        Inventory inv = Bukkit.createInventory(null, 27, MAIN_TITLE);
-
-        // Border + background
+        // enlarge to 45 slots (5 rows)
+        Inventory inv = Bukkit.createInventory(null, 45, MAIN_TITLE);
         fillBorder(inv, Material.BLACK_STAINED_GLASS_PANE);
 
-        // Hauptbuttons (zentriert auf der mittleren Reihe)
-        inv.setItem(11, createGuiItem(Material.GREEN_STAINED_GLASS, Component.text("Start Spiel").color(NamedTextColor.GREEN),
-                List.of(Component.text("Klicke um das Spiel zu starten").color(NamedTextColor.GRAY)), "start", false));
-
-        // Klasse-Button: wenn Spieler bereits eine Klasse gewählt hat, zeige deren Icon + Glow
         org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = plugin.getPlayerManager().get(p.getUniqueId());
         PlayerClass sel = sp != null ? sp.getSelectedClass() : null;
         Material classMat = materialForClass(sel != null ? sel : PlayerClass.SHAMAN);
         Component classTitle = Component.text(sel != null ? "Klasse: " + sel.getDisplayName() : "Klasse wählen").color(NamedTextColor.AQUA);
-        List<Component> classLore = List.of(Component.text(sel != null ? sel.getDescription() : "Wähle deine Klasse bevor du startest").color(NamedTextColor.GRAY));
-        inv.setItem(13, createGuiItem(classMat, classTitle, classLore, "class", sel != null));
+        java.util.List<Component> classLore = java.util.List.of(Component.text(sel != null ? sel.getDescription() : "Wähle deine Klasse bevor du startest").color(NamedTextColor.GRAY));
 
-        inv.setItem(15, createGuiItem(Material.NETHER_STAR, Component.text("Powerups").color(NamedTextColor.LIGHT_PURPLE),
-                List.of(Component.text("Später verfügbare Powerups & Items").color(NamedTextColor.GRAY)), "powerup", false));
-
-        // Status-Item (Coins / Level)
         int coins = sp != null ? sp.getCoins() : 0;
         int lvl = sp != null ? sp.getClassLevel() : 1;
-        inv.setItem(10, createGuiItem(Material.EMERALD, Component.text("Status").color(NamedTextColor.GOLD),
-                List.of(Component.text("✦ Coins: ").color(NamedTextColor.YELLOW).append(Component.text(String.valueOf(coins)).color(NamedTextColor.WHITE)),
-                        Component.text("⚑ Level: ").color(NamedTextColor.YELLOW).append(Component.text(String.valueOf(lvl)).color(NamedTextColor.WHITE))), "status", false));
 
-        // Info / Close
-        inv.setItem(22, createGuiItem(Material.PAPER, Component.text("Info").color(NamedTextColor.YELLOW),
-                List.of(Component.text("V: Vampire Survivors like Mini-Game"), Component.text("bySenom").color(NamedTextColor.GRAY)), "info"));
+        // Row 2 (slots 9..17): Status, Start, Klasse, Powerups
+        inv.setItem(10, createGuiItem(Material.EMERALD, Component.text("Status").color(NamedTextColor.GOLD),
+                java.util.List.of(Component.text("✦ Coins: ").color(NamedTextColor.YELLOW).append(Component.text(String.valueOf(coins)).color(NamedTextColor.WHITE)),
+                        Component.text("⚑ Level: ").color(NamedTextColor.YELLOW).append(Component.text(String.valueOf(lvl)).color(NamedTextColor.WHITE))), "status", false));
+        inv.setItem(12, createGuiItem(Material.GREEN_STAINED_GLASS, Component.text("Start Spiel").color(NamedTextColor.GREEN),
+                java.util.List.of(Component.text("Klicke um das Spiel zu starten").color(NamedTextColor.GRAY)), "start", false));
+        inv.setItem(14, createGuiItem(classMat, classTitle, classLore, "class", sel != null));
+        inv.setItem(16, createGuiItem(Material.NETHER_STAR, Component.text("Powerups").color(NamedTextColor.LIGHT_PURPLE),
+                java.util.List.of(Component.text("Später verfügbare Powerups & Items").color(NamedTextColor.GRAY)), "powerup", false));
+
+        // Row 3 (slots 18..26): Party, Stats, ggf. Config
+        inv.setItem(20, createGuiItem(Material.PLAYER_HEAD, Component.text("Party").color(NamedTextColor.GOLD),
+                java.util.List.of(Component.text("Erstelle/Verwalte deine Party").color(NamedTextColor.GRAY)), "party", false));
+        inv.setItem(22, createGuiItem(Material.CLOCK, Component.text("Stats").color(NamedTextColor.YELLOW),
+                java.util.List.of(Component.text("DPS/HPS Anzeige-Modus umschalten").color(NamedTextColor.GRAY)), "stats", false));
+        if (p.hasPermission("minecraftsurvivors.admin")) {
+            inv.setItem(24, createGuiItem(Material.COMPARATOR, Component.text("Config").color(NamedTextColor.AQUA),
+                    java.util.List.of(Component.text("Reload & Presets").color(NamedTextColor.GRAY)), "config", false));
+        }
+
+        // Info Button unten links
+        inv.setItem(36, createGuiItem(Material.PAPER, Component.text("Info").color(NamedTextColor.YELLOW),
+                java.util.List.of(Component.text("V: Vampire Survivors like Mini-Game"), Component.text("bySenom").color(NamedTextColor.GRAY)), "info"));
+
+        // Footer (Status-Zeile) unten rechts: Stats-Modus + Party-Zusammenfassung
+        String mode = "-";
+        try { mode = plugin.getStatsDisplayManager().getMode().name().toLowerCase(); } catch (Throwable ignored) {}
+        java.util.List<Component> footerLore = new java.util.ArrayList<>();
+        footerLore.add(Component.text("Stats: ").color(NamedTextColor.GRAY).append(Component.text(mode).color(NamedTextColor.AQUA)));
+        org.bysenom.minecraftSurvivors.manager.PartyManager pm = plugin.getPartyManager();
+        org.bysenom.minecraftSurvivors.manager.PartyManager.Party party = pm != null ? pm.getPartyOf(p.getUniqueId()) : null;
+        if (party != null) {
+            int online = pm.onlineMembers(party).size();
+            int total = party.getMembers().size();
+            footerLore.add(Component.text("Party: ").color(NamedTextColor.GRAY)
+                    .append(Component.text(online + "/" + total).color(NamedTextColor.GREEN)));
+        } else {
+            footerLore.add(Component.text("Party: keine").color(NamedTextColor.DARK_GRAY));
+        }
+        inv.setItem(44, createGuiItem(Material.MAP, Component.text("Status").color(NamedTextColor.WHITE), footerLore, "noop", false));
 
         p.openInventory(inv);
     }
@@ -232,6 +257,126 @@ public class GuiManager {
         org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = plugin.getPlayerManager().get(p.getUniqueId());
         LevelUpMenu menu = new LevelUpMenu(p, sp, level);
         p.openInventory(menu.getInventory());
+    }
+
+    public void openPartyMenu(Player p) {
+        if (p == null) return;
+        Inventory inv = Bukkit.createInventory(null, 27, Component.text("Party").color(NamedTextColor.GOLD));
+        fillBorder(inv, Material.LIGHT_BLUE_STAINED_GLASS_PANE);
+        org.bysenom.minecraftSurvivors.manager.PartyManager pm = plugin.getPartyManager();
+        java.util.UUID pendingLeader = pm != null ? pm.getPendingInviteLeader(p.getUniqueId()) : null;
+        inv.setItem(10, createGuiItem(Material.SLIME_BALL, Component.text("Erstellen").color(NamedTextColor.GREEN), java.util.List.of(Component.text("Neue Party erstellen")), "party_create"));
+        // Einladen per Liste
+        inv.setItem(12, createGuiItem(Material.PLAYER_HEAD, Component.text("Einladen (Liste)").color(NamedTextColor.YELLOW), java.util.List.of(Component.text("Klicke, um Online-Spieler zu sehen").color(NamedTextColor.GRAY)), "party_invite_list"));
+        if (pendingLeader != null) {
+            org.bukkit.entity.Player lp = org.bukkit.Bukkit.getPlayer(pendingLeader);
+            String name = lp != null ? lp.getName() : "Leader";
+            inv.setItem(14, createGuiItem(Material.LIME_DYE, Component.text("Einladung annehmen").color(NamedTextColor.AQUA), java.util.List.of(Component.text("von "+name)), "party_join_invite"));
+        } else {
+            inv.setItem(14, createGuiItem(Material.GRAY_DYE, Component.text("Keine Einladung").color(NamedTextColor.GRAY), java.util.List.of(Component.text("Du hast derzeit keine offene Einladung")), "noop"));
+        }
+        // Mitglieder-Info
+        java.util.List<Component> lore = new java.util.ArrayList<>();
+        org.bysenom.minecraftSurvivors.manager.PartyManager.Party party = pm != null ? pm.getPartyOf(p.getUniqueId()) : null;
+        if (party != null) {
+            lore.add(Component.text("Mitglieder:").color(NamedTextColor.GOLD));
+            for (java.util.UUID u : party.getMembers()) {
+                org.bukkit.entity.Player pl = org.bukkit.Bukkit.getPlayer(u);
+                String name = pl != null ? pl.getName() : u.toString();
+                lore.add(Component.text("- "+name).color(NamedTextColor.WHITE));
+            }
+        } else {
+            lore.add(Component.text("Keine Party").color(NamedTextColor.GRAY));
+        }
+        inv.setItem(11, createGuiItem(Material.BOOK, Component.text("Mitglieder").color(NamedTextColor.AQUA), lore, "noop"));
+
+        inv.setItem(16, createGuiItem(Material.BARRIER, Component.text("Verlassen/Auflösen").color(NamedTextColor.RED), java.util.List.of(Component.text("Party verlassen oder als Leader auflösen")), "party_leave"));
+        inv.setItem(22, createGuiItem(Material.ARROW, Component.text("Zurück").color(NamedTextColor.RED), java.util.List.of(Component.text("Zurück zum Hauptmenü")), "back"));
+        p.openInventory(inv);
+    }
+
+    public void openPartyInviteList(Player p) {
+        if (p == null) return;
+        Inventory inv = Bukkit.createInventory(null, 54, Component.text("Spieler einladen").color(NamedTextColor.YELLOW));
+        fillBorder(inv, Material.LIGHT_GRAY_STAINED_GLASS_PANE);
+        java.util.Set<java.util.UUID> skip = new java.util.HashSet<>();
+        org.bysenom.minecraftSurvivors.manager.PartyManager pm = plugin.getPartyManager();
+        org.bysenom.minecraftSurvivors.manager.PartyManager.Party party = pm != null ? pm.getPartyOf(p.getUniqueId()) : null;
+        if (party != null) skip.addAll(party.getMembers());
+        int slot = 10;
+        for (org.bukkit.entity.Player online : Bukkit.getOnlinePlayers()) {
+            if (online.getUniqueId().equals(p.getUniqueId())) continue;
+            if (skip.contains(online.getUniqueId())) continue;
+            ItemStack head = new ItemStack(Material.PLAYER_HEAD);
+            try {
+                SkullMeta sm = (SkullMeta) head.getItemMeta();
+                if (sm != null) {
+                    sm.setOwningPlayer(online);
+                    sm.displayName(Component.text(online.getName(), NamedTextColor.AQUA));
+                    sm.lore(java.util.List.of(Component.text("Klicken zum Einladen").color(NamedTextColor.GRAY)));
+                    sm.getPersistentDataContainer().set(key, PersistentDataType.STRING, "party_invite:" + online.getUniqueId());
+                    head.setItemMeta(sm);
+                }
+            } catch (Throwable ignored) {}
+            inv.setItem(slot, head);
+            slot++;
+            if (slot % 9 == 8) slot += 2; // skip border
+            if (slot >= inv.getSize() - 9) break;
+        }
+        inv.setItem(49, createGuiItem(Material.ARROW, Component.text("Zurück").color(NamedTextColor.RED), java.util.List.of(Component.text("Zurück zum Party-Menü")), "party_back"));
+        p.openInventory(inv);
+    }
+
+    public void openStatsMenu(Player p) {
+        if (p == null) return;
+        Inventory inv = Bukkit.createInventory(null, 27, Component.text("Stats Anzeige").color(NamedTextColor.YELLOW));
+        fillBorder(inv, Material.GRAY_STAINED_GLASS_PANE);
+        org.bysenom.minecraftSurvivors.manager.StatsDisplayManager.Mode mode = plugin.getStatsDisplayManager().getMode();
+        inv.setItem(10, createGuiItem(Material.PAPER, Component.text("ActionBar").color(NamedTextColor.WHITE), java.util.List.of(Component.text("XP/Lvl + DPS/HPS in der ActionBar")), "stats_mode_actionbar", mode == org.bysenom.minecraftSurvivors.manager.StatsDisplayManager.Mode.ACTIONBAR));
+        inv.setItem(12, createGuiItem(Material.DRAGON_BREATH, Component.text("BossBar").color(NamedTextColor.LIGHT_PURPLE), java.util.List.of(Component.text("Zwei dezente BossBars (DPS/HPS)")), "stats_mode_bossbar", mode == org.bysenom.minecraftSurvivors.manager.StatsDisplayManager.Mode.BOSSBAR));
+        inv.setItem(14, createGuiItem(Material.OAK_SIGN, Component.text("Scoreboard").color(NamedTextColor.AQUA), java.util.List.of(Component.text("HUD nur im Scoreboard-Modus")), "stats_mode_scoreboard", mode == org.bysenom.minecraftSurvivors.manager.StatsDisplayManager.Mode.SCOREBOARD));
+        inv.setItem(16, createGuiItem(Material.BARRIER, Component.text("Aus").color(NamedTextColor.RED), java.util.List.of(Component.text("Anzeige deaktivieren")), "stats_mode_off", mode == org.bysenom.minecraftSurvivors.manager.StatsDisplayManager.Mode.OFF));
+        inv.setItem(22, createGuiItem(Material.ARROW, Component.text("Zurück").color(NamedTextColor.RED), java.util.List.of(Component.text("Zurück zum Hauptmenü")), "back"));
+        p.openInventory(inv);
+    }
+
+    public void openConfigMenu(Player p) {
+        if (p == null) return;
+        Inventory inv = Bukkit.createInventory(null, 27, Component.text("Konfiguration").color(NamedTextColor.AQUA));
+        fillBorder(inv, Material.GRAY_STAINED_GLASS_PANE);
+        inv.setItem(11, createGuiItem(Material.WRITABLE_BOOK, Component.text("Reload Config").color(NamedTextColor.GOLD), java.util.List.of(Component.text("/msconfig reload ausführen")), "config_reload"));
+        inv.setItem(13, createGuiItem(Material.GLOWSTONE_DUST, Component.text("Preset: flashy").color(NamedTextColor.YELLOW), java.util.List.of(Component.text("Spawn-Visual-Preset anwenden")), "config_preset_flashy"));
+        inv.setItem(15, createGuiItem(Material.ENDER_EYE, Component.text("Preset: epic").color(NamedTextColor.LIGHT_PURPLE), java.util.List.of(Component.text("Spawn-Visual-Preset anwenden")), "config_preset_epic"));
+        inv.setItem(22, createGuiItem(Material.ARROW, Component.text("Zurück").color(NamedTextColor.RED), java.util.List.of(Component.text("Zurück zum Hauptmenü")), "back"));
+        p.openInventory(inv);
+    }
+
+    public void applyPreset(String name) {
+        if (name == null) return;
+        switch (name.toLowerCase()) {
+            case "flashy":
+                plugin.getConfigUtil().setValue("spawn.particle", "FLAME");
+                plugin.getConfigUtil().setValue("spawn.particle-duration", 14);
+                plugin.getConfigUtil().setValue("spawn.particle-points", 20);
+                plugin.getConfigUtil().setValue("spawn.particle-count", 3);
+                plugin.getConfigUtil().setValue("spawn.particle-spread", 0.12);
+                break;
+            case "epic":
+                plugin.getConfigUtil().setValue("spawn.particle", "REDSTONE");
+                plugin.getConfigUtil().setValue("spawn.particle-duration", 20);
+                plugin.getConfigUtil().setValue("spawn.particle-points", 28);
+                plugin.getConfigUtil().setValue("spawn.particle-count", 4);
+                plugin.getConfigUtil().setValue("spawn.particle-spread", 0.18);
+                break;
+            default:
+                // subtle as base
+                plugin.getConfigUtil().setValue("spawn.particle", "END_ROD");
+                plugin.getConfigUtil().setValue("spawn.particle-duration", 8);
+                plugin.getConfigUtil().setValue("spawn.particle-points", 12);
+                plugin.getConfigUtil().setValue("spawn.particle-count", 1);
+                plugin.getConfigUtil().setValue("spawn.particle-spread", 0.06);
+                break;
+        }
     }
 
     private Material materialForClass(org.bysenom.minecraftSurvivors.model.PlayerClass pc) {

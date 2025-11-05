@@ -30,7 +30,6 @@ public class GuiClickListener implements Listener {
         ItemStack clicked = e.getCurrentItem();
         if (clicked == null || !clicked.hasItemMeta()) return;
 
-        // Akzeptiere GUI-Aktionen auch in speziellen Inventar-Titeln (Klassenwahl etc.)
         String action = clicked.getItemMeta().getPersistentDataContainer().get(key, PersistentDataType.STRING);
         if (action == null) return;
 
@@ -44,8 +43,58 @@ public class GuiClickListener implements Listener {
                 player.sendMessage("§aStart in 5 Sekunden...");
                 break;
             case "class":
-                // Öffne Klassenwahl
                 guiManager.openClassSelection(player);
+                break;
+            case "party":
+                guiManager.openPartyMenu(player);
+                break;
+            case "stats":
+                guiManager.openStatsMenu(player);
+                break;
+            case "config":
+                if (!player.hasPermission("minecraftsurvivors.admin")) { player.sendMessage("§cKeine Berechtigung für Config."); return; }
+                guiManager.openConfigMenu(player);
+                break;
+            case "party_create":
+                if (plugin.getPartyManager().createParty(player.getUniqueId())) player.sendMessage("§aParty erstellt."); else player.sendMessage("§cDu bist bereits in einer Party.");
+                guiManager.openPartyMenu(player);
+                break;
+            case "party_join_invite":
+                java.util.UUID leader = plugin.getPartyManager().getPendingInviteLeader(player.getUniqueId());
+                if (leader != null && plugin.getPartyManager().join(player.getUniqueId(), leader)) player.sendMessage("§aEinladung angenommen."); else player.sendMessage("§cKeine gültige Einladung.");
+                guiManager.openPartyMenu(player);
+                break;
+            case "party_leave":
+                if (plugin.getPartyManager().leave(player.getUniqueId())) player.sendMessage("§aParty verlassen/aufgelöst."); else player.sendMessage("§cDu bist in keiner Party.");
+                guiManager.openPartyMenu(player);
+                break;
+            case "stats_mode_actionbar":
+                plugin.getStatsDisplayManager().setMode(org.bysenom.minecraftSurvivors.manager.StatsDisplayManager.Mode.ACTIONBAR);
+                player.sendMessage("§aStats-Modus: ActionBar");
+                break;
+            case "stats_mode_bossbar":
+                plugin.getStatsDisplayManager().setMode(org.bysenom.minecraftSurvivors.manager.StatsDisplayManager.Mode.BOSSBAR);
+                player.sendMessage("§aStats-Modus: BossBar");
+                break;
+            case "stats_mode_scoreboard":
+                plugin.getStatsDisplayManager().setMode(org.bysenom.minecraftSurvivors.manager.StatsDisplayManager.Mode.SCOREBOARD);
+                player.sendMessage("§aStats-Modus: Scoreboard");
+                break;
+            case "stats_mode_off":
+                plugin.getStatsDisplayManager().setMode(org.bysenom.minecraftSurvivors.manager.StatsDisplayManager.Mode.OFF);
+                player.sendMessage("§aStats-Modus: Aus");
+                break;
+            case "config_reload":
+                plugin.getGameManager().reloadConfigAndApply();
+                player.sendMessage("§aConfig neu geladen.");
+                break;
+            case "config_preset_flashy":
+                guiManager.applyPreset("flashy");
+                player.sendMessage("§aPreset 'flashy' angewendet.");
+                break;
+            case "config_preset_epic":
+                guiManager.applyPreset("epic");
+                player.sendMessage("§aPreset 'epic' angewendet.");
                 break;
             case "back":
                 guiManager.openMainMenu(player);
@@ -57,11 +106,9 @@ public class GuiClickListener implements Listener {
                 player.closeInventory();
                 break;
             case "status":
-                // einfach Status-Item: öffne Info
                 guiManager.openInfoMenu(player);
                 break;
             case "select_shaman":
-                // Spielerklasse setzen
                 plugin.getPlayerManager().get(player.getUniqueId()).setSelectedClass(PlayerClass.SHAMAN);
                 player.closeInventory();
                 player.sendMessage("§aKlasse gewählt: " + PlayerClass.SHAMAN.getDisplayName());
@@ -85,7 +132,25 @@ public class GuiClickListener implements Listener {
                 player.closeInventory();
                 player.sendMessage("§aKlasse gewählt: Paladin");
                 break;
+            case "party_invite_list":
+                guiManager.openPartyInviteList(player);
+                break;
             default:
+                if (action.startsWith("party_invite:")) {
+                    try {
+                        java.util.UUID target = java.util.UUID.fromString(action.substring("party_invite:".length()));
+                        if (plugin.getPartyManager().invite(player.getUniqueId(), target, 60)) {
+                            player.sendMessage("§aEinladung gesendet.");
+                        } else {
+                            player.sendMessage("§cInvite fehlgeschlagen (bist du Leader?).");
+                        }
+                        guiManager.openPartyInviteList(player);
+                    } catch (IllegalArgumentException ignored) {}
+                } else if (action.equals("party_back")) {
+                    guiManager.openPartyMenu(player);
+                } else {
+                    break;
+                }
                 break;
         }
     }

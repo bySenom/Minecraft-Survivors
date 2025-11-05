@@ -103,7 +103,7 @@ ranger:
 # Paladin
 paladin:
   base-damage: 2.5
-  radius: 5.5
+  radius: 7.0
   heal: 1.0
 
 # LevelUp / Upgrade Werte (konfigurierbar)
@@ -171,3 +171,8 @@ stats:
     enabled: false          # Falls true, alle n Sekunden Top-DPS/HPS broadcasten
     interval-seconds: 30
     n: 3
+party:
+  xp-share:
+    enabled: true            # Wenn true, wird xp-per-kill unter Online-Party-Mitgliedern verteilt
+    split-evenly: true        # Gleichmäßig teilen (mit Rest-Verteilung)
+    min-per-member: 1         # Mindestens 1 XP pro Mitglied (falls > xp-per-kill, wird deckelnd berücksichtigt)

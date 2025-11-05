@@ -32,29 +32,44 @@ public class EntityDeathListener implements Listener {
             sp.addCoins(1); // einfache Belohnung
             killer.sendActionBar(Component.text("Kills: " + sp.getKills() + "  Coins: " + sp.getCoins()));
 
-            // XP-Verteilung bei Kill: aus der Config lesen (default 1)
             int xpGain = 1;
-            try {
-                if (config != null) {
-                    xpGain = config.getInt("levelup.xp-per-kill", 1);
-                }
-            } catch (Throwable ignored) {}
+            try { if (config != null) xpGain = config.getInt("levelup.xp-per-kill", 1); } catch (Throwable ignored) {}
 
-            int beforeLevel = sp.getClassLevel();
-            boolean leveled = sp.addXp(xpGain);
-            int afterLevel = sp.getClassLevel();
-
-            if (leveled) {
-                // Wenn mehrere Level auf einmal erreicht wurden, beschreibe kurz die Änderung
-                if (guiManager != null) {
-                    guiManager.openLevelUpMenu(killer, afterLevel);
-                }
-                if (afterLevel > beforeLevel) {
-                    killer.sendMessage(Component.text("§aLevel up! Du bist jetzt Level " + afterLevel));
-                } else {
-                    killer.sendMessage(Component.text("§aLevel up!"));
+            // Party-Share
+            org.bysenom.minecraftSurvivors.manager.PartyManager pm = org.bysenom.minecraftSurvivors.MinecraftSurvivors.getInstance().getPartyManager();
+            java.util.List<java.util.UUID> targets = new java.util.ArrayList<>();
+            if (pm != null) {
+                org.bysenom.minecraftSurvivors.manager.PartyManager.Party party = pm.getPartyOf(killer.getUniqueId());
+                if (party != null) targets = pm.onlineMembers(party);
+            }
+            if (targets.isEmpty()) {
+                // no party: solo xp
+                handleXpGain(killer, sp, xpGain);
+            } else {
+                // even split among online party members
+                int members = Math.max(1, targets.size());
+                int per = Math.max(1, xpGain / members);
+                int remainder = Math.max(0, xpGain - per * members);
+                for (java.util.UUID u : targets) {
+                    Player pl = org.bukkit.Bukkit.getPlayer(u);
+                    if (pl == null) continue;
+                    SurvivorPlayer memberSp = playerManager.get(u);
+                    int give = per + (remainder > 0 ? 1 : 0);
+                    if (remainder > 0) remainder--;
+                    handleXpGain(pl, memberSp, give);
                 }
             }
+        }
+    }
+
+    private void handleXpGain(Player player, SurvivorPlayer sp, int xpGain) {
+        int beforeLevel = sp.getClassLevel();
+        boolean leveled = sp.addXp(xpGain);
+        int afterLevel = sp.getClassLevel();
+        if (leveled) {
+            if (guiManager != null) guiManager.openLevelUpMenu(player, afterLevel);
+            if (afterLevel > beforeLevel) player.sendMessage(Component.text("§aLevel up! Du bist jetzt Level " + afterLevel));
+            else player.sendMessage(Component.text("§aLevel up!"));
         }
     }
 }

@@ -20,6 +20,7 @@ public final class MinecraftSurvivors extends JavaPlugin {
     private org.bysenom.minecraftSurvivors.manager.ScoreboardManager scoreboardManager;
     private org.bysenom.minecraftSurvivors.manager.StatsMeterManager statsMeterManager;
     private org.bysenom.minecraftSurvivors.manager.StatsDisplayManager statsDisplayManager;
+    private org.bysenom.minecraftSurvivors.manager.PartyManager partyManager;
 
     @Override
     public void onLoad() {
@@ -36,6 +37,7 @@ public final class MinecraftSurvivors extends JavaPlugin {
         this.scoreboardManager = new org.bysenom.minecraftSurvivors.manager.ScoreboardManager(this, playerManager, gameManager);
         this.statsMeterManager = new org.bysenom.minecraftSurvivors.manager.StatsMeterManager(this.configUtil.getInt("stats.window-seconds", 10));
         this.statsDisplayManager = new org.bysenom.minecraftSurvivors.manager.StatsDisplayManager(this, this.statsMeterManager);
+        this.partyManager = new org.bysenom.minecraftSurvivors.manager.PartyManager(this);
 
         // GuiManager einmal erstellen
         final GuiManager guiManager = new GuiManager(this, gameManager);
@@ -54,6 +56,9 @@ public final class MinecraftSurvivors extends JavaPlugin {
             }
             if (getCommand("msstats") != null) {
                 getCommand("msstats").setExecutor(new org.bysenom.minecraftSurvivors.command.MsStatsCommand(this));
+            }
+            if (getCommand("party") != null) {
+                getCommand("party").setExecutor(new org.bysenom.minecraftSurvivors.command.PartyCommand(this));
             }
 
             // EntityDeathListener benötigt nun ConfigUtil zur Bestimmung von XP pro Kill
@@ -109,5 +114,9 @@ public final class MinecraftSurvivors extends JavaPlugin {
 
     public org.bysenom.minecraftSurvivors.manager.StatsDisplayManager getStatsDisplayManager() {
         return statsDisplayManager;
+    }
+
+    public org.bysenom.minecraftSurvivors.manager.PartyManager getPartyManager() {
+        return partyManager;
     }
 }
