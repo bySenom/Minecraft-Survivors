@@ -63,23 +63,13 @@ public class GameManager {
         state = GameState.RUNNING;
         playerManager.resetAll();
         this.currentWaveNumber = 1;
-        // Debug: falls ein Spieler noch keine Klasse gewählt hat, setze Shaman als Default, damit Abilities sichtbar werden.
-        for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
-            org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = playerManager.get(p.getUniqueId());
-            if (sp.getSelectedClass() == null) {
-                sp.setSelectedClass(org.bysenom.minecraftSurvivors.model.PlayerClass.SHAMAN);
-            }
-        }
-        // Start either continuous or wave-based spawning
         boolean continuous = plugin.getConfigUtil().getBoolean("spawn.continuous.enabled", true);
         if (continuous) {
             spawnManager.startContinuousIfEnabled();
         } else {
             startWaveTask();
         }
-        // Ability-Task starten (z. B. Shaman-Blitz alle 1.5s)
         abilityManager.start();
-        // Start XP-HUD task (shows XP progress on ActionBar periodically)
         startHudTask();
         Bukkit.getLogger().info("Game started");
     }

@@ -43,6 +43,11 @@ public class ShamanAbility implements Ability {
 
         int baseStrikes = plugin.getConfigUtil().getInt("shaman.strikes-per-tick", 1);
         int strikes = baseStrikes + (sp != null ? sp.getBonusStrikes() : 0);
+        // AttackSpeed scaling: multiply strikes by (1 + attackSpeedMult) with cap
+        double as = sp != null ? Math.max(0.0, sp.getAttackSpeedMult()) : 0.0;
+        double speedFactor = Math.min(3.0, 1.0 + as); // cap at 3x
+        strikes = Math.max(1, (int) Math.floor(strikes * speedFactor));
+
         double baseDamage = plugin.getConfigUtil().getDouble("shaman.base-damage", 6.0);
         int level = Math.max(1, sp != null ? sp.getClassLevel() : 1);
 

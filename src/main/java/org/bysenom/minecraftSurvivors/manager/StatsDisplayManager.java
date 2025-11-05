@@ -21,6 +21,8 @@ public class StatsDisplayManager {
     private final Map<UUID, BossBar> bossbarsHps = new java.util.concurrent.ConcurrentHashMap<>();
     private org.bukkit.scheduler.BukkitTask task;
     private org.bukkit.scheduler.BukkitTask broadcastTask;
+    private final java.util.Map<java.util.UUID, Double> stickyDpsCap = new java.util.concurrent.ConcurrentHashMap<>();
+    private final java.util.Map<java.util.UUID, Double> stickyHpsCap = new java.util.concurrent.ConcurrentHashMap<>();
 
     public StatsDisplayManager(org.bysenom.minecraftSurvivors.MinecraftSurvivors plugin, StatsMeterManager meter) {
         this.plugin = plugin;
@@ -115,9 +117,18 @@ public class StatsDisplayManager {
     }
 
     private void updateBossbars(Player p, double dps, double hps) {
-        // Auto-zoom scale: set progress relative to dynamic cap
+        boolean dyn = plugin.getConfigUtil().getBoolean("stats.dynamic-cap-enabled", false);
         double dCap = Math.max(1.0, plugin.getConfigUtil().getDouble("stats.auto-cap.dps", 50.0));
         double hCap = Math.max(1.0, plugin.getConfigUtil().getDouble("stats.auto-cap.hps", 30.0));
+        if (dyn) {
+            try {
+                double dMax = meter.getDpsMax(p.getUniqueId());
+                double hMax = meter.getHpsMax(p.getUniqueId());
+                double alpha = Math.min(1.0, Math.max(0.0, plugin.getConfigUtil().getDouble("stats.dynamic-cap-smoothing", 0.2)));
+                dCap = smoothSticky(stickyDpsCap, p.getUniqueId(), Math.max(dCap, dMax), alpha);
+                hCap = smoothSticky(stickyHpsCap, p.getUniqueId(), Math.max(hCap, hMax), alpha);
+            } catch (Throwable ignored) {}
+        }
         double dProg = Math.min(1.0, dps / dCap);
         double hProg = Math.min(1.0, hps / hCap);
         BossBar d = bossbarsDps.computeIfAbsent(p.getUniqueId(), id -> BossBar.bossBar(Component.text("DPS"), 0.0f, BossBar.Color.RED, BossBar.Overlay.PROGRESS));
@@ -128,6 +139,15 @@ public class StatsDisplayManager {
         h.progress((float) hProg);
         p.showBossBar(d);
         p.showBossBar(h);
+    }
+
+    private double smoothSticky(java.util.Map<java.util.UUID, Double> map, java.util.UUID id, double target, double alpha) {
+        Double prev = map.get(id);
+        double out = (prev == null) ? target : (prev * (1.0 - alpha) + target * alpha);
+        // never drop too fast: stick to max of previous and new smoothed value
+        if (prev != null && out < prev * 0.85) out = prev * 0.85; // 15% max drop per tick
+        map.put(id, out);
+        return Math.max(1.0, out);
     }
 
     private void clearBossbars() {
@@ -149,4 +169,3 @@ public class StatsDisplayManager {
         }
     }
 }
-

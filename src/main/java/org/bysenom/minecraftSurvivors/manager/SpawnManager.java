@@ -31,6 +31,7 @@ public class SpawnManager {
 
     private final MinecraftSurvivors plugin;
     private final NamespacedKey waveKey;
+    private org.bukkit.NamespacedKey eliteKey; // init in ctor
     private final Random random = new Random();
 
     // Map: playerUuid -> Set gefrorener Entity-UUIDs (für diesen Spieler eingefroren)
@@ -41,10 +42,12 @@ public class SpawnManager {
     private BukkitTask continuousTask;
     private long continuousStartMillis = 0L;
     private final Map<UUID, Double> spawnAccumulator = new ConcurrentHashMap<>();
+    private long restPhaseUntilMillis = 0L;
 
     public SpawnManager(MinecraftSurvivors plugin, PlayerManager playerManager) {
         this.plugin = plugin;
         this.waveKey = new NamespacedKey(plugin, "ms_wave");
+        this.eliteKey = new org.bukkit.NamespacedKey(plugin, "ms_elite");
     }
 
     public void spawnWave(int waveNumber) {
@@ -331,6 +334,22 @@ public class SpawnManager {
             if (state == org.bysenom.minecraftSurvivors.model.GameState.PAUSED) return;
         } catch (Throwable ignored) {}
 
+        // Optional Ruhephase
+        int restEvery = plugin.getConfigUtil().getInt("spawn.continuous.rest-every-seconds", 0);
+        int restDur = plugin.getConfigUtil().getInt("spawn.continuous.rest-duration-seconds", 0);
+        long now = System.currentTimeMillis();
+        if (restEvery > 0 && restDur > 0) {
+            long elapsedSec = (long) Math.floor(getElapsedMinutes() * 60.0);
+            if (elapsedSec > 0 && elapsedSec % Math.max(1, restEvery) == 0) {
+                // enter rest phase window (idempotent)
+                restPhaseUntilMillis = Math.max(restPhaseUntilMillis, now + restDur * 1000L);
+            }
+            if (now < restPhaseUntilMillis) {
+                // Could add subtle calm particles around players
+                return; // skip spawning during rest
+            }
+        }
+
         double minutes = getElapsedMinutes();
         double seconds = minutes * 60.0;
         boolean useSteps = plugin.getConfigUtil().getBoolean("spawn.continuous.use-steps", true);
@@ -399,14 +418,14 @@ public class SpawnManager {
                 try {
                     mob = (LivingEntity) p.getWorld().spawnEntity(spawnLoc, type);
                 } catch (Throwable t) {
-                    // fallback to zombie
                     mob = (LivingEntity) p.getWorld().spawnEntity(spawnLoc, EntityType.ZOMBIE);
                 }
                 mob.getPersistentDataContainer().set(waveKey, PersistentDataType.BYTE, (byte) 1);
+                // Elite roll
+                maybeMakeElite(mob);
                 if (shouldGlow) {
                     try { mob.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, Math.max(20, glowTicks), 0, false, false, false)); } catch (Throwable ignored) {}
                 }
-                // apply scaling (health/speed/damage)
                 applyScaling(mob, minutes);
                 // freeze if player is paused locally
                 try {
@@ -434,14 +453,25 @@ public class SpawnManager {
 
     private void applyScaling(LivingEntity mob, double minutes) {
         try {
-            double healthPerMin = plugin.getConfigUtil().getDouble("scaling.health-mult-per-minute", 0.10);
+            double baseHpm = plugin.getConfigUtil().getDouble("scaling.health-mult-per-minute", 0.10);
+            double midMin = plugin.getConfigUtil().getDouble("scaling.health-mid-minute", 4.0);
+            double lateMin = plugin.getConfigUtil().getDouble("scaling.health-late-minute", 10.0);
+            double midMul = plugin.getConfigUtil().getDouble("scaling.health-mid-multiplier", 1.35);
+            double lateMul = plugin.getConfigUtil().getDouble("scaling.health-late-multiplier", 1.80);
             double speedPerMin = plugin.getConfigUtil().getDouble("scaling.speed-mult-per-minute", 0.05);
             double dmgAddPerMin = plugin.getConfigUtil().getDouble("scaling.damage-add-per-minute", 0.5);
-            double healthMult = 1.0 + Math.max(0, minutes) * healthPerMin;
-            double speedMult = 1.0 + Math.max(0, minutes) * speedPerMin;
-            double dmgAdd = Math.max(0, minutes) * dmgAddPerMin;
+            double dmgMidMul = plugin.getConfigUtil().getDouble("scaling.damage-mid-multiplier", 1.10);
+            double dmgLateMul = plugin.getConfigUtil().getDouble("scaling.damage-late-multiplier", 1.25);
 
-            // Resolve attributes dynamically for broader version compatibility
+            double healthMultPerMin = baseHpm;
+            if (minutes >= lateMin) healthMultPerMin *= lateMul; else if (minutes >= midMin) healthMultPerMin *= midMul;
+            double healthMult = 1.0 + Math.max(0, minutes) * healthMultPerMin;
+
+            double speedMult = 1.0 + Math.max(0, minutes) * (speedPerMin * 0.9);
+            double dmgMul = 1.0;
+            if (minutes >= lateMin) dmgMul = dmgLateMul; else if (minutes >= midMin) dmgMul = dmgMidMul;
+            double dmgAdd = Math.max(0, minutes) * (dmgAddPerMin * dmgMul);
+
             try {
                 Attribute maxHealthAttr = Attribute.valueOf("GENERIC_MAX_HEALTH");
                 AttributeInstance maxHp = mob.getAttribute(maxHealthAttr);
@@ -464,8 +494,49 @@ public class SpawnManager {
         } catch (Throwable ignored) {}
     }
 
+    private void maybeMakeElite(LivingEntity mob) {
+        try {
+            int chance = plugin.getConfigUtil().getInt("spawn.elite.chance-percentage", 8);
+            if (chance <= 0) return;
+            if (random.nextInt(100) >= chance) return;
+            // mark elite
+            mob.getPersistentDataContainer().set(eliteKey, PersistentDataType.BYTE, (byte)1);
+            double minutes = getElapsedMinutes();
+            double baseMult = plugin.getConfigUtil().getDouble("spawn.elite.base-health-mult", 1.5);
+            double perMin = plugin.getConfigUtil().getDouble("spawn.elite.extra-health-mult-per-minute", 0.03);
+            double eliteMult = Math.max(1.0, baseMult + Math.max(0.0, minutes) * perMin);
+            try {
+                Attribute maxHealthAttr = Attribute.valueOf("GENERIC_MAX_HEALTH");
+                AttributeInstance maxHp = mob.getAttribute(maxHealthAttr);
+                if (maxHp != null) {
+                    double newBase = Math.max(1.0, maxHp.getBaseValue() * eliteMult);
+                    maxHp.setBaseValue(newBase);
+                    mob.setHealth(Math.min(newBase, mob.getHealth()));
+                }
+            } catch (Throwable ignored) {}
+            try {
+                mob.setCustomName(org.bukkit.ChatColor.LIGHT_PURPLE + "Elite " + mob.getType().name());
+                mob.setCustomNameVisible(true);
+            } catch (Throwable ignored) {}
+            try {
+                java.lang.reflect.Method m = mob.getClass().getMethod("setScale", float.class);
+                m.invoke(mob, (float) plugin.getConfigUtil().getDouble("spawn.elite.size-scale", 1.25));
+            } catch (Throwable ignored) {}
+        } catch (Throwable ignored) {}
+    }
+
+    private static class Weighted {
+        final EntityType type; final int weight;
+        Weighted(EntityType t, int w) { this.type = t; this.weight = w; }
+    }
+
+    private double getElapsedMinutes() {
+        if (continuousStartMillis <= 0L) return 0.0;
+        long dt = System.currentTimeMillis() - continuousStartMillis;
+        return dt / 60000.0;
+    }
+
     private EntityType pickEntityType(double minutes) {
-        // Read list from config spawnMobTypes; filter by minMinute
         List<Map<?, ?>> entries = plugin.getConfigUtil().getConfig().getMapList("spawnMobTypes");
         if (entries == null || entries.isEmpty()) return EntityType.ZOMBIE;
         java.util.ArrayList<Weighted> pool = new java.util.ArrayList<>();
@@ -480,32 +551,15 @@ public class SpawnManager {
                 if (minutes < minMinute) continue;
                 EntityType et;
                 try { et = EntityType.valueOf(typeName.toUpperCase()); } catch (Throwable ex) { continue; }
-                // Only accept living entity types
                 if (!et.isAlive()) continue;
                 if (weight <= 0) continue;
                 pool.add(new Weighted(et, weight));
             } catch (Throwable ignored) {}
         }
         if (pool.isEmpty()) return EntityType.ZOMBIE;
-        int total = 0;
-        for (Weighted w : pool) total += w.weight;
-        int r = random.nextInt(Math.max(1, total));
-        int cur = 0;
-        for (Weighted w : pool) {
-            cur += w.weight;
-            if (r < cur) return w.type;
-        }
-        return pool.get(pool.size() - 1).type;
-    }
-
-    private static class Weighted {
-        final EntityType type; final int weight;
-        Weighted(EntityType t, int w) { this.type = t; this.weight = w; }
-    }
-
-    private double getElapsedMinutes() {
-        if (continuousStartMillis <= 0L) return 0.0;
-        long dt = System.currentTimeMillis() - continuousStartMillis;
-        return dt / 60000.0;
+        int total = 0; for (Weighted w : pool) total += w.weight;
+        int r = random.nextInt(Math.max(1, total)); int cur = 0;
+        for (Weighted w : pool) { cur += w.weight; if (r < cur) return w.type; }
+        return pool.get(pool.size()-1).type;
     }
 }

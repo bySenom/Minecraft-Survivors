@@ -21,6 +21,7 @@ public final class MinecraftSurvivors extends JavaPlugin {
     private org.bysenom.minecraftSurvivors.manager.StatsMeterManager statsMeterManager;
     private org.bysenom.minecraftSurvivors.manager.StatsDisplayManager statsDisplayManager;
     private org.bysenom.minecraftSurvivors.manager.PartyManager partyManager;
+    private org.bysenom.minecraftSurvivors.manager.ShopManager shopManager;
 
     @Override
     public void onLoad() {
@@ -38,6 +39,7 @@ public final class MinecraftSurvivors extends JavaPlugin {
         this.statsMeterManager = new org.bysenom.minecraftSurvivors.manager.StatsMeterManager(this.configUtil.getInt("stats.window-seconds", 10));
         this.statsDisplayManager = new org.bysenom.minecraftSurvivors.manager.StatsDisplayManager(this, this.statsMeterManager);
         this.partyManager = new org.bysenom.minecraftSurvivors.manager.PartyManager(this);
+        this.shopManager = new org.bysenom.minecraftSurvivors.manager.ShopManager(this);
 
         // GuiManager einmal erstellen
         final GuiManager guiManager = new GuiManager(this, gameManager);
@@ -72,6 +74,7 @@ public final class MinecraftSurvivors extends JavaPlugin {
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.gui.LevelUpMenuListener(guiManager), this);
             // Damage tracker for DPS
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.DamageHealListener(this), this);
+            getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.LootchestListener(this), this);
 
             // Scoreboard starten
             this.scoreboardManager.start();
@@ -118,5 +121,9 @@ public final class MinecraftSurvivors extends JavaPlugin {
 
     public org.bysenom.minecraftSurvivors.manager.PartyManager getPartyManager() {
         return partyManager;
+    }
+
+    public org.bysenom.minecraftSurvivors.manager.ShopManager getShopManager() {
+        return shopManager;
     }
 }

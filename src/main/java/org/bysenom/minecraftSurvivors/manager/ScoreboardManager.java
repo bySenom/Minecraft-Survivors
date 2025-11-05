@@ -63,13 +63,11 @@ public class ScoreboardManager {
         try {
             sb = Bukkit.getScoreboardManager().getNewScoreboard();
         } catch (Throwable t) {
-            // Fallback auf das bestehende Scoreboard
             sb = p.getScoreboard();
         }
-
-        // Titel gestalten
-        String title = ChatColor.GOLD + "Minecraft " + ChatColor.YELLOW + "Survivors";
-
+        boolean fancy = false;
+        try { fancy = plugin.getConfigUtil().getBoolean("scoreboard.fancy", false); } catch (Throwable ignored) {}
+        String title = fancy ? (ChatColor.GOLD + "❖ " + ChatColor.YELLOW + "Survivors") : (ChatColor.GOLD + "Minecraft " + ChatColor.YELLOW + "Survivors");
         Objective obj;
         try {
             obj = sb.getObjective("ms_side");
@@ -102,18 +100,17 @@ public class ScoreboardManager {
         String partyLine = party == null ? "keine" : (pm.onlineMembers(party).size() + "/" + party.getMembers().size());
 
         // Nicer status icon
-        String statusIcon;
-        ChatColor statusColor;
+        String statusIcon; ChatColor statusColor;
         switch (state) {
-            case "RUNNING": statusIcon = "▶"; statusColor = ChatColor.GREEN; break;
-            case "PAUSED": statusIcon = "⏸"; statusColor = ChatColor.YELLOW; break;
-            case "ENDED": statusIcon = "■"; statusColor = ChatColor.RED; break;
-            default: statusIcon = "●"; statusColor = ChatColor.WHITE; break;
+            case "RUNNING": statusIcon = fancy?"▶":"▶"; statusColor = ChatColor.GREEN; break;
+            case "PAUSED": statusIcon = fancy?"⏸":"⏸"; statusColor = ChatColor.YELLOW; break;
+            case "ENDED": statusIcon = fancy?"■":"■"; statusColor = ChatColor.RED; break;
+            default: statusIcon = fancy?"●":"●"; statusColor = ChatColor.WHITE; break;
         }
 
         // Einträge (von oben nach unten absteigend) — Wave entfernt
         int line = 15;
-        addLine(obj, ChatColor.DARK_GRAY + "──────────────", line--);
+        addLine(obj, ChatColor.DARK_GRAY + (fancy?"──────────────":""), line--);
         addLine(obj, ChatColor.WHITE + "Status " + statusColor + statusIcon + ChatColor.GRAY + " • " + statusColor + state, line--);
         addLine(obj, ChatColor.DARK_GRAY + "", line--);
         addLine(obj, ChatColor.WHITE + "Klasse " + ChatColor.GREEN + clazzDisplay, line--);
@@ -125,7 +122,7 @@ public class ScoreboardManager {
         addLine(obj, ChatColor.WHITE + "👥 Online " + ChatColor.AQUA + online, line--);
         addLine(obj, ChatColor.WHITE + "Party " + ChatColor.AQUA + partyLine, line--);
         addLine(obj, ChatColor.WHITE + "Stats " + ChatColor.AQUA + mode, line--);
-        addLine(obj, ChatColor.DARK_GRAY + "───────────────", line--);
+        addLine(obj, ChatColor.DARK_GRAY + (fancy?"───────────────":""), line--);
 
         p.setScoreboard(sb);
     }

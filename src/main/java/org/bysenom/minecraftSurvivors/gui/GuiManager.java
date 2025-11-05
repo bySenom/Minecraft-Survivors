@@ -15,7 +15,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.SkullType;
 import org.bukkit.inventory.meta.SkullMeta;
 
 import java.util.List;
@@ -76,16 +75,23 @@ public class GuiManager {
             inv.setItem(24, createGuiItem(Material.COMPARATOR, Component.text("Config").color(NamedTextColor.AQUA),
                     java.util.List.of(Component.text("Reload & Presets").color(NamedTextColor.GRAY)), "config", false));
         }
+        inv.setItem(26, createGuiItem(Material.GOLD_INGOT, net.kyori.adventure.text.Component.text("Shop").color(net.kyori.adventure.text.format.NamedTextColor.GOLD),
+                java.util.List.of(net.kyori.adventure.text.Component.text("Kaufe Upgrades für Coins").color(net.kyori.adventure.text.format.NamedTextColor.GRAY)), "shop", false));
 
         // Info Button unten links
         inv.setItem(36, createGuiItem(Material.PAPER, Component.text("Info").color(NamedTextColor.YELLOW),
                 java.util.List.of(Component.text("V: Vampire Survivors like Mini-Game"), Component.text("bySenom").color(NamedTextColor.GRAY)), "info"));
 
         // Footer (Status-Zeile) unten rechts: Stats-Modus + Party-Zusammenfassung
+        // Footer erweitern: Shop-Reset Timer + Daily-Offers Counter
         String mode = "-";
         try { mode = plugin.getStatsDisplayManager().getMode().name().toLowerCase(); } catch (Throwable ignored) {}
         java.util.List<Component> footerLore = new java.util.ArrayList<>();
         footerLore.add(Component.text("Stats: ").color(NamedTextColor.GRAY).append(Component.text(mode).color(NamedTextColor.AQUA)));
+        String eta = plugin.getShopManager().formatRemainingHHMMSS();
+        footerLore.add(Component.text("Shop Reset: ").color(NamedTextColor.GRAY).append(Component.text(eta).color(NamedTextColor.YELLOW)));
+        int dailyN = plugin.getConfigUtil().getInt("shop.daily.max-weapons", 6);
+        footerLore.add(Component.text("Daily Offers: ").color(NamedTextColor.GRAY).append(Component.text(dailyN).color(NamedTextColor.GOLD)));
         org.bysenom.minecraftSurvivors.manager.PartyManager pm = plugin.getPartyManager();
         org.bysenom.minecraftSurvivors.manager.PartyManager.Party party = pm != null ? pm.getPartyOf(p.getUniqueId()) : null;
         if (party != null) {
@@ -161,63 +167,114 @@ public class GuiManager {
      * Behandelt die Auswahl im Level-Up-Menü (ItemStack-Variante).
      * Schließt das Inventar, vergibt ein kleines Beispiel-Reward und sendet eine Nachricht.
      */
-    public void handleLevelChoice(Player player, ItemStack display, int level) {
+    public void handleLevelChoice(org.bukkit.entity.Player player, org.bukkit.inventory.ItemStack display, int level) {
         if (player == null || display == null) return;
         player.closeInventory();
         org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = plugin.getPlayerManager().get(player.getUniqueId());
         org.bukkit.Material mat = display.getType();
+        org.bukkit.NamespacedKey rarKey = new org.bukkit.NamespacedKey(plugin, "ms_rarmult");
+        double rarMult = 1.0;
+        try {
+            org.bukkit.inventory.meta.ItemMeta md = display.getItemMeta();
+            if (md != null) {
+                String s = md.getPersistentDataContainer().get(rarKey, org.bukkit.persistence.PersistentDataType.STRING);
+                if (s != null) rarMult = Double.parseDouble(s);
+            }
+        } catch (Throwable ignored) {}
 
-        double cfgBonusDamage = plugin.getConfigUtil().getDouble("levelup.values.bonus-damage", 1.5);
-        int cfgBonusStrikes = plugin.getConfigUtil().getInt("levelup.values.bonus-strikes", 1);
-        double cfgFlatDamage = plugin.getConfigUtil().getDouble("levelup.values.flat-damage", 2.0);
-        int cfgExtraHearts = plugin.getConfigUtil().getInt("levelup.values.extra-hearts", 2);
+        double cfgBonusDamage = plugin.getConfigUtil().getDouble("levelup.values.bonus-damage", 1.5) * rarMult;
+        int cfgBonusStrikes = (int) Math.round(plugin.getConfigUtil().getInt("levelup.values.bonus-strikes", 1) * rarMult);
+        double cfgFlatDamage = plugin.getConfigUtil().getDouble("levelup.values.flat-damage", 2.0) * rarMult;
+        int cfgExtraHearts = plugin.getConfigUtil().getInt("levelup.values.extra-hearts", 2); // hearts not scaled by rarity by default
 
         double sizeStep = plugin.getConfigUtil().getDouble("levelup.weapon.size-step", 0.15);
         double atkMultStep = plugin.getConfigUtil().getDouble("levelup.weapon.attackpower-step", 0.20);
-        int igniteStep = plugin.getConfigUtil().getInt("levelup.pyromancer.ignite-step", 20);
-        double kbStep = plugin.getConfigUtil().getDouble("levelup.ranger.knockback-step", 0.10);
-        double healStep = plugin.getConfigUtil().getDouble("levelup.paladin.heal-step", 0.5);
+        int igniteStep = (int) Math.round(plugin.getConfigUtil().getInt("levelup.pyromancer.ignite-step", 20) * rarMult);
+        double kbStep = plugin.getConfigUtil().getDouble("levelup.ranger.knockback-step", 0.10) * rarMult;
+        double healStep = plugin.getConfigUtil().getDouble("levelup.paladin.heal-step", 0.5) * rarMult;
+
+        double moveStep = plugin.getConfigUtil().getDouble("levelup.values.move-speed", 0.05) * rarMult;
+        double asStep = plugin.getConfigUtil().getDouble("levelup.values.attack-speed", 0.07) * rarMult;
+        double resistStep = plugin.getConfigUtil().getDouble("levelup.values.resist", 0.05) * rarMult;
+        double luckStep = plugin.getConfigUtil().getDouble("levelup.values.luck", 0.05) * rarMult;
 
         switch (mat) {
             case DIAMOND_SWORD:
                 sp.addBonusDamage(cfgBonusDamage);
-                player.sendMessage(Component.text("§a+" + cfgBonusDamage + " Bonus-Schaden"));
+                player.sendMessage("§a+" + cfgBonusDamage + " Bonus-Schaden");
                 break;
             case TRIDENT:
                 sp.addBonusStrikes(cfgBonusStrikes);
-                player.sendMessage(Component.text("§a+" + cfgBonusStrikes + " Treffer (Strikes)"));
+                player.sendMessage("§a+" + cfgBonusStrikes + " Treffer (Strikes)");
                 break;
             case IRON_INGOT:
                 sp.addFlatDamage(cfgFlatDamage);
-                player.sendMessage(Component.text("§a+" + cfgFlatDamage + " flacher Schaden"));
+                player.sendMessage("§a+" + cfgFlatDamage + " flacher Schaden");
                 break;
             case APPLE:
                 sp.addExtraHearts(cfgExtraHearts);
-                player.sendMessage(Component.text("§a+" + (cfgExtraHearts / 2.0) + " Herzen (Modell)"));
+                // Apply to player max health immediately (extraHearts are half hearts)
+                try {
+                    org.bukkit.attribute.AttributeInstance max = player.getAttribute(org.bukkit.attribute.Attribute.valueOf("GENERIC_MAX_HEALTH"));
+                    if (max != null) {
+                        double addHearts = cfgExtraHearts / 2.0;
+                        double newBase = Math.max(1.0, max.getBaseValue() + (addHearts * 2.0)); // 1 heart = 2 health
+                        max.setBaseValue(newBase);
+                        player.setHealth(Math.min(newBase, player.getHealth() + (addHearts * 2.0)));
+                    }
+                } catch (Throwable ignored) {}
+                player.sendMessage("§a+" + (cfgExtraHearts / 2.0) + " Herzen");
                 break;
             case BLAZE_POWDER:
                 sp.addRadiusMult(sizeStep);
-                player.sendMessage(Component.text("§6Radius +" + (int)(sizeStep * 100) + "%"));
+                player.sendMessage("§6Radius +" + (int)(sizeStep * 100) + "%");
                 break;
             case GOLDEN_SWORD:
                 sp.addDamageMult(atkMultStep);
-                player.sendMessage(Component.text("§6Attackpower +" + (int)(atkMultStep * 100) + "%"));
+                player.sendMessage("§6Attackpower +" + (int)(atkMultStep * 100) + "%");
                 break;
             case MAGMA_CREAM:
                 sp.addIgniteBonusTicks(igniteStep);
-                player.sendMessage(Component.text("§6Burn Dauer +" + igniteStep + "t"));
+                player.sendMessage("§6Burn Dauer +" + igniteStep + "t");
                 break;
             case BOW:
                 sp.addKnockbackBonus(kbStep);
-                player.sendMessage(Component.text("§6Knockback +" + (int)(kbStep * 100) + "%"));
+                player.sendMessage("§6Knockback +" + (int)(kbStep * 100) + "%");
                 break;
             case GOLDEN_APPLE:
                 sp.addHealBonus(healStep);
-                player.sendMessage(Component.text("§6Heilung +" + healStep));
+                player.sendMessage("§6Heilung +" + healStep);
+                break;
+            case SUGAR:
+                sp.addMoveSpeedMult(moveStep);
+                try {
+                    org.bukkit.attribute.AttributeInstance mv = player.getAttribute(org.bukkit.attribute.Attribute.valueOf("GENERIC_MOVEMENT_SPEED"));
+                    if (mv != null) mv.setBaseValue(mv.getBaseValue() * (1.0 + moveStep));
+                } catch (Throwable ignored) {}
+                player.sendMessage("§bGeschwindigkeit +" + (int)(moveStep*100) + "%");
+                break;
+            case FEATHER:
+                sp.addAttackSpeedMult(asStep);
+                // Vanilla Attack Speed approximation: Haste if available, fallback to Strength speed via SPEED effect for a short time
+                try {
+                    org.bukkit.potion.PotionEffectType haste = null;
+                    try { haste = (org.bukkit.potion.PotionEffectType) org.bukkit.potion.PotionEffectType.class.getField("FAST_DIGGING").get(null); } catch (Throwable ignored) {}
+                    if (haste == null) haste = org.bukkit.potion.PotionEffectType.SPEED;
+                    player.addPotionEffect(new org.bukkit.potion.PotionEffect(haste, 20*60, 0, false, false, false));
+                } catch (Throwable ignored) {}
+                player.sendMessage("§bAngriffstempo +" + (int)(asStep*100) + "%");
+                break;
+            case SHIELD:
+                sp.addDamageResist(resistStep);
+                player.sendMessage("§bResistenz +" + (int)(resistStep*100) + "%");
+                break;
+            case RABBIT_FOOT:
+                sp.addLuck(luckStep);
+                player.sendMessage("§bGlück +" + (int)(luckStep*100) + "%");
                 break;
             default:
                 sp.addCoins(5);
-                player.sendMessage(Component.text("§a+5 Coins"));
+                player.sendMessage("§a+5 Coins");
                 break;
         }
     }
@@ -388,5 +445,137 @@ public class GuiManager {
             case PALADIN: return Material.SHIELD;
             default: return Material.POPPED_CHORUS_FRUIT;
         }
+    }
+
+    public void openShop(Player p) {
+        if (p == null) return;
+        org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = plugin.getPlayerManager().get(p.getUniqueId());
+        org.bukkit.inventory.Inventory inv = org.bukkit.Bukkit.createInventory(null, 54, net.kyori.adventure.text.Component.text("Shop").color(net.kyori.adventure.text.format.NamedTextColor.GOLD));
+        fillBorder(inv, org.bukkit.Material.YELLOW_STAINED_GLASS_PANE);
+        org.bukkit.configuration.file.FileConfiguration cfg = plugin.getConfigUtil().getConfig();
+        int slot = 10;
+        // Daily offers for weapons (limit via config)
+        int dailyN = cfg.getInt("shop.daily.max-weapons", 6);
+        java.util.List<java.util.Map<?, ?>> weapons = plugin.getShopManager().getDailyOffers("shop.categories.weapons", dailyN);
+        for (int i=0; i<weapons.size(); i++) {
+            java.util.Map<?, ?> m = weapons.get(i);
+            Object oName = m.containsKey("name") ? m.get("name") : "Upgrade";
+            Object oType = m.containsKey("type") ? m.get("type") : "UNKNOWN";
+            Object oValue = m.containsKey("value") ? m.get("value") : 0;
+            Object oPrice = m.containsKey("price") ? m.get("price") : 1;
+            String name = String.valueOf(oName);
+            String type = String.valueOf(oType);
+            double value = Double.parseDouble(String.valueOf(oValue));
+            int price = Integer.parseInt(String.valueOf(oPrice));
+            String key = "weapons:"+i; // daily index
+            boolean bought = sp.hasPurchased(key);
+            int leftRun = Math.max(0, cfg.getInt("shop.item-limits.weapons-per-run", 99) - sp.getPerRunCount(key));
+            int leftDay = Math.max(0, cfg.getInt("shop.item-limits.weapons-per-day", 99) - sp.getPerDayCount(key));
+            org.bukkit.Material mat = org.bukkit.Material.IRON_INGOT;
+            if (type.equalsIgnoreCase("DAMAGE_MULT")) mat = org.bukkit.Material.GOLDEN_SWORD;
+            else if (type.equalsIgnoreCase("RADIUS_MULT")) mat = org.bukkit.Material.BLAZE_POWDER;
+            java.util.List<net.kyori.adventure.text.Component> lore = new java.util.ArrayList<>();
+            lore.add(net.kyori.adventure.text.Component.text(name).color(net.kyori.adventure.text.format.NamedTextColor.WHITE));
+            lore.add(net.kyori.adventure.text.Component.text("Preis: "+price+" Coins").color(net.kyori.adventure.text.format.NamedTextColor.YELLOW));
+            lore.add(net.kyori.adventure.text.Component.text("Übrig (Run/Tag): "+leftRun+"/"+leftDay).color(net.kyori.adventure.text.format.NamedTextColor.GRAY));
+            lore.add(net.kyori.adventure.text.Component.text(bought?"(bereits gekauft)":"Klicken zum Kaufen").color(bought?net.kyori.adventure.text.format.NamedTextColor.GRAY:net.kyori.adventure.text.format.NamedTextColor.GREEN));
+            org.bukkit.inventory.ItemStack it = createGuiItem(mat, net.kyori.adventure.text.Component.text(type).color(net.kyori.adventure.text.format.NamedTextColor.AQUA), lore, "shop_buy:"+key, bought);
+            inv.setItem(slot, it);
+            slot++;
+            if (slot % 9 == 8) slot += 2;
+            if (slot >= inv.getSize()-9) break;
+        }
+        // class/paladin offers (no daily shuffle for now; could also use daily)
+        java.util.List<java.util.Map<?, ?>> pal = cfg.getMapList("shop.categories.class.paladin");
+        for (int i=0; i<pal.size() && slot < inv.getSize()-9; i++) {
+            java.util.Map<?, ?> m = pal.get(i);
+            Object oName = m.containsKey("name") ? m.get("name") : "Upgrade";
+            Object oType = m.containsKey("type") ? m.get("type") : "UNKNOWN";
+            Object oValue = m.containsKey("value") ? m.get("value") : 0;
+            Object oPrice = m.containsKey("price") ? m.get("price") : 1;
+            String name = String.valueOf(oName);
+            String type = String.valueOf(oType);
+            double value = Double.parseDouble(String.valueOf(oValue));
+            int price = Integer.parseInt(String.valueOf(oPrice));
+            String key = "paladin:"+i;
+            boolean bought = sp.hasPurchased(key);
+            org.bukkit.Material mat = org.bukkit.Material.GOLDEN_APPLE;
+            java.util.List<net.kyori.adventure.text.Component> lore = new java.util.ArrayList<>();
+            lore.add(net.kyori.adventure.text.Component.text(name).color(net.kyori.adventure.text.format.NamedTextColor.WHITE));
+            lore.add(net.kyori.adventure.text.Component.text("Preis: "+price+" Coins").color(net.kyori.adventure.text.format.NamedTextColor.YELLOW));
+            lore.add(net.kyori.adventure.text.Component.text(bought?"(bereits gekauft)":"Klicken zum Kaufen").color(bought?net.kyori.adventure.text.format.NamedTextColor.GRAY:net.kyori.adventure.text.format.NamedTextColor.GREEN));
+            org.bukkit.inventory.ItemStack it = createGuiItem(mat, net.kyori.adventure.text.Component.text(type).color(net.kyori.adventure.text.format.NamedTextColor.AQUA), lore, "shop_buy:"+key, bought);
+            inv.setItem(slot, it);
+            slot++;
+            if (slot % 9 == 8) slot += 2;
+        }
+        String eta = plugin.getShopManager().formatRemainingHHMMSS();
+        inv.setItem(49, createGuiItem(org.bukkit.Material.CLOCK, net.kyori.adventure.text.Component.text("Reset in "+eta).color(net.kyori.adventure.text.format.NamedTextColor.YELLOW), java.util.List.of(net.kyori.adventure.text.Component.text("Täglicher Refresh um Mitternacht").color(net.kyori.adventure.text.format.NamedTextColor.GRAY)), "back"));
+        p.openInventory(inv);
+    }
+
+    public boolean applyShopPurchase(Player p, String key) {
+        if (p == null || key == null) return false;
+        org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = plugin.getPlayerManager().get(p.getUniqueId());
+        org.bukkit.configuration.file.FileConfiguration cfg = plugin.getConfigUtil().getConfig();
+        String[] parts = key.split(":");
+        if (parts.length != 2) return false;
+        String cat = parts[0];
+        int idx;
+        try { idx = Integer.parseInt(parts[1]); } catch (NumberFormatException ex) { return false; }
+        java.util.Map<?, ?> m = null;
+        if (cat.equals("weapons")) {
+            java.util.List<java.util.Map<?, ?>> list = cfg.getMapList("shop.categories.weapons");
+            if (idx < 0 || idx >= list.size()) return false;
+            m = list.get(idx);
+        } else if (cat.equals("paladin")) {
+            java.util.List<java.util.Map<?, ?>> list = cfg.getMapList("shop.categories.class.paladin");
+            if (idx < 0 || idx >= list.size()) return false;
+            m = list.get(idx);
+        } else {
+            return false;
+        }
+
+        // limits: per run and per day
+        int maxPerRun = cfg.getInt("shop.limits.max-per-run", 999);
+        int maxPerDay = cfg.getInt("shop.limits.max-per-day", 999);
+        int itemRunLim;
+        int itemDayLim;
+        if (cat.equals("weapons")) {
+            itemRunLim = cfg.getInt("shop.item-limits.weapons-per-run", 99);
+            itemDayLim = cfg.getInt("shop.item-limits.weapons-per-day", 99);
+        } else if (cat.equals("paladin")) {
+            itemRunLim = cfg.getInt("shop.item-limits.class-per-run", 99);
+            itemDayLim = cfg.getInt("shop.item-limits.class-per-day", 99);
+        } else { itemRunLim = 99; itemDayLim = 99; }
+        String today = new java.text.SimpleDateFormat("yyyyMMdd").format(new java.util.Date());
+        if (sp.getShopLastDay() == null || !today.equals(sp.getShopLastDay())) { sp.setShopLastDay(today); sp.setShopPurchasesToday(0); }
+        if (sp.getShopPurchasesRun() >= maxPerRun) { p.sendMessage("§cLauflimit erreicht (max "+maxPerRun+")."); return false; }
+        if (sp.getShopPurchasesToday() >= maxPerDay) { p.sendMessage("§cTageslimit erreicht (max "+maxPerDay+")."); return false; }
+        if (sp.getPerRunCount(key) >= itemRunLim) { p.sendMessage("§cItem-Run-Limit erreicht."); return false; }
+        if (sp.getPerDayCount(key) >= itemDayLim) { p.sendMessage("§cItem-Tageslimit erreicht."); return false; }
+
+        Object oType = m.containsKey("type") ? m.get("type") : "UNKNOWN";
+        Object oValue = m.containsKey("value") ? m.get("value") : 0;
+        Object oPrice = m.containsKey("price") ? m.get("price") : 1;
+        String type = String.valueOf(oType);
+        double value = Double.parseDouble(String.valueOf(oValue));
+        int price = Integer.parseInt(String.valueOf(oPrice));
+        if (sp.hasPurchased(key)) { p.sendMessage("§cBereits gekauft."); return false; }
+        if (sp.getCoins() < price) { p.sendMessage("§cNicht genug Coins."); return false; }
+        // withdraw coins
+        sp.setCoins(sp.getCoins() - price);
+        // apply effect
+        switch (type.toUpperCase()) {
+            case "DAMAGE_MULT": sp.addDamageMult(value); break;
+            case "RADIUS_MULT": sp.addRadiusMult(value); break;
+            case "PALADIN_HEAL": sp.addHealBonus(value); break;
+            default: p.sendMessage("§eUnbekannter Effekt: "+type); return false;
+        }
+        sp.markPurchased(key);
+        sp.incrementShopRun(); sp.incrementShopToday(); sp.incPerRun(key); sp.incPerDay(key);
+        try { p.playSound(p.getLocation(), org.bukkit.Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.8f, 1.2f); } catch (Throwable ignored) {}
+        p.sendMessage("§aGekauft: "+type+" §7("+value+")");
+        return true;
     }
 }

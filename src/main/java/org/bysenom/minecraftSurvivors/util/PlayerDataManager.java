@@ -40,6 +40,10 @@ public class PlayerDataManager {
         cfg.set("bonusStrikes", sp.getBonusStrikes());
         cfg.set("flatDamage", sp.getFlatDamage());
         cfg.set("extraHearts", sp.getExtraHearts());
+        cfg.set("moveSpeedMult", sp.getMoveSpeedMult());
+        cfg.set("attackSpeedMult", sp.getAttackSpeedMult());
+        cfg.set("damageResist", sp.getDamageResist());
+        cfg.set("luck", sp.getLuck());
         try {
             cfg.save(f);
         } catch (IOException e) {
@@ -69,6 +73,10 @@ public class PlayerDataManager {
             sp.setBonusStrikes(cfg.getInt("bonusStrikes", 0));
             sp.setFlatDamage(cfg.getDouble("flatDamage", 0.0));
             sp.setExtraHearts(cfg.getInt("extraHearts", 0));
+            sp.setMoveSpeedMult(cfg.getDouble("moveSpeedMult", 0.0));
+            sp.setAttackSpeedMult(cfg.getDouble("attackSpeedMult", 0.0));
+            sp.setDamageResist(cfg.getDouble("damageResist", 0.0));
+            sp.setLuck(cfg.getDouble("luck", 0.0));
             return sp;
         } catch (Throwable t) {
             plugin.getLogger().warning("Failed to load player data for " + uuid + ": " + t.getMessage());

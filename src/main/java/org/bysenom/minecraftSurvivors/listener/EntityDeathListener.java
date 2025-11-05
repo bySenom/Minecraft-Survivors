@@ -60,6 +60,16 @@ public class EntityDeathListener implements Listener {
                 }
             }
         }
+        // Loot chest drop chance (mark item with PDC for interaction)
+        try {
+            org.bukkit.entity.LivingEntity dead = e.getEntity();
+            org.bukkit.World w = dead.getWorld();
+            int chance = org.bysenom.minecraftSurvivors.MinecraftSurvivors.getInstance().getConfigUtil().getInt("spawn.loot.chest-drop-chance-percentage", 5);
+            if (chance > 0 && new java.util.Random().nextInt(100) < chance) {
+                org.bukkit.Location loc = dead.getLocation();
+                w.dropItemNaturally(loc, createLootChestItem());
+            }
+        } catch (Throwable ignored) {}
     }
 
     private void handleXpGain(Player player, SurvivorPlayer sp, int xpGain) {
@@ -71,5 +81,21 @@ public class EntityDeathListener implements Listener {
             if (afterLevel > beforeLevel) player.sendMessage(Component.text("§aLevel up! Du bist jetzt Level " + afterLevel));
             else player.sendMessage(Component.text("§aLevel up!"));
         }
+    }
+
+    private org.bukkit.inventory.ItemStack createLootChestItem() {
+        org.bukkit.inventory.ItemStack chest = new org.bukkit.inventory.ItemStack(org.bukkit.Material.CHEST);
+        org.bukkit.inventory.meta.ItemMeta meta = chest.getItemMeta();
+        if (meta != null) {
+            meta.displayName(net.kyori.adventure.text.Component.text("Lootchest").color(net.kyori.adventure.text.format.NamedTextColor.GOLD));
+            java.util.List<net.kyori.adventure.text.Component> lore = new java.util.ArrayList<>();
+            lore.add(net.kyori.adventure.text.Component.text("Einarmiger Bandit: Rechtsklick zum Öffnen").color(net.kyori.adventure.text.format.NamedTextColor.GRAY));
+            meta.lore(lore);
+            try {
+                meta.getPersistentDataContainer().set(new org.bukkit.NamespacedKey(org.bysenom.minecraftSurvivors.MinecraftSurvivors.getInstance(), "lootchest"), org.bukkit.persistence.PersistentDataType.BYTE, (byte)1);
+            } catch (Throwable ignored) {}
+            chest.setItemMeta(meta);
+        }
+        return chest;
     }
 }

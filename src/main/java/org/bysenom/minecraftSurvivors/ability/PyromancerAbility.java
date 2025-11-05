@@ -31,6 +31,11 @@ public class PyromancerAbility implements Ability {
         double baseRadius = plugin.getConfigUtil().getDouble("pyromancer.radius", 8.0);
         double radius = baseRadius * (1.0 + (sp != null ? sp.getRadiusMult() : 0.0));
         int targets = Math.max(1, plugin.getConfigUtil().getInt("pyromancer.targets-per-tick", 2) + (sp != null ? sp.getBonusStrikes() : 0));
+        // AttackSpeed scaling: more targets per tick with cap
+        double as = sp != null ? Math.max(0.0, sp.getAttackSpeedMult()) : 0.0;
+        double speedFactor = Math.min(2.5, 1.0 + as); // cap 2.5x for AoE sanity
+        targets = Math.max(1, (int) Math.floor(targets * speedFactor));
+
         double baseDamage = plugin.getConfigUtil().getDouble("pyromancer.base-damage", 4.0);
         int igniteTicksBase = plugin.getConfigUtil().getInt("pyromancer.ignite-ticks", 60);
         int igniteTicks = igniteTicksBase + (sp != null ? sp.getIgniteBonusTicks() : 0);
@@ -41,6 +46,33 @@ public class PyromancerAbility implements Ability {
         if (sp != null) {
             damage *= (1.0 + sp.getDamageMult());
         }
+
+        // Evolution: Flammennova wenn Ignite >= X und DamageMult >= Y
+        try {
+            if (sp != null && !sp.isEvoPyroNova()) {
+                int ignReq = plugin.getConfigUtil().getInt("evo.pyromancer.ignite-ticks-min", 60);
+                double dmgMultReq = plugin.getConfigUtil().getDouble("evo.pyromancer.damage-mult-min", 0.40);
+                if (sp.getIgniteBonusTicks() + igniteTicksBase >= ignReq && sp.getDamageMult() >= dmgMultReq) {
+                    sp.setEvoPyroNova(true);
+                    player.sendMessage("§6Evolution freigeschaltet: Flammennova!");
+                }
+            }
+            if (sp != null && sp.isEvoPyroNova()) {
+                // kleine Nova alle Ticks (dezent): AoE um den Spieler
+                double novaR = Math.min(6.0, radius * 0.8);
+                for (LivingEntity m : spawnManager.getNearbyWaveMobs(loc, novaR)) {
+                    try { m.damage(Math.max(1.0, damage * 0.25), player); } catch (Throwable ignored) {}
+                    try { m.setFireTicks(Math.max(m.getFireTicks(), igniteTicks/2)); } catch (Throwable ignored) {}
+                }
+                // Partikelkreis
+                for (int i = 0; i < 24; i++) {
+                    double ang = 2 * Math.PI * i / 24.0;
+                    double x = loc.getX() + Math.cos(ang) * novaR;
+                    double z = loc.getZ() + Math.sin(ang) * novaR;
+                    loc.getWorld().spawnParticle(Particle.FLAME, new Location(loc.getWorld(), x, loc.getY() + 0.8, z), 1, 0.01, 0.01, 0.01, 0.0);
+                }
+            }
+        } catch (Throwable ignored) {}
 
         // swirling flame ring around the player
         try {

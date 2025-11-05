@@ -38,6 +38,18 @@ public class StatsMeterManager {
         return b.sumHeal() / windowSeconds;
     }
 
+    public double getDpsMax(UUID player) {
+        Buckets b = buckets.get(player);
+        if (b == null) return 0.0;
+        return b.maxDamage();
+    }
+
+    public double getHpsMax(UUID player) {
+        Buckets b = buckets.get(player);
+        if (b == null) return 0.0;
+        return b.maxHeal();
+    }
+
     public void reset(UUID player) {
         buckets.remove(player);
     }
@@ -66,6 +78,8 @@ public class StatsMeterManager {
 
         double sumDamage() { roll(); double s = 0; for (double v : dmg) s += v; return s; }
         double sumHeal() { roll(); double s = 0; for (double v : heal) s += v; return s; }
+        double maxDamage() { roll(); double m = 0; for (double v : dmg) if (v > m) m = v; return m; }
+        double maxHeal() { roll(); double m = 0; for (double v : heal) if (v > m) m = v; return m; }
 
         private void roll() {
             long now = currentSec();
@@ -89,4 +103,3 @@ public class StatsMeterManager {
         private long currentSec() { return System.currentTimeMillis() / 1000L; }
     }
 }
-

@@ -17,19 +17,20 @@ public class DamageHealListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onDamage(EntityDamageByEntityEvent e) {
-        if (!(e.getDamager() instanceof Player)) {
-            if (e.getDamager() instanceof org.bukkit.projectiles.ProjectileSource) {
-                // Could resolve shooter, but keep it simple for now
-            }
-            return;
+        Player damagerPlayer = null;
+        if (e.getDamager() instanceof Player) {
+            damagerPlayer = (Player) e.getDamager();
+        } else if (e.getDamager() instanceof org.bukkit.entity.Projectile) {
+            org.bukkit.entity.Projectile proj = (org.bukkit.entity.Projectile) e.getDamager();
+            Object shooter = proj.getShooter();
+            if (shooter instanceof Player) damagerPlayer = (Player) shooter;
         }
-        Player p = (Player) e.getDamager();
+        if (damagerPlayer == null) return;
         if (!(e.getEntity() instanceof LivingEntity)) return;
         double amount = e.getFinalDamage();
         if (amount <= 0) return;
-        try { plugin.getStatsMeterManager().recordDamage(p.getUniqueId(), amount); } catch (Throwable ignored) {}
+        try { plugin.getStatsMeterManager().recordDamage(damagerPlayer.getUniqueId(), amount); } catch (Throwable ignored) {}
     }
 
     // For HPS, PaladinAbility will call plugin.getStatsMeterManager().recordHeal(...) directly
 }
-

@@ -28,6 +28,27 @@ public class SurvivorPlayer {
     private double knockbackBonus = 0.0; // +% knockback for Ranger
     private double healBonus = 0.0;      // + heal amount for Paladin
 
+    // New: additional upgrade stats
+    private double moveSpeedMult = 0.0;   // +% movement speed
+    private double attackSpeedMult = 0.0; // +% attack speed (vanilla cooldown)
+    private double damageResist = 0.0;    // % damage reduction (0.10 = 10%)
+    private double luck = 0.0;            // generic luck factor 0..+
+
+    private final java.util.Set<String> purchasedKeys = new java.util.HashSet<>();
+    // shop limits tracking
+    private int shopPurchasesRun = 0;
+    private int shopPurchasesToday = 0;
+    private String shopLastDay = null; // yyyyMMdd
+    // per-item limits
+    private final java.util.Map<String, Integer> perRunCounts = new java.util.HashMap<>();
+    private final java.util.Map<String, Integer> perDayCounts = new java.util.HashMap<>();
+
+    // Ranger upgrades
+    private int rangerPierce = 0;
+
+    // Evo flags
+    private boolean evoPyroNova = false;
+
     public SurvivorPlayer(UUID uuid) {
         this.uuid = uuid;
     }
@@ -77,6 +98,16 @@ public class SurvivorPlayer {
         this.igniteBonusTicks = 0;
         this.knockbackBonus = 0.0;
         this.healBonus = 0.0;
+        this.moveSpeedMult = 0.0;
+        this.attackSpeedMult = 0.0;
+        this.damageResist = 0.0;
+        this.luck = 0.0;
+        this.purchasedKeys.clear();
+        this.shopPurchasesRun = 0;
+        this.perRunCounts.clear();
+        // keep daily across runs, not reset here except run counts
+        this.rangerPierce = 0;
+        this.evoPyroNova = false;
     }
 
     public void softReset() {
@@ -96,6 +127,16 @@ public class SurvivorPlayer {
         this.igniteBonusTicks = 0;
         this.knockbackBonus = 0.0;
         this.healBonus = 0.0;
+        this.moveSpeedMult = 0.0;
+        this.attackSpeedMult = 0.0;
+        this.damageResist = 0.0;
+        this.luck = 0.0;
+        this.purchasedKeys.clear();
+        this.shopPurchasesRun = 0;
+        this.perRunCounts.clear();
+        this.rangerPierce = 0;
+        this.evoPyroNova = false;
+        // daily persists
     }
 
     // Neue Methoden zur Klassenverwaltung
@@ -224,4 +265,52 @@ public class SurvivorPlayer {
     public double getHealBonus() { return healBonus; }
     public void addHealBonus(double delta) { this.healBonus = Math.max(0.0, this.healBonus + delta); }
     public void setHealBonus(double healBonus) { this.healBonus = Math.max(0.0, healBonus); }
+
+    public double getMoveSpeedMult() { return moveSpeedMult; }
+    public void addMoveSpeedMult(double d) { this.moveSpeedMult = Math.max(0.0, this.moveSpeedMult + d); }
+    public void setMoveSpeedMult(double v) { this.moveSpeedMult = Math.max(0.0, v); }
+
+    public double getAttackSpeedMult() { return attackSpeedMult; }
+    public void addAttackSpeedMult(double d) { this.attackSpeedMult = Math.max(0.0, this.attackSpeedMult + d); }
+    public void setAttackSpeedMult(double v) { this.attackSpeedMult = Math.max(0.0, v); }
+
+    public double getDamageResist() { return damageResist; }
+    public void addDamageResist(double d) { this.damageResist = Math.max(0.0, Math.min(0.9, this.damageResist + d)); }
+    public void setDamageResist(double v) { this.damageResist = Math.max(0.0, Math.min(0.9, v)); }
+
+    public double getLuck() { return luck; }
+    public void addLuck(double d) { this.luck = Math.max(0.0, this.luck + d); }
+    public void setLuck(double v) { this.luck = Math.max(0.0, v); }
+
+    // --- Shop limits ---
+    public int getShopPurchasesRun() { return shopPurchasesRun; }
+    public int getShopPurchasesToday() { return shopPurchasesToday; }
+    public String getShopLastDay() { return shopLastDay; }
+    public void setShopPurchasesToday(int v) { this.shopPurchasesToday = Math.max(0, v); }
+    public void setShopLastDay(String s) { this.shopLastDay = s; this.perDayCounts.clear(); }
+    public void incrementShopRun() { this.shopPurchasesRun++; }
+    public void incrementShopToday() { this.shopPurchasesToday++; }
+
+    public int getPerRunCount(String key) { return perRunCounts.getOrDefault(key, 0); }
+    public int getPerDayCount(String key) { return perDayCounts.getOrDefault(key, 0); }
+    public void incPerRun(String key) { perRunCounts.put(key, getPerRunCount(key) + 1); }
+    public void incPerDay(String key) { perDayCounts.put(key, getPerDayCount(key) + 1); }
+
+    public boolean hasPurchased(String key) {
+        if (key == null) return false;
+        return purchasedKeys.contains(key);
+    }
+
+    public void markPurchased(String key) {
+        if (key == null) return;
+        purchasedKeys.add(key);
+    }
+
+    // Ranger
+    public int getRangerPierce() { return rangerPierce; }
+    public void addRangerPierce(int d) { this.rangerPierce = Math.max(0, this.rangerPierce + d); }
+
+    // Evo flags
+    public boolean isEvoPyroNova() { return evoPyroNova; }
+    public void setEvoPyroNova(boolean v) { this.evoPyroNova = v; }
 }

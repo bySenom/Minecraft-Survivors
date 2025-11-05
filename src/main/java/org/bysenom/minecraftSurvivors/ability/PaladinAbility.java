@@ -41,69 +41,109 @@ public class PaladinAbility implements Ability {
         damage *= Math.max(1.0, 1.0 + 0.08 * (level - 1));
         if (sp != null) damage *= (1.0 + sp.getDamageMult());
 
-        // Pulsierende Welle (outward und zurück)
-        try { spawnPulse(loc, radius); } catch (Throwable ignored) {}
+        // attack speed factor: repeat light-weight damage/heal loop more times (cap x2.5) without re-spawning heavy pulse each time
+        double as = sp != null ? Math.max(0.0, sp.getAttackSpeedMult()) : 0.0;
+        int repeats = Math.max(1, (int) Math.floor(Math.min(2.5, 1.0 + as)));
 
-        List<LivingEntity> mobs = spawnManager.getNearbyWaveMobs(loc, radius);
-        for (LivingEntity target : mobs) {
-            if (target == null || !target.isValid()) continue;
-            try { target.damage(damage, player); } catch (Throwable ignored) {}
-        }
+        // spawn one pulse visual only once per tick
+        try { spawnPulse(player, radius); } catch (Throwable ignored) {}
 
-        // Allies im Radius heilen — HPS NUR für den Heiler zählen (nicht Empfänger)
-        try {
-            double r2 = radius * radius;
-            for (Player other : Bukkit.getOnlinePlayers()) {
-                if (other == null || !other.isOnline()) continue;
-                if (other.getWorld() != loc.getWorld()) continue;
-                if (other.getLocation().distanceSquared(loc) > r2) continue;
-                boolean isSelf = other.getUniqueId().equals(player.getUniqueId());
-                double before = other.getHealth();
-                // Herz-Partikel
-                try { other.getWorld().spawnParticle(Particle.HEART, other.getLocation().add(0, 1.2, 0), 2, 0.15, 0.2, 0.15, 0.01); } catch (Throwable ignored) {}
-                // Heal bis max
-                try {
-                    AttributeInstance maxAttr = null;
-                    try { maxAttr = other.getAttribute(Attribute.valueOf("GENERIC_MAX_HEALTH")); } catch (Throwable ignored) {}
-                    double maxH = maxAttr != null ? maxAttr.getBaseValue() : 20.0;
-                    double newH = Math.min(maxH, other.getHealth() + heal);
-                    other.setHealth(newH);
-                    double healed = Math.max(0.0, newH - before);
-                    // HPS nur dem Heiler gutschreiben
-                    if (healed > 0) {
-                        try { MinecraftSurvivors.getInstance().getStatsMeterManager().recordHeal(player.getUniqueId(), healed); } catch (Throwable ignored) {}
-                    }
-                } catch (Throwable ignored) {}
-                // dezentes Chime je Empfänger
-                try { other.playSound(other.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.25f, 1.85f); } catch (Throwable ignored) {}
+        for (int rep = 0; rep < repeats; rep++) {
+            List<LivingEntity> mobs = spawnManager.getNearbyWaveMobs(loc, radius);
+            for (LivingEntity target : mobs) {
+                if (target == null || !target.isValid()) continue;
+                try { target.damage(damage, player); } catch (Throwable ignored) {}
             }
-        } catch (Throwable ignored) {}
+            // Allies heal per repeat
+            try {
+                double r2 = radius * radius;
+                for (Player other : Bukkit.getOnlinePlayers()) {
+                    if (other == null || !other.isOnline()) continue;
+                    if (other.getWorld() != loc.getWorld()) continue;
+                    if (other.getLocation().distanceSquared(loc) > r2) continue;
+                    double before = other.getHealth();
+                    try { other.getWorld().spawnParticle(Particle.HEART, other.getLocation().add(0, 1.2, 0), 1, 0.1, 0.1, 0.1, 0.0); } catch (Throwable ignored) {}
+                    try {
+                        AttributeInstance maxAttr = null;
+                        try { maxAttr = other.getAttribute(Attribute.valueOf("GENERIC_MAX_HEALTH")); } catch (Throwable ignored) {}
+                        double maxH = maxAttr != null ? maxAttr.getBaseValue() : 20.0;
+                        double newH = Math.min(maxH, other.getHealth() + heal);
+                        other.setHealth(newH);
+                        double healed = Math.max(0.0, newH - before);
+                        if (healed > 0) {
+                            try { MinecraftSurvivors.getInstance().getStatsMeterManager().recordHeal(player.getUniqueId(), healed); } catch (Throwable ignored) {}
+                        }
+                    } catch (Throwable ignored) {}
+                }
+            } catch (Throwable ignored) {}
+        }
     }
 
-    private void spawnPulse(Location center, double radius) {
-        if (center == null || center.getWorld() == null) return;
-        final int steps = 6;            // nach außen 6 Frames
-        final int total = steps * 2;    // hin + zurück
-        final int points = 36;          // Punkte pro Ring
-        final org.bukkit.World w = center.getWorld();
-        try { w.playSound(center, Sound.BLOCK_BEACON_AMBIENT, 0.35f, 1.9f); } catch (Throwable ignored) {}
-        try { w.playSound(center, Sound.BLOCK_AMETHYST_BLOCK_RESONATE, 0.25f, 1.7f); } catch (Throwable ignored) {}
+    private void spawnPulse(Player player, double radius) {
+        if (player == null || !player.isOnline() || !player.isValid()) return;
+        final int steps = 6;            // quicker
+        final int total = steps + 4;    // expand then quick fade
+        final int points = 36;          // fewer points for less continuous disc
+        try { player.playSound(player.getLocation(), Sound.BLOCK_BEACON_AMBIENT, 0.28f, 2.0f); } catch (Throwable ignored) {}
         final int[] t = {0};
         Bukkit.getScheduler().runTaskTimer(plugin, task -> {
-            if (t[0] > total) { task.cancel(); return; }
-            double phase = (t[0] <= steps) ? (t[0] / (double) steps) : ((total - t[0]) / (double) steps);
-            double r = Math.max(0.1, radius * phase);
+            if (player == null || !player.isOnline() || !player.isValid()) { task.cancel(); return; }
+            Location base = player.getLocation();
+            if (base == null || base.getWorld() == null) { task.cancel(); return; }
+            if (t[0] > total) {
+                task.cancel();
+                if (plugin.getConfigUtil().getBoolean("paladin.implosion-enabled", true)) {
+                    implosion(player, radius * 0.9);
+                }
+                return;
+            }
+            double phase = t[0] / (double) steps;       // 0..1
+            double r = Math.max(0.1, radius * Math.min(1.0, phase));
+            double fade = Math.max(0.0, 1.0 - phase);   // fade out quickly
+            org.bukkit.World w = base.getWorld();
+            // outer sparse ring
             for (int i = 0; i < points; i++) {
                 double ang = 2 * Math.PI * i / points;
-                double x = center.getX() + Math.cos(ang) * r;
-                double z = center.getZ() + Math.sin(ang) * r;
-                Location p = new Location(w, x, center.getY() + 0.3, z);
-                try { w.spawnParticle(Particle.END_ROD, p, 2, 0.02, 0.02, 0.02, 0.0); } catch (Throwable ignored) {}
-                if (i % 6 == 0) {
-                    try { w.spawnParticle(Particle.NOTE, p, 1, 0.0, 0.0, 0.0, 0.0); } catch (Throwable ignored) {}
-                }
+                double x = base.getX() + Math.cos(ang) * r;
+                double z = base.getZ() + Math.sin(ang) * r;
+                Location p = new Location(w, x, base.getY() + 0.15, z);
+                try { w.spawnParticle(Particle.END_ROD, p, (int)Math.max(1, 2*fade), 0.01, 0.01, 0.01, 0.0); } catch (Throwable ignored) {}
+            }
+            // tiny inner sparks that disappear even quicker
+            double r2 = Math.max(0.05, r * 0.55);
+            for (int i = 0; i < points/3; i++) {
+                double ang = 2 * Math.PI * i / (points/3);
+                double x = base.getX() + Math.cos(ang) * r2;
+                double z = base.getZ() + Math.sin(ang) * r2;
+                Location p = new Location(w, x, base.getY() + 0.22, z);
+                try { w.spawnParticle(Particle.CRIT, p, (int)Math.max(0, 1*fade), 0.005, 0.005, 0.005, 0.0); } catch (Throwable ignored) {}
             }
             t[0]++;
-        }, 0L, 2L);
+        }, 0L, 1L);
+    }
+
+    private void implosion(Player player, double radius) {
+        if (player == null || !player.isOnline() || !player.isValid()) return;
+        final int ticks = 3; // 2–3 ticks
+        final int points = 24;
+        final double startR = Math.max(0.3, radius);
+        for (int i = 0; i < ticks; i++) {
+            final int ti = i;
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (player == null || !player.isOnline() || !player.isValid()) return;
+                Location base = player.getLocation();
+                if (base == null || base.getWorld() == null) return;
+                double r = Math.max(0.1, startR * (1.0 - ti / (double) ticks));
+                org.bukkit.World w = base.getWorld();
+                for (int j = 0; j < points; j++) {
+                    double ang = 2 * Math.PI * j / points;
+                    double x = base.getX() + Math.cos(ang) * r;
+                    double z = base.getZ() + Math.sin(ang) * r;
+                    Location p = new Location(w, x, base.getY() + 0.1, z);
+                    try { w.spawnParticle(Particle.INSTANT_EFFECT, p, 1, 0.01, 0.01, 0.01, 0.0); } catch (Throwable ignored) {}
+                }
+                try { player.playSound(base, Sound.BLOCK_BEACON_DEACTIVATE, 0.18f, 1.9f); } catch (Throwable ignored) {}
+            }, i);
+        }
     }
 }

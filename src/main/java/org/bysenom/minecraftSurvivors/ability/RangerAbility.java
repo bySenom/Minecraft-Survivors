@@ -60,21 +60,55 @@ public class RangerAbility implements Ability {
         // bevorzugt weit entfernte Ziele
         mobs.sort(Comparator.comparingDouble((LivingEntity m) -> m.getLocation().distanceSquared(loc)).reversed());
 
+        int multi = 1 + Math.max(0, (sp != null ? sp.getBonusStrikes() : 0)); // mehrere Pfeile
+        int pierce = Math.max(0, (sp != null ? sp.getRangerPierce() : 0));    // wie viele Ziele wird ein Pfeil durchdringen
+        // AttackSpeed scaling: more arrows and slight pierce boost
+        double as = sp != null ? Math.max(0.0, sp.getAttackSpeedMult()) : 0.0;
+        double factor = Math.min(3.0, 1.0 + as);
+        multi = Math.max(1, (int) Math.floor(multi * factor));
+        pierce = Math.min(8, (int) Math.floor(pierce * (1.0 + as * 0.5)));
+
+        int fired = 0;
         for (LivingEntity target : mobs) {
             double d2 = target.getLocation().distanceSquared(loc);
             if (d2 < minRange * minRange) continue; // zu nah
-            // Partikel-Linie
-            drawLine(loc.clone().add(0, 1.5, 0), target.getLocation().clone().add(0, 1.0, 0), Particle.CRIT, 16);
-            try { loc.getWorld().spawnParticle(Particle.SWEEP_ATTACK, loc.clone().add(0, 1.1, 0), 1, 0.0, 0.0, 0.0, 0.0); } catch (Throwable ignored) {}
-            try { loc.getWorld().playSound(loc, Sound.BLOCK_NOTE_BLOCK_BELL, 0.3f, 1.8f); } catch (Throwable ignored) {}
-            // Schaden + leichter Rückstoß
-            try { target.damage(damage, player); } catch (Throwable ignored) {}
-            try {
-                double kbMult = 1.0 + (sp != null ? sp.getKnockbackBonus() : 0.0);
-                Vector kb = target.getLocation().toVector().subtract(loc.toVector()).normalize().multiply(0.35 * kbMult);
-                target.setVelocity(target.getVelocity().add(kb));
-            } catch (Throwable ignored) {}
-            break; // nur ein Schuss pro Tick
+            // Für jeden „Pfeil“ leicht andere Richtung (Fächer)
+            for (int j = 0; j < multi; j++) {
+                double spread = (j - (multi - 1) / 2.0) * 0.06; // sanfter Fächer
+                shootPiercing(loc, target, damage, pierce, spread, player);
+                fired++;
+                if (fired >= multi) break;
+            }
+            break; // eine Ausgangs-Ziellinie pro Tick
+        }
+    }
+
+    private void shootPiercing(Location fromBase, LivingEntity first, double damage, int pierce, double spreadYaw, Player src) {
+        Location from = fromBase.clone().add(0, 1.5, 0);
+        Location to = first.getLocation().clone().add(0, 1.0, 0);
+        Vector dir = to.toVector().subtract(from.toVector()).normalize();
+        // yaw spread
+        org.bukkit.util.Vector side = new Vector(-dir.getZ(), 0, dir.getX()).normalize().multiply(spreadYaw);
+        dir.add(side).normalize();
+        // Schadenslinie: suche Ziele entlang der Linie und treffe bis pierce+1
+        List<LivingEntity> all = spawnManager.getNearbyWaveMobs(from, from.distance(to) + 2.0);
+        all.sort(Comparator.comparingDouble(m -> m.getLocation().distanceSquared(from)));
+        int hit = 0;
+        for (LivingEntity e : all) {
+            if (hit > pierce) break;
+            // Kollisions-Test: Abstand zur Linie klein?
+            Vector pe = e.getLocation().add(0, 1.0, 0).toVector().subtract(from.toVector());
+            double proj = pe.dot(dir);
+            if (proj < 0) continue; // hinter dem Start
+            Vector closest = dir.clone().multiply(proj);
+            double dist = pe.clone().subtract(closest).length();
+            if (dist <= 1.0) { // Trefferbreite ~1 Block
+                drawLine(from, from.clone().add(closest), Particle.CRIT, 14);
+                try { e.damage(damage, src); } catch (Throwable ignored) {}
+                // knockback
+                try { e.setVelocity(e.getVelocity().add(dir.clone().multiply(0.2))); } catch (Throwable ignored) {}
+                hit++;
+            }
         }
     }
 

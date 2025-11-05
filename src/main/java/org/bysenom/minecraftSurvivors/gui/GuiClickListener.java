@@ -38,6 +38,17 @@ public class GuiClickListener implements Listener {
 
         switch (action) {
             case "start":
+                // check class selection for all online players
+                boolean allSelected = true;
+                for (org.bukkit.entity.Player op : org.bukkit.Bukkit.getOnlinePlayers()) {
+                    org.bysenom.minecraftSurvivors.model.SurvivorPlayer osp = plugin.getPlayerManager().get(op.getUniqueId());
+                    if (osp == null || osp.getSelectedClass() == null) { allSelected = false; break; }
+                }
+                if (!allSelected) {
+                    player.sendMessage("§cStart blockiert: Jeder Spieler muss zuerst eine Klasse wählen.");
+                    player.closeInventory();
+                    return;
+                }
                 guiManager.getGameManager().startGameWithCountdown(5);
                 player.closeInventory();
                 player.sendMessage("§aStart in 5 Sekunden...");
@@ -135,6 +146,9 @@ public class GuiClickListener implements Listener {
             case "party_invite_list":
                 guiManager.openPartyInviteList(player);
                 break;
+            case "shop":
+                guiManager.openShop(player);
+                break;
             default:
                 if (action.startsWith("party_invite:")) {
                     try {
@@ -148,6 +162,11 @@ public class GuiClickListener implements Listener {
                     } catch (IllegalArgumentException ignored) {}
                 } else if (action.equals("party_back")) {
                     guiManager.openPartyMenu(player);
+                } else if (action.startsWith("shop_buy:")) {
+                    String key = action.substring("shop_buy:".length());
+                    boolean ok = guiManager.applyShopPurchase(player, key);
+                    // refresh shop view
+                    guiManager.openShop(player);
                 } else {
                     break;
                 }

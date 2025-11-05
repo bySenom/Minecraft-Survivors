@@ -37,6 +37,10 @@ public class PlayerDataListener implements Listener {
             sp.setBonusStrikes(loaded.getBonusStrikes());
             sp.setFlatDamage(loaded.getFlatDamage());
             sp.setExtraHearts(loaded.getExtraHearts());
+            sp.setMoveSpeedMult(loaded.getMoveSpeedMult());
+            sp.setAttackSpeedMult(loaded.getAttackSpeedMult());
+            sp.setDamageResist(loaded.getDamageResist());
+            sp.setLuck(loaded.getLuck());
             e.getPlayer().sendMessage(Component.text("§aPlayer data loaded (Level " + sp.getClassLevel() + ")"));
         } else {
             e.getPlayer().sendMessage(Component.text("§eNo previous player data found. New profile created."));

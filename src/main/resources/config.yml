@@ -72,9 +72,16 @@ spawnMobTypes:
 
 # Scaling (verstärkt Gegner über Zeit)
 scaling:
-  health-mult-per-minute: 0.10   # +10% Max-Health pro Minute
-  speed-mult-per-minute: 0.05    # +5% Movement-Speed pro Minute
-  damage-add-per-minute: 0.5     # +0.5 Schaden pro Minute (falls Mob den Attributtyp hat)
+  health-mult-per-minute: 0.10
+  # New: separate mid/late knobs for live tuning
+  health-mid-minute: 4.0
+  health-late-minute: 10.0
+  health-mid-multiplier: 1.35
+  health-late-multiplier: 1.80
+  speed-mult-per-minute: 0.05
+  damage-add-per-minute: 0.5
+  damage-mid-multiplier: 1.10
+  damage-late-multiplier: 1.25
 
 # Ability / Gameplay
 ability:
@@ -103,17 +110,22 @@ ranger:
 # Paladin
 paladin:
   base-damage: 2.5
-  radius: 7.0
-  heal: 1.0
+  radius: 9.0
+  heal: 1.2
+  implosion-enabled: true  # very short 2-3 tick implosion at the end of pulse
 
 # LevelUp / Upgrade Werte (konfigurierbar)
 levelup:
-  xp-per-kill: 1              # XP, die ein Spieler pro Kill erhält (kann pro Mob / Kill konfiguriert werden)
+  xp-per-kill: 1
   values:
     bonus-damage: 1.5         # additive Bonus-Schaden, wenn +Schaden gewählt wird
     bonus-strikes: 1          # zusätzliche Strikes, wenn +Treffer gewählt wird
     flat-damage: 2.0          # flacher zusätzlicher Schaden, wenn +FlatDmg gewählt wird
     extra-hearts: 2          # Anzahl halber Herzen (2 = 1 Herz), wenn +Herzen gewählt wird
+    move-speed: 0.05         # +5%
+    attack-speed: 0.07       # +7%
+    resist: 0.05             # +5%
+    luck: 0.05               # +5%
   weapon:
     size-step: 0.15          # +15% Radius
     attackpower-step: 0.20   # +20% Damage-Multiplikator
@@ -123,6 +135,10 @@ levelup:
     knockback-step: 0.10     # +10% Knockback pro Upgrade
   paladin:
     heal-step: 0.5           # +0.5 Heilung pro Upgrade
+  rarity:
+    common: 65
+    rare: 25
+    epic: 10
   hud-interval-ticks: 100    # Interval in ticks for the XP ActionBar HUD (default 100)
   choice-max-seconds: 20     # Maximalzeit in Sekunden für LevelUp Entscheidungen
 
@@ -162,17 +178,56 @@ presets:
 
 stats:
   window-seconds: 10
-  mode: actionbar           # actionbar | bossbar | scoreboard | off
-  update-interval-ticks: 20 # Update-Frequenz der Anzeige
+  mode: actionbar
+  update-interval-ticks: 20
   auto-cap:
-    dps: 50.0               # Bossbar Auto-Cap Startwert (wird nicht automatisch angepasst, nur Skala)
+    dps: 50.0
     hps: 30.0
   broadcast-top:
-    enabled: false          # Falls true, alle n Sekunden Top-DPS/HPS broadcasten
+    enabled: false
     interval-seconds: 30
     n: 3
+  dynamic-cap-window-seconds: 20
+  dynamic-cap-enabled: false
+  dynamic-cap-smoothing: 0.2   # 0..1 wie stark der Max-Wert pro Tick geglättet wird
 party:
   xp-share:
     enabled: true            # Wenn true, wird xp-per-kill unter Online-Party-Mitgliedern verteilt
     split-evenly: true        # Gleichmäßig teilen (mit Rest-Verteilung)
     min-per-member: 1         # Mindestens 1 XP pro Mitglied (falls > xp-per-kill, wird deckelnd berücksichtigt)
+shop:
+  enabled: true
+  limits:
+    max-per-run: 5
+    max-per-day: 20
+  item-limits:
+    weapons-per-run: 3
+    weapons-per-day: 8
+  daily:
+    max-weapons: 6
+  categories:
+    weapons:
+      - name: "Attackpower +20%"
+        type: DAMAGE_MULT
+        value: 0.20
+        price: 20
+      - name: "Radius +15%"
+        type: RADIUS_MULT
+        value: 0.15
+        price: 15
+    class:
+      paladin:
+        - name: "+0.5 Heilung"
+          type: PALADIN_HEAL
+          value: 0.5
+          price: 18
+evo:
+  pyromancer:
+    ignite-ticks-min: 60
+    damage-mult-min: 0.40
+spawn:
+  elite:
+    chance-percentage: 8
+    size-scale: 1.25
+    base-health-mult: 1.50               # base multiplier (was ~1.5)
+    extra-health-mult-per-minute: 0.03    # extra health multiplier growth per minute (elite gets tankier over time)
