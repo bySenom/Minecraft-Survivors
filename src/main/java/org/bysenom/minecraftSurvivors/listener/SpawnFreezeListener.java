@@ -1,15 +1,14 @@
 package org.bysenom.minecraftSurvivors.listener;
 
-import org.bysenom.minecraftSurvivors.manager.GameManager;
-import org.bysenom.minecraftSurvivors.manager.SpawnManager;
+import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
-
-import java.util.UUID;
+import org.bysenom.minecraftSurvivors.manager.GameManager;
+import org.bysenom.minecraftSurvivors.manager.SpawnManager;
 
 public class SpawnFreezeListener implements Listener {
 

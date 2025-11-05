@@ -10,15 +10,15 @@ spawn:
   continuous:
     enabled: true              # Wenn true, spawnen Gegner kontinuierlich statt in Waves
     ticks-per-cycle: 20        # Zyklus in Ticks (20 = 1s)
-    base-per-player: 0.4       # früher 0.6, reduziert Early-Game-Dichte
+    base-per-player: 0.35      # leicht reduziert für Early-Game
     # Feineres Difficulty-Scaling in Schritten (z. B. alle 30s)
     use-steps: true            # true = benutze growth-per-step alle step-seconds; false = growth-per-minute linear
     step-seconds: 30           # Schrittweite in Sekunden
     growth-per-step: 0.2       # Zuwachs pro Schritt (alle step-seconds)
     growth-per-minute: 0.25    # Fallback/Legacy: Zuwachs pro Minute (nur wenn use-steps=false)
     # Warmup-Ramp zum sanften Einstieg (reduziert frühe Spawns deutlich)
-    warmup-seconds: 90         # in den ersten 90s schrittweise hochfahren
-    warmup-mult-start: 0.25    # Start-Multiplikator der Rate im Warmup (25%)
+    warmup-seconds: 100        # sanfterer Einstieg (etwas länger)
+    warmup-mult-start: 0.22    # noch sanfterer Start
     max-per-player: 8          # Obergrenze pro Spieler und Zyklus
     # Dynamische Caps je nach Spielerzahl
     cap:
@@ -30,6 +30,9 @@ spawn:
     radius-per-player: 40.0    # Radius zum Zählen der bereits vorhandenen Gegner
     min-distance: 8.0          # minimaler Spawnabstand zum Spieler
     max-distance: 16.0         # maximaler Spawnabstand zum Spieler
+    # Neue optionale Ruhephasen (calm windows) während Continuous-Spawn
+    rest-every-seconds: 0     # 0 = aus; z. B. 90, um alle 90s Ruhe einzulegen
+    rest-duration-seconds: 0  # Dauer einer Ruhephase in Sekunden
   # Mob visuals
   glowing: true               # Ob gespawnte Wave-/Continuous-Mobs glowing sein sollen
   glowing-duration-ticks: 6000 # Dauer des Glowing-Effekts in Ticks (20 * 60 * 5 = 5 Minuten)
@@ -52,6 +55,8 @@ spawn:
     size-scale: 1.25
     base-health-mult: 1.50               # base multiplier (was ~1.5)
     extra-health-mult-per-minute: 0.03    # extra health multiplier growth per minute (elite gets tankier over time)
+    # Neu: Elite-Spawnchance skaliert leicht über Zeit (additiv)
+    extra-chance-per-minute: 0.0  # z. B. 0.3 => +0.3%/Minute
 
 # Mob Variety (gewichtete Typen, verfügbar ab bestimmter Minute)
 # Nur EntityType-Namen verwenden, die lebende Mobs sind.
@@ -87,6 +92,68 @@ scaling:
   damage-add-per-minute: 0.5
   damage-mid-multiplier: 1.10
   damage-late-multiplier: 1.25
+
+# Slotmaschine Tuning
+lootchest:
+  roll-steps: 30  # Basis-Roll-Länge (Legacy)
+  lifetime-seconds: 45   # Lebenszeit der schwebenden Kiste in der Welt
+  trigger-radius: 1.6    # Radius (horizontal), in dem die Kiste beim Drüberlaufen öffnet
+  despawn-on-player-death: true  # verbleibende Kisten in der Welt des gestorbenen Spielers entfernen
+  animation:
+    period-ticks: 80        # 80 Ticks = 4s für eine volle Rotation
+    bob-amplitude: 0.15     # Höhe der Auf-/Abbewegung
+  particles:
+    enabled: true
+    type: END_ROD           # Alternativen: REDSTONE, FLAME, NOTE, ...
+    count: 2
+    spread: 0.15
+    speed: 0.0
+    chance-1-in: 40         # 1 in N Ticks-Partikelchance (kleiner = häufiger)
+    redstone-r: 255         # Nur relevant bei type = REDSTONE
+    redstone-g: 255
+    redstone-b: 255
+    redstone-size: 1.0
+  rewards:
+    - type: DAMAGE_MULT
+      value: 0.10
+      name: "+10% Damage"
+      weight: 4
+    - type: DAMAGE_ADD
+      value: 1.5
+      name: "+1.5 Schaden"
+      weight: 3
+    - type: FLAT_DAMAGE
+      value: 2.0
+      name: "+2 Flat"
+      weight: 2
+    - type: SPEED
+      value: 0.05
+      name: "+5% Movement"
+      weight: 3
+    - type: ATTACK_SPEED
+      value: 0.07
+      name: "+7% Attack Speed"
+      weight: 2
+    - type: RESIST
+      value: 0.05
+      name: "+5% Resist"
+      weight: 2
+    - type: LUCK
+      value: 0.05
+      name: "+5% Luck"
+      weight: 2
+    - type: HEALTH_HEARTS
+      value: 2
+      name: "+1 Herz"
+      weight: 1
+    - type: RADIUS_MULT
+      value: 0.10
+      name: "+10% Radius"
+      weight: 2
+    - type: PALADIN_HEAL
+      value: 0.5
+      name: "Paladin-Heal +0.5"
+      weight: 1
 
 # Ability / Gameplay
 ability:
@@ -150,6 +217,7 @@ levelup:
 # Debug / Logging
 debug:
   shaman-log: true            # ob ShamanAbility Logs geschrieben werden sollen
+  lootchest: false            # Debug-Logs für die Lootchest (Picks/Opens)
 
 # Presets für Spawn-Particles - können per /msconfig preset <name> angewendet werden
 presets:
@@ -193,7 +261,7 @@ stats:
     interval-seconds: 30
     n: 3
   dynamic-cap-window-seconds: 20
-  dynamic-cap-enabled: false
+  dynamic-cap-enabled: true      # standardmäßig an
   dynamic-cap-smoothing: 0.2   # 0..1 wie stark der Max-Wert pro Tick geglättet wird
 party:
   xp-share:
@@ -267,10 +335,21 @@ skills:
   dash:
     cooldown-ms: 2500
     cooldown-rclick-ms: 3000
+  genkidama:
+    cooldown-ms: 12000
+    charge-max-ms: 4000
+    damage-base: 6.0
+    damage-per-second: 4.0
+    radius-base: 3.0
+    radius-per-second: 1.0
+    projectile-speed: 1.1
+    max-travel-ticks: 80
+
 evo:
   pyromancer:
     ignite-ticks-min: 60
     damage-mult-min: 0.40
+
 meta:
   endrun:
     essence-per-minute: 2
@@ -318,3 +397,7 @@ meta:
       price: 50
       step: 1
       cap: 4 # 1 base + 4 meta = 5 maximal
+
+# Daten & Persistenz
+data:
+  autosave-interval-seconds: 120  # 0 zum Deaktivieren; Standard alle 120s werden Spieler-Daten asynchron gespeichert

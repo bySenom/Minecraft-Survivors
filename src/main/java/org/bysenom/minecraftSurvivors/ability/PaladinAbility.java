@@ -1,8 +1,6 @@
 package org.bysenom.minecraftSurvivors.ability;
 
-import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
-import org.bysenom.minecraftSurvivors.manager.SpawnManager;
-import org.bysenom.minecraftSurvivors.model.SurvivorPlayer;
+import java.util.List;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
@@ -11,8 +9,9 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-
-import java.util.List;
+import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
+import org.bysenom.minecraftSurvivors.manager.SpawnManager;
+import org.bysenom.minecraftSurvivors.model.SurvivorPlayer;
 
 public class PaladinAbility implements Ability {
 

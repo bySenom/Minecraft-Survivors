@@ -2,11 +2,11 @@
 // File: src/main/java/org/bysenom/minecraftSurvivors/command/OpenGuiCommand.java
 package org.bysenom.minecraftSurvivors.command;
 
-import org.bysenom.minecraftSurvivors.gui.GuiManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bysenom.minecraftSurvivors.gui.GuiManager;
 
 public class OpenGuiCommand implements CommandExecutor {
 

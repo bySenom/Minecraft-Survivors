@@ -1,9 +1,8 @@
 // File: src/main/java/org/bysenom/minecraftSurvivors/model/MetaProfile.java
 package org.bysenom.minecraftSurvivors.model;
 
-import org.bukkit.entity.Player;
-
 import java.util.UUID;
+import org.bukkit.entity.Player;
 
 /**
  * Persistenter, laufübergreifender Meta-Progress für einen Spieler.

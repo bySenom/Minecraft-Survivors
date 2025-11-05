@@ -1,9 +1,8 @@
 package org.bysenom.minecraftSurvivors.manager;
 
-import org.bukkit.Bukkit;
-
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import org.bukkit.Bukkit;
 
 public class PartyManager {
 

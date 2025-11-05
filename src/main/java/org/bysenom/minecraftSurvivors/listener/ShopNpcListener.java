@@ -1,10 +1,10 @@
 package org.bysenom.minecraftSurvivors.listener;
 
-import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
-import org.bysenom.minecraftSurvivors.manager.ShopNpcManager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
+import org.bysenom.minecraftSurvivors.manager.ShopNpcManager;
 
 public class ShopNpcListener implements Listener {
     private final MinecraftSurvivors plugin;
@@ -22,4 +22,3 @@ public class ShopNpcListener implements Listener {
         mgr.openShop(e.getPlayer());
     }
 }
-

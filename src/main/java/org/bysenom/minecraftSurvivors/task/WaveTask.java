@@ -1,9 +1,9 @@
 // File: src/main/java/org/bysenom/minecraftSurvivors/task/WaveTask.java
 package org.bysenom.minecraftSurvivors.task;
 
-import org.bysenom.minecraftSurvivors.manager.GameManager;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
+import org.bysenom.minecraftSurvivors.manager.GameManager;
 
 public class WaveTask extends BukkitRunnable {
 

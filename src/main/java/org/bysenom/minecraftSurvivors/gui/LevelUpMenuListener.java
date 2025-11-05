@@ -56,7 +56,11 @@ public class LevelUpMenuListener implements Listener {
         try {
             if (guiManager != null && guiManager.getGameManager() != null) {
                 java.util.UUID uuid = e.getPlayer().getUniqueId();
+                org.bukkit.entity.Player p = (org.bukkit.entity.Player) e.getPlayer();
+                // kräftiger Knockback im Umkreis, nur unsere Wave-Mobs
+                try { guiManager.getGameManager().getSpawnManager().repelMobsAround(p, 8.0, 1.2, true); } catch (Throwable ignored) {}
                 guiManager.getGameManager().resumeForPlayer(uuid);
+                guiManager.getGameManager().tryOpenNextQueued(uuid);
             }
         } catch (Throwable ignored) {}
     }

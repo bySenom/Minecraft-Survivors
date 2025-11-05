@@ -1,10 +1,8 @@
 package org.bysenom.minecraftSurvivors.manager;
 
-import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeModifier;
-import org.bukkit.configuration.file.FileConfiguration;
 import java.time.*;
 import java.util.*;
+import org.bukkit.configuration.file.FileConfiguration;
 
 public class ShopManager {
     private final org.bysenom.minecraftSurvivors.MinecraftSurvivors plugin;
@@ -93,16 +91,16 @@ public class ShopManager {
         double hearts = parseDouble(stats.get("health"), 0.0); // hearts
         if (hearts != 0.0) {
             try {
-                org.bukkit.attribute.AttributeModifier hpMod = new org.bukkit.attribute.AttributeModifier(java.util.UUID.randomUUID(), "ms:hp", hearts * 2.0, org.bukkit.attribute.AttributeModifier.Operation.ADD_NUMBER, slot);
-                meta.addAttributeModifier(org.bukkit.attribute.Attribute.MAX_HEALTH, hpMod);
+                org.bukkit.attribute.AttributeModifier hpMod = createAttr("ms:hp", hearts * 2.0, org.bukkit.attribute.AttributeModifier.Operation.ADD_NUMBER, slot);
+                if (hpMod != null) meta.addAttributeModifier(org.bukkit.attribute.Attribute.MAX_HEALTH, hpMod);
             } catch (Throwable ignored) {}
             lore.add(net.kyori.adventure.text.Component.text("+"+hearts+"❤").color(net.kyori.adventure.text.format.NamedTextColor.RED));
         }
         double speed = parseDouble(stats.get("speed"), 0.0); // scalar add
         if (speed != 0.0) {
             try {
-                org.bukkit.attribute.AttributeModifier spMod = new org.bukkit.attribute.AttributeModifier(java.util.UUID.randomUUID(), "ms:speed", speed, org.bukkit.attribute.AttributeModifier.Operation.ADD_SCALAR, slot);
-                meta.addAttributeModifier(org.bukkit.attribute.Attribute.MOVEMENT_SPEED, spMod);
+                org.bukkit.attribute.AttributeModifier spMod = createAttr("ms:speed", speed, org.bukkit.attribute.AttributeModifier.Operation.ADD_SCALAR, slot);
+                if (spMod != null) meta.addAttributeModifier(org.bukkit.attribute.Attribute.MOVEMENT_SPEED, spMod);
             } catch (Throwable ignored) {}
             lore.add(net.kyori.adventure.text.Component.text("+"+(int)(speed*100)+"% Speed").color(net.kyori.adventure.text.format.NamedTextColor.BLUE));
         }
@@ -115,6 +113,33 @@ public class ShopManager {
             case "ARMOR_BOOTS": p.getInventory().setBoots(item); break;
         }
         return true;
+    }
+
+    private org.bukkit.attribute.AttributeModifier createAttr(String name, double amount, org.bukkit.attribute.AttributeModifier.Operation op, org.bukkit.inventory.EquipmentSlot slot) {
+        try {
+            // Try modern builder via reflection to avoid hard dependency
+            try {
+                java.lang.reflect.Method builder = org.bukkit.attribute.AttributeModifier.class.getMethod("builder", java.util.UUID.class, String.class);
+                Object b = builder.invoke(null, java.util.UUID.randomUUID(), name);
+                if (b != null) {
+                    try { b.getClass().getMethod("amount", double.class).invoke(b, amount); } catch (Throwable ignored) {}
+                    try { b.getClass().getMethod("operation", org.bukkit.attribute.AttributeModifier.Operation.class).invoke(b, op); } catch (Throwable ignored) {}
+                    try { b.getClass().getMethod("slot", org.bukkit.inventory.EquipmentSlot.class).invoke(b, slot); } catch (Throwable ignored) {}
+                    Object built = b.getClass().getMethod("build").invoke(b);
+                    if (built instanceof org.bukkit.attribute.AttributeModifier) return (org.bukkit.attribute.AttributeModifier) built;
+                }
+            } catch (NoSuchMethodException noBuilder) {
+                // ignore, fallback below
+            }
+            // Fallback: direct constructor (UUID, name, amount, op, slot)
+            try {
+                java.lang.reflect.Constructor<?> ctor = org.bukkit.attribute.AttributeModifier.class.getDeclaredConstructor(java.util.UUID.class, String.class, double.class, org.bukkit.attribute.AttributeModifier.Operation.class, org.bukkit.inventory.EquipmentSlot.class);
+                ctor.setAccessible(true);
+                Object obj = ctor.newInstance(java.util.UUID.randomUUID(), name, amount, op, slot);
+                if (obj instanceof org.bukkit.attribute.AttributeModifier) return (org.bukkit.attribute.AttributeModifier) obj;
+            } catch (Throwable ignored) {}
+        } catch (Throwable ignored) {}
+        return null;
     }
 
     private int parseInt(Object o, int def) { try { return o==null?def:Integer.parseInt(String.valueOf(o)); } catch (Throwable t) { return def; } }

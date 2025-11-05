@@ -1,17 +1,14 @@
 package org.bysenom.minecraftSurvivors.manager;
 
-import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.NamespacedKey;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Villager;
-import org.bukkit.persistence.PersistentDataType;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
+import org.bukkit.persistence.PersistentDataType;
+import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
 
 public class ShopNpcManager {
     private final MinecraftSurvivors plugin;

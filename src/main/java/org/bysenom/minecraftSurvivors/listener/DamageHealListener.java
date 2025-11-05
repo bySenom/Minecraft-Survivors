@@ -1,11 +1,11 @@
 package org.bysenom.minecraftSurvivors.listener;
 
-import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
 
 public class DamageHealListener implements Listener {
 
@@ -17,6 +17,17 @@ public class DamageHealListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onDamage(EntityDamageByEntityEvent e) {
+        // Block input damage to paused players
+        if (e.getEntity() instanceof Player) {
+            Player victim = (Player) e.getEntity();
+            try {
+                if (plugin.getGameManager() != null && plugin.getGameManager().isPlayerPaused(victim.getUniqueId())) {
+                    e.setCancelled(true);
+                    return;
+                }
+            } catch (Throwable ignored) {}
+        }
+
         Player damagerPlayer = null;
         if (e.getDamager() instanceof Player) {
             damagerPlayer = (Player) e.getDamager();
@@ -25,6 +36,16 @@ public class DamageHealListener implements Listener {
             Object shooter = proj.getShooter();
             if (shooter instanceof Player) damagerPlayer = (Player) shooter;
         }
+        // Optional: block outgoing damage from paused players (keine Aktionen während Auswahl)
+        if (damagerPlayer != null) {
+            try {
+                if (plugin.getGameManager() != null && plugin.getGameManager().isPlayerPaused(damagerPlayer.getUniqueId())) {
+                    e.setCancelled(true);
+                    return;
+                }
+            } catch (Throwable ignored) {}
+        }
+
         if (damagerPlayer == null) return;
         if (!(e.getEntity() instanceof LivingEntity)) return;
         double amount = e.getFinalDamage();

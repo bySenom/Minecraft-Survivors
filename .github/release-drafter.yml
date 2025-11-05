@@ -1,0 +1,22 @@
+name-template: 'v$NEXT_PATCH_VERSION'
+prerelease: false
+categories:
+  - title: '🚀 Features'
+    labels: ['feature', 'enhancement']
+  - title: '🛠 Fixes'
+    labels: ['bug', 'fix']
+  - title: '🧰 Maintenance'
+    labels: ['chore', 'deps', 'refactor']
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+change-title-escapes: '<>&'
+autolabeler:
+  - label: 'deps'
+    files:
+      - 'gradle/**'
+      - '**/build.gradle'
+      - '.github/**'
+template: |
+  ## Änderungen
+
+  $CHANGES
+

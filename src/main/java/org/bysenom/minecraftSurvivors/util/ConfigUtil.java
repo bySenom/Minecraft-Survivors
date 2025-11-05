@@ -2,10 +2,9 @@
 // File: src/main/java/org/bysenom/minecraftSurvivors/util/ConfigUtil.java
 package org.bysenom.minecraftSurvivors.util;
 
-import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
-import org.bukkit.configuration.file.FileConfiguration;
-
 import java.io.InputStream;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
 
 public class ConfigUtil {
 

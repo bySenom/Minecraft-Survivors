@@ -1,10 +1,10 @@
 // File: src/main/java/org/bysenom/minecraftSurvivors/command/StartCommand.java
 package org.bysenom.minecraftSurvivors.command;
 
-import org.bysenom.minecraftSurvivors.manager.GameManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bysenom.minecraftSurvivors.manager.GameManager;
 
 public class StartCommand implements CommandExecutor {
 

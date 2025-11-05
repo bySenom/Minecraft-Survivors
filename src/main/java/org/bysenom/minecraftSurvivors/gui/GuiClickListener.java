@@ -1,14 +1,14 @@
 // File: src/main/java/org/bysenom/minecraftSurvivors/gui/GuiClickListener.java
 package org.bysenom.minecraftSurvivors.gui;
 
-import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.NamespacedKey;
 import org.bukkit.persistence.PersistentDataType;
+import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
 
 public class GuiClickListener implements Listener {
 
@@ -122,6 +122,7 @@ public class GuiClickListener implements Listener {
             case "adm_coins":
                 plugin.getPlayerManager().get(player.getUniqueId()).addCoins(100);
                 org.bysenom.minecraftSurvivors.util.Msg.ok(player, "+100 Coins");
+                try { player.showTitle(net.kyori.adventure.title.Title.title(net.kyori.adventure.text.Component.text("+100 Coins").color(net.kyori.adventure.text.format.NamedTextColor.GOLD), net.kyori.adventure.text.Component.text("Admin Reward").color(net.kyori.adventure.text.format.NamedTextColor.GRAY))); } catch (Throwable ignored) {}
                 guiManager.openAdminPanel(player);
                 return;
             case "adm_essence":
@@ -129,6 +130,7 @@ public class GuiClickListener implements Listener {
                 mp.addEssence(10);
                 plugin.getMetaManager().save(mp);
                 org.bysenom.minecraftSurvivors.util.Msg.ok(player, "+10 Essence");
+                try { player.sendActionBar(net.kyori.adventure.text.Component.text("+10 Essence").color(net.kyori.adventure.text.format.NamedTextColor.LIGHT_PURPLE)); } catch (Throwable ignored) {}
                 guiManager.openAdminPanel(player);
                 return;
             case "adm_spawn":
@@ -141,6 +143,7 @@ public class GuiClickListener implements Listener {
                     } catch (Throwable ignored) {}
                 }
                 org.bysenom.minecraftSurvivors.util.Msg.info(player, "5 Testmobs gespawnt");
+                try { player.sendActionBar(net.kyori.adventure.text.Component.text("Spawned 5 test mobs").color(net.kyori.adventure.text.format.NamedTextColor.GREEN)); } catch (Throwable ignored) {}
                 guiManager.openAdminPanel(player);
                 return;
             case "adm_levelup":
@@ -155,6 +158,7 @@ public class GuiClickListener implements Listener {
             }
             case "adm_force_start": {
                 guiManager.getGameManager().startGameWithCountdown(3);
+                try { player.showTitle(net.kyori.adventure.title.Title.title(net.kyori.adventure.text.Component.text("Start!"), net.kyori.adventure.text.Component.text("3s Countdown").color(net.kyori.adventure.text.format.NamedTextColor.YELLOW))); } catch (Throwable ignored) {}
                 player.closeInventory();
                 return;
             }
@@ -162,9 +166,21 @@ public class GuiClickListener implements Listener {
                 org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = plugin.getPlayerManager().get(player.getUniqueId());
                 if (sp.addSkill("dash")) {
                     org.bysenom.minecraftSurvivors.util.Msg.ok(player, "Dash erhalten");
+                    try { player.sendActionBar(net.kyori.adventure.text.Component.text("Skill: Dash").color(net.kyori.adventure.text.format.NamedTextColor.AQUA)); } catch (Throwable ignored) {}
                 } else {
                     org.bysenom.minecraftSurvivors.util.Msg.warn(player, "Skill-Slots voll (max "+sp.getMaxSkillSlots()+")");
                 }
+                guiManager.openAdminPanel(player);
+                return;
+            }
+            case "adm_skillslot": {
+                // Grant a permanent skill slot via MetaProgressionManager
+                org.bysenom.minecraftSurvivors.manager.MetaProgressionManager mpm = plugin.getMetaManager();
+                org.bysenom.minecraftSurvivors.model.MetaProfile mp2 = mpm.get(player.getUniqueId());
+                mp2.addPermSkillSlots(1);
+                mpm.save(mp2);
+                org.bysenom.minecraftSurvivors.util.Msg.ok(player, "Meta: +1 Skill-Slot (permanent)");
+                try { player.showTitle(net.kyori.adventure.title.Title.title(net.kyori.adventure.text.Component.text("Skill Slot +1").color(net.kyori.adventure.text.format.NamedTextColor.AQUA), net.kyori.adventure.text.Component.text("Meta-Upgrade").color(net.kyori.adventure.text.format.NamedTextColor.LIGHT_PURPLE))); } catch (Throwable ignored) {}
                 guiManager.openAdminPanel(player);
                 return;
             }

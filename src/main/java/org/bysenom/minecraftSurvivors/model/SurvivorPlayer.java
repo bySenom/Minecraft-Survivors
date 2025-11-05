@@ -55,38 +55,22 @@ public class SurvivorPlayer {
     private final java.util.Map<String,Integer> skillLevels = new java.util.HashMap<>();
     private boolean ready = false;
 
+    // Weapons (passive), ähnlich wie Skills
+    private int maxWeaponSlots = 6;
+    private final java.util.List<String> weapons = new java.util.ArrayList<>(); // keys like w_lightning, w_fire
+    private final java.util.Map<String,Integer> weaponLevels = new java.util.HashMap<>();
+
     public SurvivorPlayer(UUID uuid) {
         this.uuid = uuid;
     }
 
-    public UUID getUuid() {
-        return uuid;
-    }
-
-    public int getKills() {
-        return kills;
-    }
-
-    public void addKill() {
-        this.kills++;
-    }
-
-    // Setter for persistence
-    public void setKills(int kills) {
-        this.kills = Math.max(0, kills);
-    }
-
-    public int getCoins() {
-        return coins;
-    }
-
-    public void addCoins(int amount) {
-        this.coins += amount;
-    }
-
-    public void setCoins(int coins) {
-        this.coins = Math.max(0, coins);
-    }
+    public UUID getUuid() { return uuid; }
+    public int getKills() { return kills; }
+    public void addKill() { this.kills++; }
+    public void setKills(int kills) { this.kills = Math.max(0, kills); }
+    public int getCoins() { return coins; }
+    public void addCoins(int amount) { this.coins += amount; }
+    public void setCoins(int coins) { this.coins = Math.max(0, coins); }
 
     public void reset() {
         this.kills = 0;
@@ -117,12 +101,14 @@ public class SurvivorPlayer {
         this.maxSkillSlots = 1;
         this.skills.clear();
         this.skillLevels.clear();
+        this.maxWeaponSlots = 6;
+        this.weapons.clear();
+        this.weaponLevels.clear();
         this.ready = false;
     }
 
     public void softReset() {
         // preserve selectedClass; reset stats
-        // keep level at 1 for new run
         this.kills = 0;
         this.coins = 0;
         this.classLevel = 1;
@@ -149,8 +135,11 @@ public class SurvivorPlayer {
         this.maxSkillSlots = 1;
         this.skills.clear();
         this.skillLevels.clear();
+        // Waffen zurücksetzen für neuen Run
+        this.maxWeaponSlots = 6;
+        this.weapons.clear();
+        this.weaponLevels.clear();
         this.ready = false;
-        // daily persists
     }
 
     public void softResetPreserveSkills() {
@@ -179,48 +168,25 @@ public class SurvivorPlayer {
         this.rangerPierce = 0;
         this.evoPyroNova = false;
         // keep maxSkillSlots, skills, skillLevels
+        // Waffen zurücksetzen, da run-basiert
+        this.maxWeaponSlots = 6;
+        this.weapons.clear();
+        this.weaponLevels.clear();
         this.ready = false;
     }
 
     // Neue Methoden zur Klassenverwaltung
-    public PlayerClass getSelectedClass() {
-        return selectedClass;
-    }
-
-    public void setSelectedClass(PlayerClass selectedClass) {
-        this.selectedClass = selectedClass;
-    }
-
-    public int getClassLevel() {
-        return classLevel;
-    }
-
-    public void setClassLevel(int classLevel) {
-        this.classLevel = Math.max(1, classLevel);
-    }
+    public PlayerClass getSelectedClass() { return selectedClass; }
+    public void setSelectedClass(PlayerClass selectedClass) { this.selectedClass = selectedClass; }
+    public int getClassLevel() { return classLevel; }
+    public void setClassLevel(int classLevel) { this.classLevel = Math.max(1, classLevel); }
 
     // XP / Level
-    public int getXp() {
-        return xp;
-    }
+    public int getXp() { return xp; }
+    public int getXpToNext() { return xpToNext; }
+    public void setXp(int xp) { this.xp = Math.max(0, xp); }
+    public void setXpToNext(int xpToNext) { this.xpToNext = Math.max(1, xpToNext); }
 
-    public int getXpToNext() {
-        return xpToNext;
-    }
-
-    public void setXp(int xp) {
-        this.xp = Math.max(0, xp);
-    }
-
-    public void setXpToNext(int xpToNext) {
-        this.xpToNext = Math.max(1, xpToNext);
-    }
-
-    /**
-     * Fügt XP hinzu. Falls genügend XP für ein Level vorhanden sind, wird das Level erhöht
-     * und true zurückgegeben (sonst false). Bei mehreren Levelups wird true zurückgegeben
-     * und die Levelanzahl entsprechend erhöht.
-     */
     public boolean addXp(int amount) {
         if (amount <= 0) return false;
         xp += amount;
@@ -234,61 +200,25 @@ public class SurvivorPlayer {
         return leveled;
     }
 
-    private int calculateXpForLevel(int level) {
-        // einfache Formel: 5 * level (kann später durch Config ersetzt werden)
-        return Math.max(1, 5 * level);
-    }
+    private int calculateXpForLevel(int level) { return Math.max(1, 5 * level); }
 
-    // Upgrade-APIs (einfaches additive System)
-    public double getBonusDamage() {
-        return bonusDamage;
-    }
+    // Upgrade-APIs
+    public double getBonusDamage() { return bonusDamage; }
+    public void addBonusDamage(double val) { this.bonusDamage += val; }
+    public void setBonusDamage(double bonusDamage) { this.bonusDamage = bonusDamage; }
 
-    public void addBonusDamage(double val) {
-        this.bonusDamage += val;
-    }
+    public int getBonusStrikes() { return bonusStrikes; }
+    public void addBonusStrikes(int val) { this.bonusStrikes += val; }
+    public void setBonusStrikes(int bonusStrikes) { this.bonusStrikes = bonusStrikes; }
 
-    public void setBonusDamage(double bonusDamage) {
-        this.bonusDamage = bonusDamage;
-    }
+    public double getFlatDamage() { return flatDamage; }
+    public void addFlatDamage(double val) { this.flatDamage += val; }
+    public void setFlatDamage(double flatDamage) { this.flatDamage = flatDamage; }
 
-    public int getBonusStrikes() {
-        return bonusStrikes;
-    }
+    public int getExtraHearts() { return extraHearts; }
+    public void addExtraHearts(int val) { this.extraHearts += val; }
+    public void setExtraHearts(int extraHearts) { this.extraHearts = extraHearts; }
 
-    public void addBonusStrikes(int val) {
-        this.bonusStrikes += val;
-    }
-
-    public void setBonusStrikes(int bonusStrikes) {
-        this.bonusStrikes = bonusStrikes;
-    }
-
-    public double getFlatDamage() {
-        return flatDamage;
-    }
-
-    public void addFlatDamage(double val) {
-        this.flatDamage += val;
-    }
-
-    public void setFlatDamage(double flatDamage) {
-        this.flatDamage = flatDamage;
-    }
-
-    public int getExtraHearts() {
-        return extraHearts;
-    }
-
-    public void addExtraHearts(int val) {
-        this.extraHearts += val;
-    }
-
-    public void setExtraHearts(int extraHearts) {
-        this.extraHearts = extraHearts;
-    }
-
-    // --- new upgrade stats ---
     public double getRadiusMult() { return radiusMult; }
     public void addRadiusMult(double delta) { this.radiusMult = Math.max(0.0, this.radiusMult + delta); }
     public void setRadiusMult(double radiusMult) { this.radiusMult = Math.max(0.0, radiusMult); }
@@ -339,15 +269,8 @@ public class SurvivorPlayer {
     public void incPerRun(String key) { perRunCounts.put(key, getPerRunCount(key) + 1); }
     public void incPerDay(String key) { perDayCounts.put(key, getPerDayCount(key) + 1); }
 
-    public boolean hasPurchased(String key) {
-        if (key == null) return false;
-        return purchasedKeys.contains(key);
-    }
-
-    public void markPurchased(String key) {
-        if (key == null) return;
-        purchasedKeys.add(key);
-    }
+    public boolean hasPurchased(String key) { return key != null && purchasedKeys.contains(key); }
+    public void markPurchased(String key) { if (key != null) purchasedKeys.add(key); }
 
     // Ranger
     public int getRangerPierce() { return rangerPierce; }
@@ -371,7 +294,20 @@ public class SurvivorPlayer {
     }
     public int getSkillLevel(String key) { return skillLevels.getOrDefault(key, 0); }
 
+    // Weapons API
+    public java.util.List<String> getWeapons() { return weapons; }
+    public int getWeaponLevel(String key) { return weaponLevels.getOrDefault(key, 0); }
+    public int getMaxWeaponSlots() { return maxWeaponSlots; }
+    public void setMaxWeaponSlots(int v) { this.maxWeaponSlots = Math.max(1, Math.min(8, v)); }
+    public boolean addWeapon(String key) {
+        if (key == null) return false;
+        if (weapons.contains(key)) { weaponLevels.put(key, weaponLevels.getOrDefault(key,1)+1); return true; }
+        if (weapons.size() >= maxWeaponSlots) return false;
+        weapons.add(key);
+        weaponLevels.putIfAbsent(key, 1);
+        return true;
+    }
+
     public boolean isReady() { return ready; }
     public void setReady(boolean r) { this.ready = r; }
-
 }

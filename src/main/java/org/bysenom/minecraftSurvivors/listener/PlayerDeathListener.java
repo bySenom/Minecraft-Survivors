@@ -1,14 +1,14 @@
 package org.bysenom.minecraftSurvivors.listener;
 
-import org.bysenom.minecraftSurvivors.manager.GameManager;
-import org.bysenom.minecraftSurvivors.manager.PlayerManager;
-import org.bysenom.minecraftSurvivors.model.GameState;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bysenom.minecraftSurvivors.manager.GameManager;
+import org.bysenom.minecraftSurvivors.manager.PlayerManager;
+import org.bysenom.minecraftSurvivors.model.GameState;
 
 public class PlayerDeathListener implements Listener {
 

@@ -1,17 +1,16 @@
 package org.bysenom.minecraftSurvivors.command;
 
-import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
-import org.bysenom.minecraftSurvivors.manager.StatsDisplayManager;
-import org.bysenom.minecraftSurvivors.manager.StatsMeterManager;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
+import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
+import org.bysenom.minecraftSurvivors.manager.StatsDisplayManager;
+import org.bysenom.minecraftSurvivors.manager.StatsMeterManager;
 
 public class MsStatsCommand implements CommandExecutor {
 
@@ -89,4 +88,3 @@ public class MsStatsCommand implements CommandExecutor {
         }
     }
 }
-

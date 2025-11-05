@@ -1,16 +1,15 @@
 package org.bysenom.minecraftSurvivors.util;
 
-import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
-import org.bysenom.minecraftSurvivors.manager.PlayerManager;
-import org.bysenom.minecraftSurvivors.model.PlayerClass;
-import org.bysenom.minecraftSurvivors.model.SurvivorPlayer;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.UUID;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
+import org.bysenom.minecraftSurvivors.manager.PlayerManager;
+import org.bysenom.minecraftSurvivors.model.PlayerClass;
+import org.bysenom.minecraftSurvivors.model.SurvivorPlayer;
 
 public class PlayerDataManager {
 

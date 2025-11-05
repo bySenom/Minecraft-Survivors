@@ -1,15 +1,15 @@
 package org.bysenom.minecraftSurvivors.manager;
 
-import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
-import org.bysenom.minecraftSurvivors.ability.ShamanAbility;
-import org.bysenom.minecraftSurvivors.ability.PyromancerAbility;
-import org.bysenom.minecraftSurvivors.ability.RangerAbility;
-import org.bysenom.minecraftSurvivors.ability.PaladinAbility;
-import org.bysenom.minecraftSurvivors.model.PlayerClass;
-import org.bysenom.minecraftSurvivors.model.SurvivorPlayer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
+import org.bysenom.minecraftSurvivors.ability.PaladinAbility;
+import org.bysenom.minecraftSurvivors.ability.PyromancerAbility;
+import org.bysenom.minecraftSurvivors.ability.RangerAbility;
+import org.bysenom.minecraftSurvivors.ability.ShamanAbility;
+import org.bysenom.minecraftSurvivors.model.PlayerClass;
+import org.bysenom.minecraftSurvivors.model.SurvivorPlayer;
 
 public class AbilityManager {
 

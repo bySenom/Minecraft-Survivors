@@ -1,9 +1,12 @@
 package org.bysenom.minecraftSurvivors.manager;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import org.bukkit.*;
-import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
-import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -12,15 +15,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-
-import static io.papermc.paper.registry.keys.AttributeKeys.*;
+import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
 
 /**
  * SpawnManager: Spawnt Wellen und verwaltet das "Einfrieren" von Mobs ausschließlich über AI-Deaktivierung.
@@ -30,7 +25,7 @@ public class SpawnManager {
 
     private final MinecraftSurvivors plugin;
     private final NamespacedKey waveKey;
-    private org.bukkit.NamespacedKey eliteKey; // init in ctor
+    private final org.bukkit.NamespacedKey eliteKey; // mark as final
     private final Random random = new Random();
 
     // Map: playerUuid -> Set gefrorener Entity-UUIDs (für diesen Spieler eingefroren)
@@ -47,7 +42,7 @@ public class SpawnManager {
     private static final org.bukkit.NamespacedKey MOVEMENT_SPEED = org.bukkit.NamespacedKey.minecraft("generic.movement_speed");
     private static final org.bukkit.NamespacedKey ATTACK_DAMAGE = org.bukkit.NamespacedKey.minecraft("generic.attack_damage");
 
-    public SpawnManager(MinecraftSurvivors plugin, PlayerManager playerManager) {
+    public SpawnManager(MinecraftSurvivors plugin, @SuppressWarnings("unused") PlayerManager playerManager) {
         this.plugin = plugin;
         this.waveKey = new NamespacedKey(plugin, "ms_wave");
         this.eliteKey = new org.bukkit.NamespacedKey(plugin, "ms_elite");
@@ -499,12 +494,15 @@ public class SpawnManager {
 
     private void maybeMakeElite(LivingEntity mob) {
         try {
-            int chance = plugin.getConfigUtil().getInt("spawn.elite.chance-percentage", 8);
+            int baseChance = plugin.getConfigUtil().getInt("spawn.elite.chance-percentage", 8);
+            double extraPerMin = plugin.getConfigUtil().getDouble("spawn.elite.extra-chance-per-minute", 0.0);
+            double minutes = getElapsedMinutes();
+            double chanceF = Math.min(100.0, Math.max(0.0, baseChance + Math.max(0.0, minutes) * extraPerMin));
+            int chance = (int) Math.round(chanceF);
             if (chance <= 0) return;
             if (random.nextInt(100) >= chance) return;
             // mark elite
             mob.getPersistentDataContainer().set(eliteKey, PersistentDataType.BYTE, (byte)1);
-            double minutes = getElapsedMinutes();
             double baseMult = plugin.getConfigUtil().getDouble("spawn.elite.base-health-mult", 1.5);
             double perMin = plugin.getConfigUtil().getDouble("spawn.elite.extra-health-mult-per-minute", 0.03);
             double eliteMult = Math.max(1.0, baseMult + Math.max(0.0, minutes) * perMin);
@@ -517,14 +515,8 @@ public class SpawnManager {
                     mob.setHealth(Math.min(newBase, mob.getHealth()));
                 }
             } catch (Throwable ignored) {}
-            try {
-                mob.customName(net.kyori.adventure.text.Component.text("Elite "+mob.getType().name()).color(net.kyori.adventure.text.format.NamedTextColor.LIGHT_PURPLE));
-                mob.setCustomNameVisible(true);
-            } catch (Throwable ignored) {}
-            try {
-                java.lang.reflect.Method m = mob.getClass().getMethod("setScale", float.class);
-                m.invoke(mob, (float) plugin.getConfigUtil().getDouble("spawn.elite.size-scale", 1.25));
-            } catch (Throwable ignored) {}
+            try { mob.customName(net.kyori.adventure.text.Component.text("Elite "+mob.getType().name()).color(net.kyori.adventure.text.format.NamedTextColor.LIGHT_PURPLE)); mob.setCustomNameVisible(true);} catch (Throwable ignored) {}
+            try { java.lang.reflect.Method m = mob.getClass().getMethod("setScale", float.class); m.invoke(mob, (float) plugin.getConfigUtil().getDouble("spawn.elite.size-scale", 1.25)); } catch (Throwable ignored) {}
         } catch (Throwable ignored) {}
     }
 
@@ -552,8 +544,19 @@ public class SpawnManager {
                 int weight = oWeight != null ? Integer.parseInt(String.valueOf(oWeight)) : 1;
                 int minMinute = oMin != null ? Integer.parseInt(String.valueOf(oMin)) : 0;
                 if (minutes < minMinute) continue;
-                EntityType et;
-                try { et = EntityType.valueOf(typeName.toUpperCase()); } catch (Throwable ex) { continue; }
+                EntityType et = null;
+                try {
+                    String lower = typeName.toLowerCase();
+                    org.bukkit.NamespacedKey ns = org.bukkit.NamespacedKey.minecraft(lower);
+                    et = org.bukkit.Registry.ENTITY_TYPE.get(ns);
+                    if (et == null) {
+                        plugin.getLogger().warning("SpawnManager: Unknown mob type in config spawnMobTypes: '" + typeName + "' (registry=null) — defaulting to ZOMBIE");
+                        et = EntityType.ZOMBIE; // strict fallback
+                    }
+                } catch (Throwable registryEx) {
+                    plugin.getLogger().warning("SpawnManager: Registry lookup failed for '" + typeName + "': " + registryEx.getMessage() + ". Falling back to ZOMBIE");
+                    et = EntityType.ZOMBIE;
+                }
                 if (!et.isAlive()) continue;
                 if (weight <= 0) continue;
                 pool.add(new Weighted(et, weight));
@@ -569,5 +572,36 @@ public class SpawnManager {
     public void markAsWave(org.bukkit.entity.LivingEntity mob) {
         if (mob == null) return;
         try { mob.getPersistentDataContainer().set(waveKey, org.bukkit.persistence.PersistentDataType.BYTE, (byte)1); } catch (Throwable ignored) {}
+    }
+
+    public void repelMobsAround(org.bukkit.entity.Player p, double radius, double strength, boolean onlyWave) {
+        if (p == null || p.getWorld() == null) return;
+        try {
+            java.util.List<org.bukkit.entity.LivingEntity> list;
+            if (onlyWave) list = getNearbyWaveMobs(p.getLocation(), radius);
+            else {
+                list = new java.util.ArrayList<>();
+                double r2 = radius * radius;
+                for (org.bukkit.entity.Entity e : p.getWorld().getEntities()) {
+                    if (!(e instanceof org.bukkit.entity.LivingEntity)) continue;
+                    if (e.getUniqueId().equals(p.getUniqueId())) continue;
+                    if (e.getLocation().distanceSquared(p.getLocation()) > r2) continue;
+                    list.add((org.bukkit.entity.LivingEntity) e);
+                }
+            }
+            org.bukkit.util.Vector pc = p.getLocation().toVector();
+            for (org.bukkit.entity.LivingEntity le : list) {
+                try {
+                    org.bukkit.util.Vector dir = le.getLocation().toVector().subtract(pc).normalize();
+                    if (!Double.isFinite(dir.getX()) || !Double.isFinite(dir.getZ())) continue;
+                    double y = 0.35 + 0.15 * random.nextDouble();
+                    org.bukkit.util.Vector v = new org.bukkit.util.Vector(dir.getX() * strength, y, dir.getZ() * strength);
+                    le.setVelocity(v);
+                    // kleiner Effekt
+                    try { le.getWorld().playSound(le.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_ATTACK_KNOCKBACK, 0.8f, 1.0f); } catch (Throwable ignored) {}
+                    try { le.getWorld().spawnParticle(org.bukkit.Particle.CLOUD, le.getLocation().add(0,0.2,0), 6, 0.25, 0.1, 0.25, 0.01); } catch (Throwable ignored) {}
+                } catch (Throwable ignored) {}
+            }
+        } catch (Throwable ignored) {}
     }
 }

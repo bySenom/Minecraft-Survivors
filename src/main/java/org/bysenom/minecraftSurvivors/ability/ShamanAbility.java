@@ -2,16 +2,14 @@
 // File: src/main/java/org/bysenom/minecraftSurvivors/ability/ShamanAbility.java
 package org.bysenom.minecraftSurvivors.ability;
 
-import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
-import org.bysenom.minecraftSurvivors.manager.SpawnManager;
-import org.bysenom.minecraftSurvivors.model.SurvivorPlayer;
-import org.bukkit.Bukkit;
+import java.util.List;
+import java.util.Random;
 import org.bukkit.Location;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-
-import java.util.List;
-import java.util.Random;
+import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
+import org.bysenom.minecraftSurvivors.manager.SpawnManager;
+import org.bysenom.minecraftSurvivors.model.SurvivorPlayer;
 
 public class ShamanAbility implements Ability {
 

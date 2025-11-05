@@ -1,5 +1,7 @@
 package org.bysenom.minecraftSurvivors.ability;
 
+import java.util.Comparator;
+import java.util.List;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -8,9 +10,6 @@ import org.bukkit.entity.Player;
 import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
 import org.bysenom.minecraftSurvivors.manager.SpawnManager;
 import org.bysenom.minecraftSurvivors.model.SurvivorPlayer;
-
-import java.util.List;
-import java.util.Comparator;
 
 public class PyromancerAbility implements Ability {
 

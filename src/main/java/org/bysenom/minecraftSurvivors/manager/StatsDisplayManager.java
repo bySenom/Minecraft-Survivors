@@ -1,14 +1,13 @@
 package org.bysenom.minecraftSurvivors.manager;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 public class StatsDisplayManager {
 

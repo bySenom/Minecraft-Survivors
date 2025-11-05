@@ -1,6 +1,6 @@
 # language: yaml
 name: MinecraftSurvivors
-version: '1.0-SNAPSHOT'
+version: '${version}'
 main: org.bysenom.minecraftSurvivors.MinecraftSurvivors
 api-version: '1.21'
 description: "Vampire Survivors like Minigame"
@@ -34,6 +34,10 @@ commands:
   party:
     description: "Party-System: /party create|invite|join|leave|disband|list"
     usage: "/party <sub>"
+
+  msversion:
+    description: "Zeigt Plugin-Version an."
+    usage: "/msversion"
 permissions:
   minecraftsurvivors.admin:
     description: "Erlaubnis zum Starten/Stoppen und Admin-Kommandos"

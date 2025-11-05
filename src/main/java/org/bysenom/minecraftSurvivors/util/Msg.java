@@ -21,4 +21,3 @@ public final class Msg {
         if (p != null) p.sendActionBar(net.kyori.adventure.text.Component.text(msg));
     }
 }
-

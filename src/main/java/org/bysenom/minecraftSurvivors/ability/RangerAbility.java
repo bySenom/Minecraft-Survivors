@@ -1,17 +1,16 @@
 package org.bysenom.minecraftSurvivors.ability;
 
-import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
-import org.bysenom.minecraftSurvivors.manager.SpawnManager;
-import org.bysenom.minecraftSurvivors.model.SurvivorPlayer;
+import java.util.Comparator;
+import java.util.List;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
-
-import java.util.Comparator;
-import java.util.List;
+import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
+import org.bysenom.minecraftSurvivors.manager.SpawnManager;
+import org.bysenom.minecraftSurvivors.model.SurvivorPlayer;
 
 public class RangerAbility implements Ability {
 

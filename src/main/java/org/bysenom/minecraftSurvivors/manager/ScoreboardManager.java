@@ -1,15 +1,14 @@
 package org.bysenom.minecraftSurvivors.manager;
 
-import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
-import org.bysenom.minecraftSurvivors.model.SurvivorPlayer;
+import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Score;
 import org.bukkit.scoreboard.Scoreboard;
-
-import java.util.UUID;
+import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
+import org.bysenom.minecraftSurvivors.model.SurvivorPlayer;
 
 /**
  * Erstellt und aktualisiert ein Sidebar-Scoreboard mit Spielinfos je Spieler.

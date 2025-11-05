@@ -1,13 +1,14 @@
 // File: src/main/java/org/bysenom/minecraftSurvivors/manager/GameManager.java
 package org.bysenom.minecraftSurvivors.manager;
 
-import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
-import org.bysenom.minecraftSurvivors.model.GameState;
-import org.bysenom.minecraftSurvivors.task.WaveTask;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
-import net.kyori.adventure.text.Component;
+import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
+import org.bysenom.minecraftSurvivors.listener.LootchestListener;
+import org.bysenom.minecraftSurvivors.model.GameState;
+import org.bysenom.minecraftSurvivors.task.WaveTask;
 
 public class GameManager {
 
@@ -24,6 +25,43 @@ public class GameManager {
     private final java.util.Map<java.util.UUID, org.bukkit.scheduler.BukkitTask> pauseTimeoutTasks = new java.util.concurrent.ConcurrentHashMap<>();
     private volatile boolean starting = false;
     private org.bukkit.scheduler.BukkitTask countdownTask;
+
+    private final java.util.Map<java.util.UUID, java.util.Deque<GuiRequest>> guiQueues = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private static final class GuiRequest {
+        enum Type { LEVEL_UP, LOOT_CHEST }
+        final Type type; final int level;
+        GuiRequest(Type t, int level) { this.type=t; this.level=level; }
+        static GuiRequest levelUp(int lvl) { return new GuiRequest(Type.LEVEL_UP, lvl); }
+        static GuiRequest loot() { return new GuiRequest(Type.LOOT_CHEST, 0); }
+    }
+
+    public void enqueueLevelUp(java.util.UUID uuid, int level) {
+        if (uuid == null) return;
+        guiQueues.computeIfAbsent(uuid, k -> new java.util.ArrayDeque<>()).add(GuiRequest.levelUp(level));
+    }
+    public void enqueueLoot(java.util.UUID uuid) {
+        if (uuid == null) return;
+        guiQueues.computeIfAbsent(uuid, k -> new java.util.ArrayDeque<>()).add(GuiRequest.loot());
+    }
+
+    public void tryOpenNextQueued(java.util.UUID uuid) {
+        if (uuid == null) return;
+        java.util.Deque<GuiRequest> q = guiQueues.get(uuid);
+        if (q == null || q.isEmpty()) return;
+        org.bukkit.entity.Player p = org.bukkit.Bukkit.getPlayer(uuid);
+        if (p == null || !p.isOnline()) return;
+        GuiRequest req = q.pollFirst();
+        if (req == null) return;
+        switch (req.type) {
+            case LEVEL_UP:
+                try { if (plugin.getGuiManager() != null) plugin.getGuiManager().openLevelUpMenu(p, Math.max(1, req.level)); } catch (Throwable ignored) {}
+                break;
+            case LOOT_CHEST:
+                try { LootchestListener.openQueued(p); } catch (Throwable ignored) {}
+                break;
+        }
+    }
 
     public GameManager(MinecraftSurvivors plugin, PlayerManager playerManager) {
         this.plugin = plugin;

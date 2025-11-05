@@ -1,6 +1,6 @@
 # MinecraftSurvivors
 
-Ein kompaktes, erweiterbares Minecraft (Paper/Spigot) Minigame im Stil von "Vampire Survivors". Enthält Klassen, kontinuierliche Gegner-Spawns, Level‑Ups mit Upgrades, ein ausgebautes GUI (Party/Stats/Config steuerbar) und einen DPS/HPS‑Meter mit umschaltbaren Anzeigemodi.
+eeeeeeeeeeEin kompaktes, erweiterbares Minecraft (Paper/Spigot) Minigame im Stil von "Vampire Survivors". Enthält Klassen, kontinuierliche Gegner-Spawns, Level‑Ups mit Upgrades, ein ausgebautes GUI (Party/Stats/Config steuerbar) und einen DPS/HPS‑Meter mit umschaltbaren Anzeigemodi.
 
 ---
 
@@ -64,6 +64,41 @@ Ein kompaktes, erweiterbares Minecraft (Paper/Spigot) Minigame im Stil von "Vamp
 
 ### Slotmaschine/Lootchest
 - Lootchests öffnen eine Slotmaschinen‑GUI mit realen Reels/Symbolgewichten; Powerups/Belohnungen sind zufällig
+
+---
+
+## Version & Release
+
+- Version anzeigen im Spiel:
+  - Befehl: `/msversion`
+- Versionierung im Build:
+  - Bei CI-Builds aus Tags wie `vX.Y.Z` wird automatisch die Projektversion auf `X.Y.Z` gesetzt.
+- Release erstellen (GitHub Actions):
+  - Tag setzen und pushen:
+    - `git tag v1.0.0`
+    - `git push origin v1.0.0`
+  - Der Workflow erstellt einen Release und hängt das JAR an.
+- Auto-Changelog (Release Drafter):
+  - Auf `main` gepflegte PRs/Commits werden zu einem Entwurfschangelog zusammengeführt.
+
+---
+
+## Autosave (Spieler-Daten)
+
+- Spieler-Daten werden periodisch asynchron gespeichert.
+- Konfiguration in `config.yml`:
+  - `data.autosave-interval-seconds`: Standard `120`. `0` deaktiviert Autosave.
+- Beim Server-Stop werden alle Daten final gespeichert.
+
+---
+
+## CI/CD & Qualität
+
+- Build (Windows + Ubuntu):
+  - Linter/Format: `spotlessCheck`
+  - Build: `clean build -x test`
+  - Artefakt-Upload des Plugin-JARs
+- Release: siehe Abschnitt „Version & Release“
 
 ---
 
@@ -170,16 +205,21 @@ Die Standard‑Config liegt in `plugins/MinecraftSurvivors/config.yml`. Wichtige
 - Projekt bauen
 
 ```bat
-.\gradlew.bat clean build
+.\gradlew.bat spotlessApply
+.\gradlew.bat clean build -x test
 ```
 
-- Nur kompilieren
+- Dev-Server starten (Paper 1.21.4)
 
 ```bat
-.\gradlew.bat compileJava
+.\gradlew.bat runServer
 ```
 
-- Deploy (manuell): kopiere `build\libs\*.jar` nach `plugins/` deines Test‑Servers und starte neu.
+- Deploy (manuell)
+
+```bat
+copy build\libs\*.jar <DEIN_PAPER_SERVER>\plugins\
+```
 
 ---
 

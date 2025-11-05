@@ -1,24 +1,21 @@
 package org.bysenom.minecraftSurvivors.gui;
 
-import org.bukkit.potion.PotionEffectType;
-import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
-import org.bysenom.minecraftSurvivors.manager.GameManager;
+import java.util.List;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.bysenom.minecraftSurvivors.model.PlayerClass;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.inventory.meta.SkullMeta;
-
-import java.util.List;
+import org.bukkit.persistence.PersistentDataType;
+import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
+import org.bysenom.minecraftSurvivors.manager.GameManager;
 
 public class GuiManager {
 
@@ -284,8 +281,14 @@ public class GuiManager {
                 player.sendMessage("§6Burn Dauer +" + igniteStep + "t");
                 break;
             case BOW:
-                sp.addKnockbackBonus(kbStep);
-                player.sendMessage("§6Knockback +" + (int)(kbStep * 100) + "%");
+                // Ambig: BOW kann auch Waffe: Fernschuss sein – Material-Konflikt vermeiden wir, indem wir den Display-Namen prüfen
+                String dn = null; try { if (display.getItemMeta()!=null && display.getItemMeta().displayName()!=null) dn = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(display.getItemMeta().displayName()); } catch (Throwable ignored) {}
+                if (dn != null && dn.toLowerCase(java.util.Locale.ROOT).contains("waffe: fern")) {
+                    if (sp.addWeapon("w_ranged")) player.sendMessage("§bNeue Waffe: Fernschuss"); else player.sendMessage("§7Waffen-Slots voll – Level erhöht");
+                } else {
+                    sp.addKnockbackBonus(kbStep);
+                    player.sendMessage("§6Knockback +" + (int)(kbStep * 100) + "%");
+                }
                 break;
             case GOLDEN_APPLE:
                 sp.addHealBonus(healStep);
@@ -302,7 +305,7 @@ public class GuiManager {
             case FEATHER:
                 sp.addAttackSpeedMult(asStep);
                 try {
-                    org.bukkit.potion.PotionEffectType haste = PotionEffectType.HASTE;
+                    org.bukkit.potion.PotionEffectType haste = org.bukkit.potion.PotionEffectType.HASTE;
                     if (haste == null) haste = org.bukkit.potion.PotionEffectType.SPEED;
                     player.addPotionEffect(new org.bukkit.potion.PotionEffect(haste, 20*60, 0, false, false, false));
                 } catch (Throwable ignored) {}
@@ -315,6 +318,15 @@ public class GuiManager {
             case RABBIT_FOOT:
                 sp.addLuck(luckStep);
                 player.sendMessage("§bGlück +" + (int)(luckStep*100) + "%");
+                break;
+            case LIGHTNING_ROD:
+                if (sp.addWeapon("w_lightning")) player.sendMessage("§bNeue Waffe: Blitz"); else player.sendMessage("§7Waffen-Slots voll – Level erhöht");
+                break;
+            case FIRE_CHARGE:
+                if (sp.addWeapon("w_fire")) player.sendMessage("§bNeue Waffe: Feuer"); else player.sendMessage("§7Waffen-Slots voll – Level erhöht");
+                break;
+            case HEART_OF_THE_SEA:
+                if (sp.addWeapon("w_holy")) player.sendMessage("§bNeue Waffe: Heilige Nova"); else player.sendMessage("§7Waffen-Slots voll – Level erhöht");
                 break;
             default:
                 sp.addCoins(5);
@@ -580,6 +592,7 @@ public class GuiManager {
         inv.setItem(22, createGuiItem(Material.REDSTONE_BLOCK, Component.text("Force Start").color(NamedTextColor.RED), java.util.List.of(Component.text("Countdown 3s & Start")), "adm_force_start"));
         inv.setItem(24, createGuiItem(Material.FEATHER, Component.text("Give Dash").color(NamedTextColor.AQUA), java.util.List.of(Component.text("Dash-Skill hinzufügen")), "adm_give_dash"));
         inv.setItem(26, createGuiItem(Material.ARROW, Component.text("Zurück").color(NamedTextColor.RED), java.util.List.of(Component.text("Zurück")), "back"));
+        inv.setItem(18, createGuiItem(Material.EXPERIENCE_BOTTLE, Component.text("Give Skill Slot +1").color(NamedTextColor.AQUA), java.util.List.of(Component.text("Erhöhe die Anzahl der Skill-Slots um 1")), "adm_skillslot"));
         p.openInventory(inv);
     }
 }

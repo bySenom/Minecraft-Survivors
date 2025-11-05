@@ -1,16 +1,14 @@
 // java
 package org.bysenom.minecraftSurvivors.gui;
 
+import java.util.List;
+import java.util.Random;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
 
 public class LevelUpMenu {
 
@@ -99,6 +97,12 @@ public class LevelUpMenu {
         options.add(createRarity(org.bukkit.Material.FEATHER, colorize(rar6, "+Angriffstempo"), java.util.List.of(net.kyori.adventure.text.Component.text("Attack Speed +" + (int)((asStep*mult6)*100) + "%"), net.kyori.adventure.text.Component.text("Rarity: "+rar6)), mult6));
         options.add(createRarity(org.bukkit.Material.SHIELD, colorize(rar7, "+Resistenz"), java.util.List.of(net.kyori.adventure.text.Component.text("Schadensreduktion +" + (int)((resistStep*mult7)*100) + "%"), net.kyori.adventure.text.Component.text("Rarity: "+rar7)), mult7));
         options.add(createRarity(org.bukkit.Material.RABBIT_FOOT, colorize(rar8, "+Glück"), java.util.List.of(net.kyori.adventure.text.Component.text("Luck +" + (int)((luckStep*mult8)*100) + "%"), net.kyori.adventure.text.Component.text("Rarity: "+rar8)), mult8));
+
+        // Waffen (passiv) wie in Vampire Survivors
+        options.add(createRarity(org.bukkit.Material.LIGHTNING_ROD, colorize(rollRarity(random), "Waffe: Blitz"), java.util.List.of(net.kyori.adventure.text.Component.text("Kettenblitz trifft Zufallsziel")), 1.0));
+        options.add(createRarity(org.bukkit.Material.FIRE_CHARGE, colorize(rollRarity(random), "Waffe: Feuer"), java.util.List.of(net.kyori.adventure.text.Component.text("AoE-DoT um dich")), 1.0));
+        options.add(createRarity(org.bukkit.Material.BOW, colorize(rollRarity(random), "Waffe: Fernschuss"), java.util.List.of(net.kyori.adventure.text.Component.text("Automatischer Schuss auf Gegner")), 1.0));
+        options.add(createRarity(org.bukkit.Material.HEART_OF_THE_SEA, colorize(rollRarity(random), "Waffe: Heilige Nova"), java.util.List.of(net.kyori.adventure.text.Component.text("Heiliger Puls um dich")), 1.0));
 
         // Klassen-spezifische Option ergänzen
         org.bysenom.minecraftSurvivors.model.PlayerClass pc = sp != null ? sp.getSelectedClass() : null;

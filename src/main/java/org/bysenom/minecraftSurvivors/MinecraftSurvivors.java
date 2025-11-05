@@ -1,5 +1,6 @@
 package org.bysenom.minecraftSurvivors;
 
+import org.bukkit.plugin.java.JavaPlugin;
 import org.bysenom.minecraftSurvivors.command.OpenGuiCommand;
 import org.bysenom.minecraftSurvivors.command.StartCommand;
 import org.bysenom.minecraftSurvivors.gui.GuiClickListener;
@@ -8,7 +9,6 @@ import org.bysenom.minecraftSurvivors.listener.PlayerDeathListener;
 import org.bysenom.minecraftSurvivors.manager.GameManager;
 import org.bysenom.minecraftSurvivors.manager.PlayerManager;
 import org.bysenom.minecraftSurvivors.util.ConfigUtil;
-import org.bukkit.plugin.java.JavaPlugin;
 
 public final class MinecraftSurvivors extends JavaPlugin {
 
@@ -26,6 +26,7 @@ public final class MinecraftSurvivors extends JavaPlugin {
     private GuiManager guiManager;
     private org.bysenom.minecraftSurvivors.manager.ShopNpcManager shopNpcManager;
     private org.bysenom.minecraftSurvivors.manager.SkillManager skillManager;
+    private org.bukkit.scheduler.BukkitTask autosaveTask;
 
     @Override
     public void onLoad() {
@@ -55,21 +56,25 @@ public final class MinecraftSurvivors extends JavaPlugin {
         // Registrierungen
         getLogger().info("onEnable thread: " + Thread.currentThread().getName());
         try {
-            if (getCommand("msstart") != null) {
-                getCommand("msstart").setExecutor(new StartCommand(gameManager));
-            }
-            if (getCommand("msmenu") != null) {
-                getCommand("msmenu").setExecutor(new OpenGuiCommand(guiManager));
-            }
-            if (getCommand("msconfig") != null) {
-                getCommand("msconfig").setExecutor(new org.bysenom.minecraftSurvivors.command.MsConfigCommand(gameManager));
-            }
-            if (getCommand("msstats") != null) {
-                getCommand("msstats").setExecutor(new org.bysenom.minecraftSurvivors.command.MsStatsCommand(this));
-            }
-            if (getCommand("party") != null) {
-                getCommand("party").setExecutor(new org.bysenom.minecraftSurvivors.command.PartyCommand(this));
-            }
+            org.bukkit.command.PluginCommand cmd;
+
+            cmd = getCommand("msstart");
+            if (cmd != null) cmd.setExecutor(new StartCommand(gameManager));
+
+            cmd = getCommand("msmenu");
+            if (cmd != null) cmd.setExecutor(new OpenGuiCommand(guiManager));
+
+            cmd = getCommand("msconfig");
+            if (cmd != null) cmd.setExecutor(new org.bysenom.minecraftSurvivors.command.MsConfigCommand(gameManager));
+
+            cmd = getCommand("msstats");
+            if (cmd != null) cmd.setExecutor(new org.bysenom.minecraftSurvivors.command.MsStatsCommand(this));
+
+            cmd = getCommand("party");
+            if (cmd != null) cmd.setExecutor(new org.bysenom.minecraftSurvivors.command.PartyCommand(this));
+
+            cmd = getCommand("msversion");
+            if (cmd != null) cmd.setExecutor(new org.bysenom.minecraftSurvivors.command.VersionCommand());
 
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.EntityDeathListener(playerManager, guiManager, this.configUtil), this);
             getServer().getPluginManager().registerEvents(new PlayerDeathListener(gameManager, playerManager, this.playerDataManager), this);
@@ -82,15 +87,34 @@ public final class MinecraftSurvivors extends JavaPlugin {
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.SkillListener(this), this);
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.ShopNpcListener(this, shopNpcManager), this);
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.DashListener(this), this);
+            getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.HungerListener(), this);
 
             this.scoreboardManager.start();
             try { this.statsDisplayManager.start(); } catch (Throwable ignored) {}
             try { this.skillManager.start(); } catch (Throwable ignored) {}
 
+            // Autosave Spieler-Daten asynchron in konfigurierbarem Intervall
+            int autosaveSec = this.configUtil.getInt("data.autosave-interval-seconds", 120);
+            if (autosaveSec > 0) {
+                long period = Math.max(20L, autosaveSec * 20L);
+                this.autosaveTask = getServer().getScheduler().runTaskTimerAsynchronously(this, () -> {
+                    try {
+                        this.playerDataManager.saveAll();
+                    } catch (Throwable t) {
+                        getLogger().warning("Autosave failed: " + t.getMessage());
+                    }
+                }, period, period);
+                getLogger().info("Player autosave scheduled every " + autosaveSec + "s");
+            } else {
+                getLogger().info("Player autosave disabled (interval <= 0)");
+            }
+
             getLogger().info("MinecraftSurvivors enabled (registrations done on main thread).");
         } catch (Throwable t) {
             getLogger().severe("Error during plugin registration: " + t.getMessage());
-            t.printStackTrace();
+            java.io.StringWriter sw = new java.io.StringWriter();
+            t.printStackTrace(new java.io.PrintWriter(sw));
+            getLogger().severe(sw.toString());
         }
     }
 
@@ -101,6 +125,10 @@ public final class MinecraftSurvivors extends JavaPlugin {
         try { if (this.metaManager != null) this.metaManager.saveAll(); } catch (Throwable ignored) {}
         try { if (this.shopNpcManager != null) this.shopNpcManager.despawnAll(); } catch (Throwable ignored) {}
         try { if (this.skillManager != null) this.skillManager.stop(); } catch (Throwable ignored) {}
+        // Autosave Task beenden
+        try { if (this.autosaveTask != null) this.autosaveTask.cancel(); } catch (Throwable ignored) {}
+        // Final alle Spieler-Daten speichern
+        try { if (this.playerDataManager != null) this.playerDataManager.saveAll(); } catch (Throwable ignored) {}
         getLogger().info("MinecraftSurvivors disabled.");
     }
 

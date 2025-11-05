@@ -1,11 +1,10 @@
 // File: src/main/java/org/bysenom/minecraftSurvivors/manager/PlayerManager.java
 package org.bysenom.minecraftSurvivors.manager;
 
-import org.bysenom.minecraftSurvivors.model.SurvivorPlayer;
-
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import org.bysenom.minecraftSurvivors.model.SurvivorPlayer;
 
 public class PlayerManager {
 

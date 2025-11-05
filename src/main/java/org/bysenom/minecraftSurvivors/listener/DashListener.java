@@ -1,17 +1,15 @@
 package org.bysenom.minecraftSurvivors.listener;
 
-import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
-import org.bukkit.Bukkit;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
 
 /**
  * Dash über Sneak: Wenn der Spieler den Skill "dash" besitzt, kann er alle X Sekunden dashen.

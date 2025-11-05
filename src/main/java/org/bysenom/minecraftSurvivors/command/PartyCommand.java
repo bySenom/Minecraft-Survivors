@@ -1,14 +1,13 @@
 package org.bysenom.minecraftSurvivors.command;
 
-import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
-import org.bysenom.minecraftSurvivors.manager.PartyManager;
+import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-
-import java.util.UUID;
+import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
+import org.bysenom.minecraftSurvivors.manager.PartyManager;
 
 public class PartyCommand implements CommandExecutor {
 
@@ -65,4 +64,3 @@ public class PartyCommand implements CommandExecutor {
         }
     }
 }
-

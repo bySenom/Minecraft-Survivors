@@ -1,16 +1,16 @@
 // File: src/main/java/org/bysenom/minecraftSurvivors/manager/MetaProgressionManager.java
 package org.bysenom.minecraftSurvivors.manager;
 
-import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
-import org.bysenom.minecraftSurvivors.model.MetaProfile;
-import org.bysenom.minecraftSurvivors.model.SurvivorPlayer;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
+import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
+import org.bysenom.minecraftSurvivors.model.MetaProfile;
+import org.bysenom.minecraftSurvivors.model.SurvivorPlayer;
 
 /**
  * Lädt und speichert Meta-Profile und stellt Utility-Methoden zur Verfügung.
@@ -100,59 +100,91 @@ public class MetaProgressionManager {
     }
 
     // Simple pricing helper with caps enforced
-    public boolean tryPurchase(org.bukkit.entity.Player p, String key) {
-        if (p == null || key == null) return false;
+    public void tryPurchase(Player p, String key) {
+        if (p == null || key == null || key.isEmpty()) return;
         MetaProfile mp = get(p.getUniqueId());
         org.bukkit.configuration.file.FileConfiguration cfg = plugin.getConfigUtil().getConfig();
-        java.util.Map<String, Object> node = null;
-        java.util.List<java.util.Map<?, ?>> list = cfg.getMapList("meta.shop");
-        for (java.util.Map<?, ?> m : list) {
-            Object idObj = m.containsKey("key") ? m.get("key") : "";
-            String id = String.valueOf(idObj);
-            if (key.equalsIgnoreCase(id)) { try { node = (java.util.Map<String, Object>) m; } catch (Throwable ignored) {} break; }
+        Map<String, Object> node = null;
+        List<Map<?, ?>> rawList = cfg.getMapList("meta.shop");
+        for (Map<?, ?> m : rawList) {
+            if (m == null) continue;
+            Object idObj = m.get("key");
+            String id = idObj != null ? String.valueOf(idObj) : "";
+            if (key.equalsIgnoreCase(id)) {
+                Map<String,Object> tmp = new HashMap<>();
+                for (Map.Entry<?,?> e : m.entrySet()) {
+                    tmp.put(String.valueOf(e.getKey()), e.getValue());
+                }
+                node = tmp;
+                break;
+            }
         }
-        if (node == null) { p.sendMessage("§cUnbekannter Meta-Shop-Eintrag: "+key); return false; }
-        int price = Integer.parseInt(String.valueOf(node.getOrDefault("price", 10)));
+        if (node == null) { p.sendMessage("§cUnbekannter Meta-Shop-Eintrag: "+key); return; }
+
+        int price = safeParseInt(node.getOrDefault("price", 10), 10);
         String type = String.valueOf(node.getOrDefault("type", ""));
-        double stepD = Double.parseDouble(String.valueOf(node.getOrDefault("step", 0.01)));
-        double capD = Double.parseDouble(String.valueOf(node.getOrDefault("cap", 0.50)));
-        if (mp.getEssence() < price) { p.sendMessage("§cNicht genug Essence."); return false; }
+        double stepD = safeParseDouble(node.getOrDefault("step", 0.01), 0.01);
+        double capD = safeParseDouble(node.getOrDefault("cap", 0.50), 0.50);
+
+        if (price <= 0) price = 1; // Mindestpreis
+        if (mp.getEssence() < price) { p.sendMessage("§cNicht genug Essence."); return; }
+
         boolean ok = false;
-        switch (type.toUpperCase()) {
+        switch (type.toUpperCase(Locale.ROOT)) {
             case "DAMAGE_MULT":
-                if (mp.getPermDamageMult() + stepD <= capD+1e-9) { mp.addPermDamageMult(stepD); ok = true; }
+                if (mp.getPermDamageMult() + stepD <= capD + 1e-9) { mp.addPermDamageMult(stepD); ok = true; }
                 break;
             case "MOVE_SPEED":
-                if (mp.getPermMoveSpeed() + stepD <= capD+1e-9) { mp.addPermMoveSpeed(stepD); ok = true; }
+                if (mp.getPermMoveSpeed() + stepD <= capD + 1e-9) { mp.addPermMoveSpeed(stepD); ok = true; }
                 break;
             case "ATTACK_SPEED":
-                if (mp.getPermAttackSpeed() + stepD <= capD+1e-9) { mp.addPermAttackSpeed(stepD); ok = true; }
+                if (mp.getPermAttackSpeed() + stepD <= capD + 1e-9) { mp.addPermAttackSpeed(stepD); ok = true; }
                 break;
             case "RESIST":
-                if (mp.getPermResist() + stepD <= capD+1e-9) { mp.addPermResist(stepD); ok = true; }
+                if (mp.getPermResist() + stepD <= capD + 1e-9) { mp.addPermResist(stepD); ok = true; }
                 break;
             case "LUCK":
-                if (mp.getPermLuck() + stepD <= capD+1e-9) { mp.addPermLuck(stepD); ok = true; }
+                if (mp.getPermLuck() + stepD <= capD + 1e-9) { mp.addPermLuck(stepD); ok = true; }
                 break;
             case "HEALTH_HEARTS":
                 int heartsCap = (int) Math.round(capD);
                 int stepHearts = (int) Math.round(stepD);
+                if (stepHearts <= 0) stepHearts = 1;
                 if (mp.getPermHealthHearts() + stepHearts <= heartsCap) { mp.addPermHealthHearts(stepHearts); ok = true; }
                 break;
             case "SKILL_SLOT":
                 int slotStep = (int) Math.round(stepD);
                 int slotCap = (int) Math.round(capD);
+                if (slotStep <= 0) slotStep = 1;
                 if (mp.getPermSkillSlots() + slotStep <= slotCap) { mp.addPermSkillSlots(slotStep); ok = true; }
                 break;
             default:
                 p.sendMessage("§cUnbekannter Typ: "+type);
-                return false;
+                return;
         }
-        if (!ok) { p.sendMessage("§eCap erreicht."); return false; }
+        if (!ok) { p.sendMessage("§eCap erreicht."); return; }
         mp.setEssence(mp.getEssence() - price);
         save(mp);
         try { p.playSound(p.getLocation(), org.bukkit.Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.2f); } catch (Throwable ignored) {}
-        p.sendMessage("§dMeta gekauft: "+type+" §7(+"+stepD+")");
-        return true;
+        p.sendMessage("§dMeta gekauft: "+type+" §7(+"+formatStep(stepD, type)+")");
+    }
+
+    private static String formatStep(double step, String type) {
+        if ("HEALTH_HEARTS".equalsIgnoreCase(type) || "SKILL_SLOT".equalsIgnoreCase(type)) {
+            return String.valueOf((int) Math.round(step));
+        }
+        return String.format(Locale.ROOT, "%.3f", step);
+    }
+
+    private static int safeParseInt(Object o, int def) {
+        if (o == null) return def;
+        try { return Integer.parseInt(String.valueOf(o).trim()); }
+        catch (Exception ignored) { return def; }
+    }
+
+    private static double safeParseDouble(Object o, double def) {
+        if (o == null) return def;
+        try { return Double.parseDouble(String.valueOf(o).trim()); }
+        catch (Exception ignored) { return def; }
     }
 }
