@@ -1,0 +1,14 @@
+[versions]
+paper = "1.21.4-R0.1-SNAPSHOT"
+spotless = "6.25.0"
+runPaper = "2.3.1"
+commonsLang3 = "3.17.0"
+
+[libraries]
+paper-api = { module = "io.papermc.paper:paper-api", version.ref = "paper" }
+commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commonsLang3" }
+
+[plugins]
+run-paper = { id = "xyz.jpenilla.run-paper", version.ref = "runPaper" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+
