@@ -7,27 +7,63 @@ Ein kompaktes, erweiterbares Minecraft (Paper/Spigot) Minigame im Stil von "Vamp
 ## Highlights
 
 - Klassen-System mit einzigartigen Fähigkeiten
-  - Shaman: Kettenblitz‑Strikes mit Partikelbogen
-  - Pyromancer: Flammenwirbel + Feuerstrahl (DoT)
-  - Ranger: Fernschuss mit Partikelspur und Knockback
-  - Paladin: Heilige Nova (AoE‑Schaden) + Heilung für sich und nahestehende Team‑Spieler (HPS zählt nur eigene Heilung)
+    - Shaman: Kettenblitz‑Strikes mit Partikelbogen
+    - Pyromancer: Flammenwirbel + Feuerstrahl (DoT)
+    - Ranger: Fernschuss mit Partikelspur und Knockback
+    - Paladin: Heilige Nova (AoE‑Schaden) + Heilung für sich und nahestehende Team‑Spieler (HPS zählt nur eigene Heilung); Pulse folgt dem Spieler, sehr kurze Implosions-Endwelle (optional)
 - GUI (erweitert, 45 Slots)
-  - Hauptmenü: Start, Status, Klassenwahl, Powerups, Party, Stats, Config (Config nur mit Permission)
-  - Party: Erstellen, Einladung annehmen, Verlassen/Auflösen, Einladen über klickbare Spieler‑Köpfe (ohne Chat‑Eingabe)
-  - Stats: Moduswahl ActionBar/BossBar/Scoreboard/Aus mit Live‑Markierung
-  - Config: Reload & visuelle Presets anwenden (z. B. flashy/epic)
+    - Hauptmenü: Start, Status, Klassenwahl, Powerups, Party, Stats, Config (Config nur mit Permission)
+    - Party: Erstellen, Einladung annehmen, Verlassen/Auflösen, Einladen über klickbare Spieler‑Köpfe (ohne Chat‑Eingabe)
+    - Stats: Moduswahl ActionBar/BossBar/Scoreboard/Aus mit Live‑Markierung; „Top DPS/HPS“ via Command
+    - Config: Reload & visuelle Presets anwenden (z. B. flashy/epic)
+- Powerups & Raritäten
+    - Level‑Up‑Optionen mit Raritäten (Common/Rare/Epic) und Multiplikatoren; neue Stats wie Bewegung, Angriffstempo, Resistenz, Glück
+    - Health‑Upgrade vergibt echte Herzen (Max‑Health + aktuelles Health sinnvoll angehoben)
 - Spawns (Vampire Survivors‑like)
-  - Continuous Spawns (statt starrer Waves), sanfter Warmup fürs Early Game
-  - Gegner‑Variety/Weights mit minMinute‑Gates (z. B. Husk/Stray/Drowned erst später)
-  - Dynamische Caps pro Spielerzahl, feinere Difficulty‑Steps (z. B. alle 30s)
+    - Continuous Spawns (statt starrer Waves), sanfter Warmup fürs Early Game
+    - Gegner‑Variety/Weights mit minMinute‑Gates (z. B. Husk/Stray/Drowned erst später)
+    - Dynamische Caps pro Spielerzahl, feinere Difficulty‑Steps (z. B. alle 30s)
+    - Elite‑Gegner: größer, seltener, skalierende HP (über Zeit)
 - Komfort & Polishing
-  - 5‑Sekunden Start‑Countdown nach „Start Spiel“
-  - Deutlich aufgewertete Partikel/Sounds/Animationen (u. a. Paladin Pulse)
+    - 5‑Sekunden Start‑Countdown nach „Start Spiel“
+    - Deutlich aufgewertete Partikel/Sounds/Animationen (u. a. Paladin Pulse)
 - DPS/HPS‑Meter (10s Sliding‑Window)
-  - Anzeige‑Modi: ActionBar | BossBar (2 dezente Bars, Auto‑Cap) | Scoreboard | Off
-  - Modus per GUI oder Command umschalten; optional periodischer „Top DPS/HPS“‑Broadcast
+    - Anzeige‑Modi: ActionBar | BossBar (2 dezente Bars, Auto‑Cap) | Scoreboard | Off
+    - Modus per GUI oder Command umschalten; optional periodischer „Top DPS/HPS“‑Broadcast
 - Scoreboard (Sidebar)
-  - Zeigt Status, Klasse, Lvl/XP, Kills/Coins, Online, Party und Stats‑Modus (Wave entfernt)
+    - Zeigt Status, Klasse, Lvl/XP, Kills/Coins, Online, Party und Stats‑Modus (Wave entfernt)
+
+---
+
+## Neu/aktuell
+
+### Powerups & Raritäten
+- Raritäten: Common (1.0×), Rare (1.2×), Epic (1.5×). Gewichte in der Config.
+- Beispiele (konfigurierbare Schritte):
+  - +Schaden (additiv), +FlatDmg, +Treffer (mehr Ziele)
+  - +Size (Radius‑Multiplikator), +Attackpower (Schaden‑Multiplikator)
+  - +Bewegung (Movespeed), +Angriffstempo, +Resistenz (Schadensreduktion), +Glück (für zukünftige Pools/Loot)
+  - Klassen‑spezifisch: z. B. Pyromancer +Burn Dauer, Paladin +Heilung
+- Health‑Upgrade: vergibt echte Herzen (erhöht GENERIC_MAX_HEALTH und füllt etwas auf)
+
+### AttackSpeed‑Skalierung der Klassen
+- AttackSpeed wirkt jetzt auf die Fähigkeiten:
+  - Shaman: mehr Strikes pro Tick (bis ~3× gecappt)
+  - Pyromancer: mehr Ziele pro Tick (bis ~2.5×)
+  - Ranger: mehr Pfeile (Multi) und leicht mehr Piercing (Caps: Multi ~3×, Pierce ≤8)
+  - Paladin: Damage/Heal‑Loop wird häufiger pro Tick ausgeführt (bis ~2.5×), Pulse‑Visual nur 1× zur Performance
+
+### Shop (Daily Offers & Limits)
+- Shop‑GUI im Hauptmenü; zeigt tägliche Angebote (Daily‑Refresh) mit Reset‑Timer im Hauptmenü‑Footer
+- Limits: Max Käufe pro Run/Tag sowie pro Itemkategorie (konfigurierbar)
+- Kategorien (Beispiel): Weapons (DamageMult, RadiusMult), Class‑spezifische Perks (z. B. Paladin Heal)
+
+### Elite‑Gegner
+- Seltene Elite‑Spawns, größer (size‑scale), höhere HP
+- HP‑Multiplikator skaliert zusätzlich pro Minute (je länger das Spiel, desto tankiger)
+
+### Slotmaschine/Lootchest
+- Lootchests öffnen eine Slotmaschinen‑GUI mit realen Reels/Symbolgewichten; Powerups/Belohnungen sind zufällig
 
 ---
 
@@ -50,57 +86,64 @@ cd C:\Users\SashaW\IdeaProjects\MinecraftSurvivors
 
 - `/msmenu` öffnen → Klasse wählen → „Start Spiel“ (5s Countdown)
 - Gegner spawnen kontinuierlich; Level‑Ups erscheinen automatisch
-- Level‑Up Menü: wähle aus 2–3 Optionen (z. B. +Schaden, +Treffer, +Size, +Attackpower, klassen‑spezifische Upgrades)
+- Level‑Up Menü: wähle aus 2–3 Optionen – inkl. Raritäten (Common/Rare/Epic) mit farbiger Anzeige
 - Paladin heilt im Nova‑Radius auch Team‑Mitspieler (HPS zählt nur beim Heiler)
 
 Wichtige Wege/Commands:
 - GUI
-  - Party-Verwaltung komplett im Menü (Party → Einladen (Liste) → Kopf anklicken)
-  - Stats-Modus im Menü „Stats“ umschalten
-  - Config (nur Admin): Reload & Presets
+    - Party-Verwaltung komplett im Menü (Party → Einladen (Liste) → Kopf anklicken)
+    - Stats-Modus im Menü „Stats“ umschalten
+    - Config (nur Admin): Reload & Presets
 - Commands (ergänzend)
-  - `/msmenu` – Hauptmenü öffnen
-  - `/msstart` – Spiel starten (Admin)
-  - `/msconfig reload` – Config neu laden
-  - `/msstats mode <actionbar|bossbar|scoreboard|off>` | `toggle` | `show` | `top [dps|hps] [n]`
-  - `/party create|invite|join|leave|disband|list` (Invite auch bequem per GUI möglich)
+    - `/msmenu` – Hauptmenü öffnen
+    - `/msstart` – Spiel starten (Admin)
+    - `/msconfig reload` – Config neu laden
+    - `/msstats mode <actionbar|bossbar|scoreboard|off>` | `toggle` | `show` | `top [dps|hps] [n]`
+    - `/party create|invite|join|leave|disband|list` (Invite auch bequem per GUI möglich)
 
 ---
 
 ## Konfiguration
 
-Die Standard‑Config liegt in `plugins/MinecraftSurvivors/config.yml`. Wichtige Auszüge:
+Die Standard‑Config liegt in `plugins/MinecraftSurvivors/config.yml`. Wichtige Auszüge/neu:
 
 - Ability‑Taktung
   - `ability.interval-ticks` (Default 30 ≈ 1.5s)
 - Klassen‑Werte
-  - `shaman.*`, `pyromancer.*`, `ranger.*`, `paladin.*` (Schaden, Radius, Ziele etc.)
+  - `shaman.*`, `pyromancer.*`, `ranger.*`, `paladin.*`
+  - Paladin: `paladin.implosion-enabled` (kurze End‑Implosion um den Spieler)
 - Level‑Up Upgrades
-  - `levelup.values.*` (additive Boni)
+  - `levelup.values.*`: `bonus-damage`, `flat-damage`, `bonus-strikes`, `extra-hearts`, `move-speed`, `attack-speed`, `resist`, `luck`
   - `levelup.weapon.size-step`, `levelup.weapon.attackpower-step`
   - `levelup.pyromancer.ignite-step`, `levelup.ranger.knockback-step`, `levelup.paladin.heal-step`
+  - Rarität: `levelup.rarity.common|rare|epic` (Gewichte in %)
 - Spawns (Continuous)
-  - `spawn.continuous.enabled`: true
-  - `spawn.continuous.step-seconds`, `spawn.continuous.growth-per-step`
-  - `spawn.continuous.warmup-seconds`, `warmup-mult-start` (sanfter Start)
-  - Dynamische Caps: `spawn.continuous.cap.*`
-  - Spawn‑Distanzen: `spawn.min-distance`, `spawn.max-distance`
-  - Variety/Weights mit minMinute: `spawnMobTypes: [...]`
-- Scaling (Gegnerstärke über Zeit): `scaling.*`
+  - `spawn.continuous.enabled`
+  - Steps/Scaling: `spawn.continuous.step-seconds`, `growth-per-step` (oder `growth-per-minute`)
+  - Warmup: `spawn.continuous.warmup-seconds`, `warmup-mult-start`
+  - Caps: `spawn.continuous.cap.*` (dynamic)
+  - Distanzen: `spawn.min-distance`, `spawn.max-distance`
+  - Variety: `spawnMobTypes: [{type, weight, minMinute}, …]`
+- Scaling (Gegnerstärke)
+  - `scaling.health-mult-per-minute`
+  - Mid/Late‑Gates: `scaling.health-mid-minute`, `scaling.health-late-minute`
+  - Multiplikatoren: `scaling.health-mid-multiplier`, `scaling.health-late-multiplier`
+  - Damage: `scaling.damage-add-per-minute`, `scaling.damage-mid-multiplier`, `scaling.damage-late-multiplier`
+- Elite‑Gegner
+  - `spawn.elite.chance-percentage`, `spawn.elite.size-scale`
+  - `spawn.elite.base-health-mult`, `spawn.elite.extra-health-mult-per-minute`
 - Stats (DPS/HPS)
-  - `stats.window-seconds`: Sliding‑Window Länge
-  - `stats.mode`: actionbar | bossbar | scoreboard | off
-  - `stats.update-interval-ticks`: Updatefrequenz
-  - `stats.auto-cap.dps/hps`: Skala für Bossbar‑Progress
-  - `stats.broadcast-top.enabled`, `interval-seconds`, `n`: optionaler Broadcast
+  - `stats.window-seconds`, `stats.mode`, `stats.update-interval-ticks`
+  - Auto‑Caps: `stats.auto-cap.dps`, `stats.auto-cap.hps`
+  - Dynamic‑Max (optional): `stats.dynamic-cap-enabled`, `stats.dynamic-cap-window-seconds`, `stats.dynamic-cap-smoothing`
 - Party
-  - `party.xp-share.enabled`: true (XP wird unter Online‑Mitgliedern geteilt)
-  - `party.xp-share.split-evenly`: true (gleichmäßig teilen)
-  - `party.xp-share.min-per-member`: 1 (Mindest‑XP pro Mitglied)
-- Scoreboard
-  - `scoreboard.update-interval-ticks`: Update‑Tickrate der Sidebar
-
-Hinweis: Der Start‑Countdown ist derzeit fest 5s (konfigurierbar auf Wunsch nachrüstbar).
+  - `party.xp-share.enabled`, `split-evenly`, `min-per-member`
+- Shop
+  - `shop.enabled`
+  - Lauf/Tageslimits: `shop.limits.max-per-run|max-per-day`
+  - Pro‑Item‑Limits: `shop.item-limits.weapons-per-run|weapons-per-day` (analog für class)
+  - Daily: `shop.daily.max-weapons`
+  - Kategorien/Items: `shop.categories.*`
 
 ---
 
@@ -108,16 +151,17 @@ Hinweis: Der Start‑Countdown ist derzeit fest 5s (konfigurierbar auf Wunsch na
 
 - `manager/`
   - `GameManager` – Spielzustand, Start/Stop, Countdown, Pausen (per GUI), Ability‑/HUD‑Tasks
-  - `SpawnManager` – Continuous Spawns, Glowing, Partikel, Caps, Freeze pro Spieler
-  - `AbilityManager` – tickt die Klassen‑Abilities
+  - `SpawnManager` – Continuous Spawns, Glowing, Partikel, Caps, Freeze pro Spieler, Elite‑/Scaling
+  - `AbilityManager` – tickt die Klassen‑Abilities (AttackSpeed‑Skalierung integriert)
   - `ScoreboardManager` – Sidebar + HUD (ActionBar) im SCOREBOARD‑Modus
   - `StatsMeterManager` – DPS/HPS Sliding‑Window pro Spieler
   - `StatsDisplayManager` – Anzeige‑Modus (ActionBar/BossBar/Scoreboard/Off)
   - `PartyManager` – Partys, Invites, XP‑Share
-- `ability/` – Shaman, Pyromancer, Ranger, Paladin Effekte und Balancing‑Hooks
-- `gui/` – Hauptmenü, Klassenwahl, Party/Stats/Config‑Menüs, Level‑Up Menü, Listener
-- `listener/` – Entity‑Death (XP‑Vergabe inkl. Party‑Share), Damage/Heal‑Tracking, Freeze‑Logik u. a.
-- `model/` – `SurvivorPlayer` inkl. Upgrade‑Werte (radiusMult, damageMult, igniteBonusTicks, healBonus, …)
+  - `ShopManager` – Daily Offers, Limits, Kaufabwicklung
+- `ability/` – Shaman, Pyromancer, Ranger, Paladin
+- `gui/` – Hauptmenü, Klassenwahl, Party/Stats/Config, Level‑Up, Shop
+- `listener/` – Entity‑Death (XP‑Vergabe inkl. Party‑Share), Damage/Heal‑Tracking, Lootchest (Slotmaschine), Freeze
+- `model/` – `SurvivorPlayer` inkl. Upgrades und Persistenz
 
 ---
 
@@ -148,17 +192,16 @@ Hinweis: Der Start‑Countdown ist derzeit fest 5s (konfigurierbar auf Wunsch na
 ## Roadmap / Ideen
 
 Kurzfristig
-- Klassen‑Auswahl erzwingen (Start erst nach Wahl) – Start‑Button bleibt deaktiviert bis eine Klasse gewählt ist; deutlicher Hinweis im GUI.
-- Itemshop (GUI‑Shop, Coins) – Kategorien: Waffen‑Upgrades, Klassen‑Perks, Utility (Heals/Revives/Movement). Öffnung über Hauptmenü; Preise/Pool per config.
-- Optionale Pausen zwischen Wellen/Phasen – auch bei Continuous‑Spawns kurze Verschnaufpausen (config): z. B. `spawn.continuous.rest-every-seconds`, `rest-duration-seconds`; währenddessen Spawn‑Rate→0, Aggro resetten, dezente Effekte.
-- Projectile‑Schaden sauber dem Schützen zuordnen (für Ranger‑Pfeile) – Pfeile mit Shooter/Ability‑Tags; DPS/HPS klar dem Verursacher gutschreiben.
+- Klassen‑Auswahl erzwingen (Start erst nach Wahl) – Start‑Button bleibt deaktiviert bis eine Klasse gewählt ist (UI‑Hint im Menü)
+- Weitere Klassen‑Upgrades/Evolutionspfade mit Lore (+Size, Attackpower, Speed)
+- DamageResist aktiv im Combat‑Hook verrechnen (optional per Config)
 
 Mittelfristig
-- Persistenz: Klasse/Upgrades zwischen Sessions abspeichern (YAML/JSON via PlayerData; Schema‑Versionierung/Migration berücksichtigen).
-- Optionale Bossbar‑Skalen: dynamisch an „Max der letzten X Sekunden“ koppeln (Auto‑Zoom), per Config und GUI umschaltbar.
+- Luck‑Einfluss auf Lootchest/Shop‑Rotationspools; personalisierte Daily‑Listen
+- Bossbar‑Skalen dynamisch an Max der letzten X Sekunden koppeln (Sticky Maxima/Moving Max)
 
 Langfristig
-- Mehr Klassen/Perks & Synergien, Events/Bosse, Map‑Affixe, Meta‑Progression.
+- Mehr Klassen/Perks & Synergien, Events/Bosse, Map‑Affixe, Meta‑Progression
 
 ---
 
