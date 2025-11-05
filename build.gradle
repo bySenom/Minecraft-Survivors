@@ -27,6 +27,7 @@ repositories {
 dependencies {
     // Paper API über Version Catalog
     compileOnly libs.paper.api
+    testImplementation libs.junit.jupiter
 }
 
 configurations.configureEach {
@@ -62,9 +63,15 @@ jar {
     ]) }
 }
 
-// Run-Paper mit 1.21.4
+test {
+    useJUnitPlatform()
+}
+
+// Run-Paper mit Version aus Catalog ableiten
 runServer {
-    minecraftVersion("1.21.4")
+    // libs.versions.paper ist ein String; extrahiere die MC-Version vor dem ersten '-'
+    def mcVer = libs.versions.paper.get().split('-')[0]
+    minecraftVersion(mcVer)
 }
 
 spotless {
@@ -78,5 +85,11 @@ spotless {
         target '*.md', '.editorconfig'
         trimTrailingWhitespace()
         endWithNewline()
+    }
+}
+
+tasks.register('printVersion') {
+    doLast {
+        println "${project.name} version ${project.version}"
     }
 }

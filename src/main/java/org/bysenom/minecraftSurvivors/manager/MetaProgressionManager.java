@@ -11,6 +11,7 @@ import org.bukkit.entity.Player;
 import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
 import org.bysenom.minecraftSurvivors.model.MetaProfile;
 import org.bysenom.minecraftSurvivors.model.SurvivorPlayer;
+import org.bysenom.minecraftSurvivors.util.NumberUtil;
 
 /**
  * Lädt und speichert Meta-Profile und stellt Utility-Methoden zur Verfügung.
@@ -121,10 +122,10 @@ public class MetaProgressionManager {
         }
         if (node == null) { p.sendMessage("§cUnbekannter Meta-Shop-Eintrag: "+key); return; }
 
-        int price = safeParseInt(node.getOrDefault("price", 10), 10);
+        int price = NumberUtil.safeParseInt(node.getOrDefault("price", 10), 10);
         String type = String.valueOf(node.getOrDefault("type", ""));
-        double stepD = safeParseDouble(node.getOrDefault("step", 0.01), 0.01);
-        double capD = safeParseDouble(node.getOrDefault("cap", 0.50), 0.50);
+        double stepD = NumberUtil.safeParseDouble(node.getOrDefault("step", 0.01), 0.01);
+        double capD = NumberUtil.safeParseDouble(node.getOrDefault("cap", 0.50), 0.50);
 
         if (price <= 0) price = 1; // Mindestpreis
         if (mp.getEssence() < price) { p.sendMessage("§cNicht genug Essence."); return; }
@@ -173,18 +174,6 @@ public class MetaProgressionManager {
         if ("HEALTH_HEARTS".equalsIgnoreCase(type) || "SKILL_SLOT".equalsIgnoreCase(type)) {
             return String.valueOf((int) Math.round(step));
         }
-        return String.format(Locale.ROOT, "%.3f", step);
-    }
-
-    private static int safeParseInt(Object o, int def) {
-        if (o == null) return def;
-        try { return Integer.parseInt(String.valueOf(o).trim()); }
-        catch (Exception ignored) { return def; }
-    }
-
-    private static double safeParseDouble(Object o, double def) {
-        if (o == null) return def;
-        try { return Double.parseDouble(String.valueOf(o).trim()); }
-        catch (Exception ignored) { return def; }
+        return String.format(java.util.Locale.ROOT, "%.3f", step);
     }
 }

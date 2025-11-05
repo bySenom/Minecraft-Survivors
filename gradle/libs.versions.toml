@@ -3,12 +3,13 @@ paper = "1.21.4-R0.1-SNAPSHOT"
 spotless = "6.25.0"
 runPaper = "2.3.1"
 commonsLang3 = "3.17.0"
+junit = "5.10.2"
 
 [libraries]
 paper-api = { module = "io.papermc.paper:paper-api", version.ref = "paper" }
 commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commonsLang3" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 
 [plugins]
 run-paper = { id = "xyz.jpenilla.run-paper", version.ref = "runPaper" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
-

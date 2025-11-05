@@ -1,5 +1,8 @@
 # MinecraftSurvivors
 
+[![Build](https://github.com/${{ github.repository }}/actions/workflows/build.yml/badge.svg)](https://github.com/${{ github.repository }}/actions/workflows/build.yml)
+[![Release](https://github.com/${{ github.repository }}/actions/workflows/release.yml/badge.svg)](https://github.com/${{ github.repository }}/actions/workflows/release.yml)
+
 eeeeeeeeeeEin kompaktes, erweiterbares Minecraft (Paper/Spigot) Minigame im Stil von "Vampire Survivors". Enthält Klassen, kontinuierliche Gegner-Spawns, Level‑Ups mit Upgrades, ein ausgebautes GUI (Party/Stats/Config steuerbar) und einen DPS/HPS‑Meter mit umschaltbaren Anzeigemodi.
 
 ---

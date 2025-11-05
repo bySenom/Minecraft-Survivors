@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -19,12 +22,20 @@ jobs:
       - name: Build with Gradle
         uses: gradle/gradle-build-action@v3
         with:
-          arguments: clean build -x test --no-daemon
+          arguments: clean test build --no-daemon
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: plugin-jar
           path: build/libs/*.jar
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: |
+            build/reports/tests/test/**
+            build/test-results/test/**
   release:
     needs: build
     runs-on: ubuntu-latest
@@ -37,6 +48,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*.jar
+          generate_release_notes: true
+          name: ${{ github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

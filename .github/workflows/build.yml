@@ -27,10 +27,17 @@ jobs:
       - name: Build with Gradle
         uses: gradle/gradle-build-action@v3
         with:
-          arguments: clean build -x test --no-daemon
-      - name: Upload plugin jar
-        if: ${{ matrix.os == 'ubuntu-latest' }}
+          arguments: clean test build --no-daemon
+      - name: Upload plugin jar (${{ matrix.os }})
         uses: actions/upload-artifact@v4
         with:
-          name: minecraftsurvivors-jar
+          name: minecraftsurvivors-jar-${{ matrix.os }}
           path: build/libs/*.jar
+      - name: Upload test report (${{ matrix.os }})
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report-${{ matrix.os }}
+          path: |
+            build/reports/tests/test/**
+            build/test-results/test/**
