@@ -1,10 +1,7 @@
 package org.bysenom.minecraftSurvivors.manager;
 
+import org.bukkit.*;
 import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Entity;
@@ -22,6 +19,8 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static io.papermc.paper.registry.keys.AttributeKeys.*;
 
 /**
  * SpawnManager: Spawnt Wellen und verwaltet das "Einfrieren" von Mobs ausschließlich über AI-Deaktivierung.
@@ -43,6 +42,10 @@ public class SpawnManager {
     private long continuousStartMillis = 0L;
     private final Map<UUID, Double> spawnAccumulator = new ConcurrentHashMap<>();
     private long restPhaseUntilMillis = 0L;
+
+    private static final org.bukkit.NamespacedKey MAX_HEALTH = org.bukkit.NamespacedKey.minecraft("generic.max_health");
+    private static final org.bukkit.NamespacedKey MOVEMENT_SPEED = org.bukkit.NamespacedKey.minecraft("generic.movement_speed");
+    private static final org.bukkit.NamespacedKey ATTACK_DAMAGE = org.bukkit.NamespacedKey.minecraft("generic.attack_damage");
 
     public SpawnManager(MinecraftSurvivors plugin, PlayerManager playerManager) {
         this.plugin = plugin;
@@ -473,8 +476,8 @@ public class SpawnManager {
             double dmgAdd = Math.max(0, minutes) * (dmgAddPerMin * dmgMul);
 
             try {
-                Attribute maxHealthAttr = Attribute.valueOf("GENERIC_MAX_HEALTH");
-                AttributeInstance maxHp = mob.getAttribute(maxHealthAttr);
+                org.bukkit.attribute.Attribute maxHealthAttr = org.bukkit.Registry.ATTRIBUTE.get(MAX_HEALTH);
+                org.bukkit.attribute.AttributeInstance maxHp = mob.getAttribute(maxHealthAttr);
                 if (maxHp != null) {
                     double newBase = Math.max(1.0, maxHp.getBaseValue() * healthMult);
                     maxHp.setBaseValue(newBase);
@@ -482,13 +485,13 @@ public class SpawnManager {
                 }
             } catch (Throwable ignored) {}
             try {
-                Attribute moveAttr = Attribute.valueOf("GENERIC_MOVEMENT_SPEED");
-                AttributeInstance move = mob.getAttribute(moveAttr);
+                org.bukkit.attribute.Attribute moveAttr = org.bukkit.Registry.ATTRIBUTE.get(MOVEMENT_SPEED);
+                org.bukkit.attribute.AttributeInstance move = mob.getAttribute(moveAttr);
                 if (move != null) move.setBaseValue(Math.max(0.01, move.getBaseValue() * speedMult));
             } catch (Throwable ignored) {}
             try {
-                Attribute dmgAttr = Attribute.valueOf("ATTACK_DAMAGE");
-                AttributeInstance dmg = mob.getAttribute(dmgAttr);
+                org.bukkit.attribute.Attribute dmgAttr = org.bukkit.Registry.ATTRIBUTE.get(ATTACK_DAMAGE);
+                org.bukkit.attribute.AttributeInstance dmg = mob.getAttribute(dmgAttr);
                 if (dmg != null) dmg.setBaseValue(Math.max(0.0, dmg.getBaseValue() + dmgAdd));
             } catch (Throwable ignored) {}
         } catch (Throwable ignored) {}
@@ -506,8 +509,8 @@ public class SpawnManager {
             double perMin = plugin.getConfigUtil().getDouble("spawn.elite.extra-health-mult-per-minute", 0.03);
             double eliteMult = Math.max(1.0, baseMult + Math.max(0.0, minutes) * perMin);
             try {
-                Attribute maxHealthAttr = Attribute.valueOf("GENERIC_MAX_HEALTH");
-                AttributeInstance maxHp = mob.getAttribute(maxHealthAttr);
+                org.bukkit.attribute.Attribute maxHealthAttr = org.bukkit.Registry.ATTRIBUTE.get(MAX_HEALTH);
+                org.bukkit.attribute.AttributeInstance maxHp = mob.getAttribute(maxHealthAttr);
                 if (maxHp != null) {
                     double newBase = Math.max(1.0, maxHp.getBaseValue() * eliteMult);
                     maxHp.setBaseValue(newBase);
@@ -515,7 +518,7 @@ public class SpawnManager {
                 }
             } catch (Throwable ignored) {}
             try {
-                mob.setCustomName(org.bukkit.ChatColor.LIGHT_PURPLE + "Elite " + mob.getType().name());
+                mob.customName(net.kyori.adventure.text.Component.text("Elite "+mob.getType().name()).color(net.kyori.adventure.text.format.NamedTextColor.LIGHT_PURPLE));
                 mob.setCustomNameVisible(true);
             } catch (Throwable ignored) {}
             try {
@@ -561,5 +564,10 @@ public class SpawnManager {
         int r = random.nextInt(Math.max(1, total)); int cur = 0;
         for (Weighted w : pool) { cur += w.weight; if (r < cur) return w.type; }
         return pool.get(pool.size()-1).type;
+    }
+
+    public void markAsWave(org.bukkit.entity.LivingEntity mob) {
+        if (mob == null) return;
+        try { mob.getPersistentDataContainer().set(waveKey, org.bukkit.persistence.PersistentDataType.BYTE, (byte)1); } catch (Throwable ignored) {}
     }
 }

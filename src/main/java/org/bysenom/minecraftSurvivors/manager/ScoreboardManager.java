@@ -3,7 +3,6 @@ package org.bysenom.minecraftSurvivors.manager;
 import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
 import org.bysenom.minecraftSurvivors.model.SurvivorPlayer;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
@@ -45,7 +44,6 @@ public class ScoreboardManager {
             hudTask.cancel();
             hudTask = null;
         }
-        // Optional: Scoreboard zurücksetzen
         for (Player p : Bukkit.getOnlinePlayers()) {
             try { p.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard()); } catch (Throwable ignored) {}
         }
@@ -67,13 +65,13 @@ public class ScoreboardManager {
         }
         boolean fancy = false;
         try { fancy = plugin.getConfigUtil().getBoolean("scoreboard.fancy", false); } catch (Throwable ignored) {}
-        String title = fancy ? (ChatColor.GOLD + "❖ " + ChatColor.YELLOW + "Survivors") : (ChatColor.GOLD + "Minecraft " + ChatColor.YELLOW + "Survivors");
+        String titleStr = fancy ? "§6❖ §eSurvivors" : "§6Minecraft §eSurvivors";
         Objective obj;
         try {
             obj = sb.getObjective("ms_side");
             if (obj != null) obj.unregister();
         } catch (Throwable ignored) {}
-        obj = sb.registerNewObjective("ms_side", "dummy", title);
+        obj = sb.registerNewObjective("ms_side", org.bukkit.scoreboard.Criteria.DUMMY, net.kyori.adventure.text.Component.text(titleStr));
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
 
         // Daten sammeln
@@ -92,37 +90,39 @@ public class ScoreboardManager {
         int kills = sp.getKills();
         int coins = sp.getCoins();
         int online = Bukkit.getOnlinePlayers().size();
-        // party + stats mode
+        int essence = 0;
+        try { essence = plugin.getMetaManager().get(uuid).getEssence(); } catch (Throwable ignored) {}
         String mode = "-";
         try { mode = plugin.getStatsDisplayManager().getMode().name().toLowerCase(); } catch (Throwable ignored) {}
         PartyManager pm = plugin.getPartyManager();
         PartyManager.Party party = pm != null ? pm.getPartyOf(uuid) : null;
         String partyLine = party == null ? "keine" : (pm.onlineMembers(party).size() + "/" + party.getMembers().size());
 
-        // Nicer status icon
-        String statusIcon; ChatColor statusColor;
+        // Status-Icon + Farbe
+        String statusIcon; String statusColor;
         switch (state) {
-            case "RUNNING": statusIcon = fancy?"▶":"▶"; statusColor = ChatColor.GREEN; break;
-            case "PAUSED": statusIcon = fancy?"⏸":"⏸"; statusColor = ChatColor.YELLOW; break;
-            case "ENDED": statusIcon = fancy?"■":"■"; statusColor = ChatColor.RED; break;
-            default: statusIcon = fancy?"●":"●"; statusColor = ChatColor.WHITE; break;
+            case "RUNNING": statusIcon = "▶"; statusColor = "§a"; break;
+            case "PAUSED": statusIcon = "⏸"; statusColor = "§e"; break;
+            case "ENDED": statusIcon = "■"; statusColor = "§c"; break;
+            default: statusIcon = "●"; statusColor = "§f"; break;
         }
 
-        // Einträge (von oben nach unten absteigend) — Wave entfernt
+        // Einträge (von oben nach unten absteigend)
         int line = 15;
-        addLine(obj, ChatColor.DARK_GRAY + (fancy?"──────────────":""), line--);
-        addLine(obj, ChatColor.WHITE + "Status " + statusColor + statusIcon + ChatColor.GRAY + " • " + statusColor + state, line--);
-        addLine(obj, ChatColor.DARK_GRAY + "", line--);
-        addLine(obj, ChatColor.WHITE + "Klasse " + ChatColor.GREEN + clazzDisplay, line--);
-        addLine(obj, ChatColor.WHITE + "Lvl " + ChatColor.AQUA + lvl + ChatColor.GRAY + " • " + ChatColor.WHITE + "XP " + ChatColor.GREEN + xp + ChatColor.GRAY + "/" + ChatColor.GREEN + xpNext, line--);
-        addLine(obj, ChatColor.DARK_GRAY + " ", line--);
-        addLine(obj, ChatColor.WHITE + "⚔ Kills " + ChatColor.YELLOW + kills, line--);
-        addLine(obj, ChatColor.WHITE + "⛃ Coins " + ChatColor.GOLD + coins, line--);
-        addLine(obj, ChatColor.DARK_GRAY + "  ", line--);
-        addLine(obj, ChatColor.WHITE + "👥 Online " + ChatColor.AQUA + online, line--);
-        addLine(obj, ChatColor.WHITE + "Party " + ChatColor.AQUA + partyLine, line--);
-        addLine(obj, ChatColor.WHITE + "Stats " + ChatColor.AQUA + mode, line--);
-        addLine(obj, ChatColor.DARK_GRAY + (fancy?"───────────────":""), line--);
+        addLine(obj, "§8" + (fancy?"──────────────":""), line--);
+        addLine(obj, "§fStatus " + statusColor + statusIcon + " §7• " + statusColor + state, line--);
+        addLine(obj, "§8", line--);
+        addLine(obj, "§fKlasse §a" + clazzDisplay, line--);
+        addLine(obj, "§fLvl §b" + lvl + " §7• §fXP §a" + xp + "§7/§a" + xpNext, line--);
+        addLine(obj, "§8 ", line--);
+        addLine(obj, "§f⚔ Kills §e" + kills, line--);
+        addLine(obj, "§f⛃ Coins §6" + coins, line--);
+        addLine(obj, "§d✦ Essence §f" + essence, line--);
+        addLine(obj, "§8  ", line--);
+        addLine(obj, "§f👥 Online §b" + online, line--);
+        addLine(obj, "§fParty §b" + partyLine, line--);
+        addLine(obj, "§fStats §b" + mode, line--);
+        addLine(obj, "§8" + (fancy?"───────────────":""), line--);
 
         p.setScoreboard(sb);
     }
@@ -131,7 +131,6 @@ public class ScoreboardManager {
         if (hudTask != null) hudTask.cancel();
         int hudIntervalTicks = plugin.getConfigUtil().getInt("levelup.hud-interval-ticks", 100);
         hudTask = org.bukkit.Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            // Only render HUD in SCOREBOARD stats mode to avoid ActionBar collisions
             try {
                 org.bysenom.minecraftSurvivors.manager.StatsDisplayManager.Mode mode = plugin.getStatsDisplayManager().getMode();
                 if (mode != org.bysenom.minecraftSurvivors.manager.StatsDisplayManager.Mode.SCOREBOARD) return;
@@ -155,30 +154,17 @@ public class ScoreboardManager {
         }, 0L, hudIntervalTicks);
     }
 
-    private ChatColor colorByState(String state) {
-        if (state == null) return ChatColor.WHITE;
-        switch (state) {
-            case "RUNNING": return ChatColor.GREEN;
-            case "PAUSED": return ChatColor.YELLOW;
-            case "ENDED": return ChatColor.RED;
-            default: return ChatColor.WHITE;
-        }
-    }
-
     private void addLine(Objective obj, String text, int score) {
-        // Scoreboard benötigt einzigartige Zeilen, nutze Anhänge für Leerzeilen
-        String safe = ensureUniqueLength(text, score);
+        String safe = ensureUnique(text, score);
         Score s = obj.getScore(safe);
         s.setScore(score);
     }
 
-    private String ensureUniqueLength(String text, int salt) {
+    private String ensureUnique(String text, int salt) {
         if (text == null) text = "";
-        // Scoreboard-Zeilenlänge begrenzen (<= 40 meistens sicher)
-        String base = text;
-        if (base.length() > 40) base = base.substring(0, 40);
-        // Mach Zeile eindeutig, indem wir unsichtbare Farbcodes anhängen
-        String suffix = ChatColor.values()[Math.floorMod(salt, ChatColor.values().length)].toString();
+        String base = text.length() > 40 ? text.substring(0, 40) : text;
+        String hex = "0123456789abcdef";
+        String suffix = "§" + hex.charAt(Math.floorMod(salt, hex.length()));
         String out = base + suffix;
         if (out.length() > 40) out = out.substring(0, 40);
         return out;

@@ -47,6 +47,11 @@ spawn:
   max-distance: 16.0
   # Radius used when freezing nearby mobs for a paused player
   freeze-radius: 10.0
+  elite:
+    chance-percentage: 8
+    size-scale: 1.25
+    base-health-mult: 1.50               # base multiplier (was ~1.5)
+    extra-health-mult-per-minute: 0.03    # extra health multiplier growth per minute (elite gets tankier over time)
 
 # Mob Variety (gewichtete Typen, verfügbar ab bestimmter Minute)
 # Nur EntityType-Namen verwenden, die lebende Mobs sind.
@@ -201,33 +206,115 @@ shop:
     max-per-run: 5
     max-per-day: 20
   item-limits:
-    weapons-per-run: 3
-    weapons-per-day: 8
+    weapons-per-run: 0
+    weapons-per-day: 0
   daily:
-    max-weapons: 6
+    max-weapons: 0
   categories:
-    weapons:
-      - name: "Attackpower +20%"
-        type: DAMAGE_MULT
-        value: 0.20
-        price: 20
-      - name: "Radius +15%"
-        type: RADIUS_MULT
-        value: 0.15
+    gear:
+      - name: "Helm (Eisen)"
+        type: ARMOR_HELMET
         price: 15
+        rarity: common
+        stats:
+          prot: 2
+          health: 1.0
+      - name: "Brust (Eisen)"
+        type: ARMOR_CHEST
+        price: 25
+        rarity: rare
+        stats:
+          prot: 3
+          health: 1.5
+      - name: "Hose (Eisen)"
+        type: ARMOR_LEGS
+        price: 20
+        rarity: common
+        stats:
+          prot: 2
+      - name: "Stiefel (Eisen)"
+        type: ARMOR_BOOTS
+        price: 15
+        rarity: epic
+        stats:
+          speed: 0.03
+    skills:
+      - name: "Shockwave (Skill-Item)"
+        type: SKILL_SHOCKWAVE
+        price: 30
     class:
       paladin:
         - name: "+0.5 Heilung"
           type: PALADIN_HEAL
           value: 0.5
           price: 18
+  npc:
+    spawn-mode: worldspawn   # worldspawn | first-player | config
+    world: world
+    x: 0.0
+    y: 64.0
+    z: 0.0
+    yaw: 0.0
+    pitch: 0.0
+    name: "Händler"
+    type: PLAINS            # Villager biome type
+    profession: ARMORER     # Villager profession
+skills:
+  shockwave:
+    cooldown-ms: 800
+    radius: 6.0
+    damage: 2.0
+  dash:
+    cooldown-ms: 2500
+    cooldown-rclick-ms: 3000
 evo:
   pyromancer:
     ignite-ticks-min: 60
     damage-mult-min: 0.40
-spawn:
-  elite:
-    chance-percentage: 8
-    size-scale: 1.25
-    base-health-mult: 1.50               # base multiplier (was ~1.5)
-    extra-health-mult-per-minute: 0.03    # extra health multiplier growth per minute (elite gets tankier over time)
+meta:
+  endrun:
+    essence-per-minute: 2
+    essence-per-kill: 0
+  shop:
+    - key: dmg_mult_small
+      name: Permanenter Schaden I
+      type: DAMAGE_MULT
+      price: 10
+      step: 0.01
+      cap: 0.20
+    - key: move_speed_small
+      name: Bewegungstempo I
+      type: MOVE_SPEED
+      price: 10
+      step: 0.01
+      cap: 0.15
+    - key: attack_speed_small
+      name: Angriffstempo I
+      type: ATTACK_SPEED
+      price: 10
+      step: 0.01
+      cap: 0.20
+    - key: resist_small
+      name: Resistenz I
+      type: RESIST
+      price: 10
+      step: 0.01
+      cap: 0.15
+    - key: luck_small
+      name: Glück I
+      type: LUCK
+      price: 10
+      step: 0.01
+      cap: 0.20
+    - key: health_small
+      name: +1 Herz (permanent)
+      type: HEALTH_HEARTS
+      price: 25
+      step: 2 # half-hearts
+      cap: 6  # max half-hearts (3 hearts)
+    - key: skill_slot
+      name: Skill Slot +1 (permanent)
+      type: SKILL_SLOT
+      price: 50
+      step: 1
+      cap: 4 # 1 base + 4 meta = 5 maximal

@@ -65,7 +65,7 @@ public class PaladinAbility implements Ability {
                     try { other.getWorld().spawnParticle(Particle.HEART, other.getLocation().add(0, 1.2, 0), 1, 0.1, 0.1, 0.1, 0.0); } catch (Throwable ignored) {}
                     try {
                         AttributeInstance maxAttr = null;
-                        try { maxAttr = other.getAttribute(Attribute.valueOf("GENERIC_MAX_HEALTH")); } catch (Throwable ignored) {}
+                        try { maxAttr = other.getAttribute(Attribute.MAX_HEALTH); } catch (Throwable ignored) {}
                         double maxH = maxAttr != null ? maxAttr.getBaseValue() : 20.0;
                         double newH = Math.min(maxH, other.getHealth() + heal);
                         other.setHealth(newH);

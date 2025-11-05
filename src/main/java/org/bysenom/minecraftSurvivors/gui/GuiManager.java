@@ -1,5 +1,6 @@
 package org.bysenom.minecraftSurvivors.gui;
 
+import org.bukkit.potion.PotionEffectType;
 import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
 import org.bysenom.minecraftSurvivors.manager.GameManager;
 import net.kyori.adventure.text.Component;
@@ -43,46 +44,32 @@ public class GuiManager {
      */
     public void openMainMenu(Player p) {
         if (p == null) return;
-        // enlarge to 45 slots (5 rows)
         Inventory inv = Bukkit.createInventory(null, 45, MAIN_TITLE);
         fillBorder(inv, Material.BLACK_STAINED_GLASS_PANE);
-
         org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = plugin.getPlayerManager().get(p.getUniqueId());
-        PlayerClass sel = sp != null ? sp.getSelectedClass() : null;
-        Material classMat = materialForClass(sel != null ? sel : PlayerClass.SHAMAN);
-        Component classTitle = Component.text(sel != null ? "Klasse: " + sel.getDisplayName() : "Klasse wählen").color(NamedTextColor.AQUA);
-        java.util.List<Component> classLore = java.util.List.of(Component.text(sel != null ? sel.getDescription() : "Wähle deine Klasse bevor du startest").color(NamedTextColor.GRAY));
-
         int coins = sp != null ? sp.getCoins() : 0;
         int lvl = sp != null ? sp.getClassLevel() : 1;
-
-        // Row 2 (slots 9..17): Status, Start, Klasse, Powerups
         inv.setItem(10, createGuiItem(Material.EMERALD, Component.text("Status").color(NamedTextColor.GOLD),
                 java.util.List.of(Component.text("✦ Coins: ").color(NamedTextColor.YELLOW).append(Component.text(String.valueOf(coins)).color(NamedTextColor.WHITE)),
                         Component.text("⚑ Level: ").color(NamedTextColor.YELLOW).append(Component.text(String.valueOf(lvl)).color(NamedTextColor.WHITE))), "status", false));
-        inv.setItem(12, createGuiItem(Material.GREEN_STAINED_GLASS, Component.text("Start Spiel").color(NamedTextColor.GREEN),
-                java.util.List.of(Component.text("Klicke um das Spiel zu starten").color(NamedTextColor.GRAY)), "start", false));
-        inv.setItem(14, createGuiItem(classMat, classTitle, classLore, "class", sel != null));
+        // Start führt jetzt durch den Setup-Wizard (Klassenwahl -> Skillwahl -> Countdown)
+        inv.setItem(12, createGuiItem(Material.GREEN_STAINED_GLASS, Component.text("Spiel starten").color(NamedTextColor.GREEN),
+                java.util.List.of(Component.text("Wähle zuerst eine Klasse, dann einen Zusatz-Skill").color(NamedTextColor.GRAY)), "start_wizard", false));
         inv.setItem(16, createGuiItem(Material.NETHER_STAR, Component.text("Powerups").color(NamedTextColor.LIGHT_PURPLE),
                 java.util.List.of(Component.text("Später verfügbare Powerups & Items").color(NamedTextColor.GRAY)), "powerup", false));
-
-        // Row 3 (slots 18..26): Party, Stats, ggf. Config
         inv.setItem(20, createGuiItem(Material.PLAYER_HEAD, Component.text("Party").color(NamedTextColor.GOLD),
                 java.util.List.of(Component.text("Erstelle/Verwalte deine Party").color(NamedTextColor.GRAY)), "party", false));
         inv.setItem(22, createGuiItem(Material.CLOCK, Component.text("Stats").color(NamedTextColor.YELLOW),
                 java.util.List.of(Component.text("DPS/HPS Anzeige-Modus umschalten").color(NamedTextColor.GRAY)), "stats", false));
         if (p.hasPermission("minecraftsurvivors.admin")) {
-            inv.setItem(24, createGuiItem(Material.COMPARATOR, Component.text("Config").color(NamedTextColor.AQUA),
-                    java.util.List.of(Component.text("Reload & Presets").color(NamedTextColor.GRAY)), "config", false));
+            inv.setItem(24, createGuiItem(Material.COMPARATOR, Component.text("Admin Panel").color(NamedTextColor.RED),
+                    java.util.List.of(Component.text("Debug & Test-Tools").color(NamedTextColor.GRAY)), "admin", false));
         }
-        inv.setItem(26, createGuiItem(Material.GOLD_INGOT, net.kyori.adventure.text.Component.text("Shop").color(net.kyori.adventure.text.format.NamedTextColor.GOLD),
-                java.util.List.of(net.kyori.adventure.text.Component.text("Kaufe Upgrades für Coins").color(net.kyori.adventure.text.format.NamedTextColor.GRAY)), "shop", false));
-
-        // Info Button unten links
+        inv.setItem(29, createGuiItem(Material.NETHERITE_INGOT, Component.text("Meta").color(NamedTextColor.LIGHT_PURPLE),
+                java.util.List.of(Component.text("Dauerhafte Upgrades kaufen").color(NamedTextColor.GRAY)), "meta", false));
         inv.setItem(36, createGuiItem(Material.PAPER, Component.text("Info").color(NamedTextColor.YELLOW),
                 java.util.List.of(Component.text("V: Vampire Survivors like Mini-Game"), Component.text("bySenom").color(NamedTextColor.GRAY)), "info"));
-
-        // Footer (Status-Zeile) unten rechts: Stats-Modus + Party-Zusammenfassung
+        // Footer (Status-Zeile) unten rechts
         // Footer erweitern: Shop-Reset Timer + Daily-Offers Counter
         String mode = "-";
         try { mode = plugin.getStatsDisplayManager().getMode().name().toLowerCase(); } catch (Throwable ignored) {}
@@ -102,8 +89,58 @@ public class GuiManager {
         } else {
             footerLore.add(Component.text("Party: keine").color(NamedTextColor.DARK_GRAY));
         }
+        // Meta essence quick info
+        int essence = plugin.getMetaManager().get(p.getUniqueId()).getEssence();
+        footerLore.add(Component.text("Essence: ").color(NamedTextColor.LIGHT_PURPLE).append(Component.text(String.valueOf(essence)).color(NamedTextColor.WHITE)));
+        // Ready-Status
+        int total = org.bukkit.Bukkit.getOnlinePlayers().size();
+        int ready = 0;
+        for (org.bukkit.entity.Player op : org.bukkit.Bukkit.getOnlinePlayers()) {
+            try { org.bysenom.minecraftSurvivors.model.SurvivorPlayer osp = plugin.getPlayerManager().get(op.getUniqueId()); if (osp != null && osp.isReady()) ready++; } catch (Throwable ignored) {}
+        }
+        footerLore.add(Component.text("Ready: ").color(NamedTextColor.GRAY).append(Component.text(ready+"/"+total).color(NamedTextColor.GREEN)));
         inv.setItem(44, createGuiItem(Material.MAP, Component.text("Status").color(NamedTextColor.WHITE), footerLore, "noop", false));
 
+        p.openInventory(inv);
+    }
+
+    public void openMetaMenu(Player p) {
+        if (p == null) return;
+        org.bukkit.inventory.Inventory inv = org.bukkit.Bukkit.createInventory(null, 27, Component.text("Meta-Progression").color(NamedTextColor.LIGHT_PURPLE));
+        fillBorder(inv, Material.PURPLE_STAINED_GLASS_PANE);
+        org.bukkit.configuration.file.FileConfiguration cfg = plugin.getConfigUtil().getConfig();
+        java.util.List<java.util.Map<?, ?>> list = cfg.getMapList("meta.shop");
+        int slot = 10;
+        for (java.util.Map<?, ?> m : list) {
+            Object keyObj = m.containsKey("key") ? m.get("key") : "";
+            String keyId = String.valueOf(keyObj);
+            Object nameObj = m.containsKey("name") ? m.get("name") : keyId;
+            String name = String.valueOf(nameObj);
+            Object typeObj = m.containsKey("type") ? m.get("type") : "";
+            String type = String.valueOf(typeObj);
+            Object priceObj = m.containsKey("price") ? m.get("price") : 10;
+            int price = Integer.parseInt(String.valueOf(priceObj));
+            Object stepObj = m.containsKey("step") ? m.get("step") : 0.01;
+            double step = Double.parseDouble(String.valueOf(stepObj));
+            Object capObj = m.containsKey("cap") ? m.get("cap") : 0.5;
+            double cap = Double.parseDouble(String.valueOf(capObj));
+            Material mat = Material.AMETHYST_SHARD;
+            if (type.equalsIgnoreCase("DAMAGE_MULT")) mat = Material.DIAMOND_SWORD;
+            else if (type.equalsIgnoreCase("MOVE_SPEED")) mat = Material.SUGAR;
+            else if (type.equalsIgnoreCase("ATTACK_SPEED")) mat = Material.FEATHER;
+            else if (type.equalsIgnoreCase("RESIST")) mat = Material.SHIELD;
+            else if (type.equalsIgnoreCase("LUCK")) mat = Material.RABBIT_FOOT;
+            else if (type.equalsIgnoreCase("HEALTH_HEARTS")) mat = Material.GOLDEN_APPLE;
+            java.util.List<Component> lore = new java.util.ArrayList<>();
+            lore.add(Component.text(name).color(NamedTextColor.WHITE));
+            lore.add(Component.text("Preis: "+price+" Essence").color(NamedTextColor.LIGHT_PURPLE));
+            lore.add(Component.text("Schritt: +"+step).color(NamedTextColor.GRAY));
+            lore.add(Component.text("Cap: "+cap).color(NamedTextColor.DARK_GRAY));
+            inv.setItem(slot, createGuiItem(mat, Component.text(keyId).color(NamedTextColor.AQUA), lore, "meta_buy:"+keyId, false));
+            slot++;
+            if (slot % 9 == 8) slot += 2;
+        }
+        inv.setItem(22, createGuiItem(Material.ARROW, Component.text("Zurück").color(NamedTextColor.RED), java.util.List.of(Component.text("Zurück zum Hauptmenü")), "back"));
         p.openInventory(inv);
     }
 
@@ -115,20 +152,30 @@ public class GuiManager {
         Component title = Component.text("Klassenwahl").color(NamedTextColor.AQUA);
         Inventory inv = Bukkit.createInventory(null, 27, title);
         fillBorder(inv, Material.GRAY_STAINED_GLASS_PANE);
-
         org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = plugin.getPlayerManager().get(p.getUniqueId());
         org.bysenom.minecraftSurvivors.model.PlayerClass current = sp != null ? sp.getSelectedClass() : null;
-
         inv.setItem(10, createGuiItem(materialForClass(org.bysenom.minecraftSurvivors.model.PlayerClass.SHAMAN), Component.text("Shamanen ⚡").color(NamedTextColor.LIGHT_PURPLE),
-                List.of(Component.text("Main: Blitz"), Component.text("Solider Allrounder").color(NamedTextColor.GRAY)), "select_shaman", current == org.bysenom.minecraftSurvivors.model.PlayerClass.SHAMAN));
+                java.util.List.of(Component.text("Main: Blitz"), Component.text("Solider Allrounder").color(NamedTextColor.GRAY)), "select_shaman_wizard", current == org.bysenom.minecraftSurvivors.model.PlayerClass.SHAMAN));
         inv.setItem(12, createGuiItem(materialForClass(org.bysenom.minecraftSurvivors.model.PlayerClass.PYROMANCER), Component.text("Pyromant 🔥").color(NamedTextColor.GOLD),
-                List.of(Component.text("Main: Feuer & DoT"), Component.text("Nahbereich-AoE").color(NamedTextColor.GRAY)), "select_pyromancer", current == org.bysenom.minecraftSurvivors.model.PlayerClass.PYROMANCER));
+                java.util.List.of(Component.text("Main: Feuer & DoT"), Component.text("Nahbereich-AoE").color(NamedTextColor.GRAY)), "select_pyromancer_wizard", current == org.bysenom.minecraftSurvivors.model.PlayerClass.PYROMANCER));
         inv.setItem(14, createGuiItem(materialForClass(org.bysenom.minecraftSurvivors.model.PlayerClass.RANGER), Component.text("Waldläufer 🏹").color(NamedTextColor.GREEN),
-                List.of(Component.text("Main: Fernschuss"), Component.text("Single-Target").color(NamedTextColor.GRAY)), "select_ranger", current == org.bysenom.minecraftSurvivors.model.PlayerClass.RANGER));
+                java.util.List.of(Component.text("Main: Fernschuss"), Component.text("Single-Target").color(NamedTextColor.GRAY)), "select_ranger_wizard", current == org.bysenom.minecraftSurvivors.model.PlayerClass.RANGER));
         inv.setItem(16, createGuiItem(materialForClass(org.bysenom.minecraftSurvivors.model.PlayerClass.PALADIN), Component.text("Paladin ✨").color(NamedTextColor.AQUA),
-                List.of(Component.text("Main: Heilige Nova"), Component.text("AoE + Heal").color(NamedTextColor.GRAY)), "select_paladin", current == org.bysenom.minecraftSurvivors.model.PlayerClass.PALADIN));
+                java.util.List.of(Component.text("Main: Heilige Nova"), Component.text("AoE + Heal").color(NamedTextColor.GRAY)), "select_paladin_wizard", current == org.bysenom.minecraftSurvivors.model.PlayerClass.PALADIN));
+        inv.setItem(22, createGuiItem(Material.ARROW, Component.text("Abbrechen").color(NamedTextColor.RED), java.util.List.of(Component.text("Zurück zum Hauptmenü")), "back"));
+        p.openInventory(inv);
+    }
 
-        inv.setItem(22, createGuiItem(Material.ARROW, Component.text("Zurück").color(NamedTextColor.RED), List.of(Component.text("Zurück zum Hauptmenü")), "back"));
+    public void openSkillSelection(Player p) {
+        if (p == null) return;
+        Component title = Component.text("Zusatz-Skill").color(NamedTextColor.GOLD);
+        Inventory inv = Bukkit.createInventory(null, 27, title);
+        fillBorder(inv, Material.ORANGE_STAINED_GLASS_PANE);
+        inv.setItem(10, createGuiItem(Material.FEATHER, Component.text("Dash").color(NamedTextColor.WHITE), java.util.List.of(Component.text("Kurzer Sprint").color(NamedTextColor.GRAY)), "skill_pick:dash", false));
+        inv.setItem(12, createGuiItem(Material.STICK, Component.text("Shockwave").color(NamedTextColor.AQUA), java.util.List.of(Component.text("Stoßwelle um dich").color(NamedTextColor.GRAY)), "skill_pick:shockwave", false));
+        inv.setItem(14, createGuiItem(Material.TOTEM_OF_UNDYING, Component.text("Heal Totem").color(NamedTextColor.GREEN), java.util.List.of(Component.text("Periodischer Heal").color(NamedTextColor.GRAY)), "skill_pick:heal_totem", false));
+        inv.setItem(16, createGuiItem(Material.SNOWBALL, Component.text("Frost Nova").color(NamedTextColor.AQUA), java.util.List.of(Component.text("AoE-Slow + Schaden").color(NamedTextColor.GRAY)), "skill_pick:frost_nova", false));
+        inv.setItem(22, createGuiItem(Material.BARRIER, Component.text("Ohne Zusatz-Skill").color(NamedTextColor.RED), java.util.List.of(Component.text("Direkt starten")), "skill_pick:none", false));
         p.openInventory(inv);
     }
 
@@ -213,12 +260,11 @@ public class GuiManager {
                 break;
             case APPLE:
                 sp.addExtraHearts(cfgExtraHearts);
-                // Apply to player max health immediately (extraHearts are half hearts)
                 try {
-                    org.bukkit.attribute.AttributeInstance max = player.getAttribute(org.bukkit.attribute.Attribute.valueOf("GENERIC_MAX_HEALTH"));
+                    org.bukkit.attribute.AttributeInstance max = player.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
                     if (max != null) {
                         double addHearts = cfgExtraHearts / 2.0;
-                        double newBase = Math.max(1.0, max.getBaseValue() + (addHearts * 2.0)); // 1 heart = 2 health
+                        double newBase = Math.max(1.0, max.getBaseValue() + (addHearts * 2.0));
                         max.setBaseValue(newBase);
                         player.setHealth(Math.min(newBase, player.getHealth() + (addHearts * 2.0)));
                     }
@@ -248,17 +294,15 @@ public class GuiManager {
             case SUGAR:
                 sp.addMoveSpeedMult(moveStep);
                 try {
-                    org.bukkit.attribute.AttributeInstance mv = player.getAttribute(org.bukkit.attribute.Attribute.valueOf("GENERIC_MOVEMENT_SPEED"));
+                    org.bukkit.attribute.AttributeInstance mv = player.getAttribute(org.bukkit.attribute.Attribute.MOVEMENT_SPEED);
                     if (mv != null) mv.setBaseValue(mv.getBaseValue() * (1.0 + moveStep));
                 } catch (Throwable ignored) {}
                 player.sendMessage("§bGeschwindigkeit +" + (int)(moveStep*100) + "%");
                 break;
             case FEATHER:
                 sp.addAttackSpeedMult(asStep);
-                // Vanilla Attack Speed approximation: Haste if available, fallback to Strength speed via SPEED effect for a short time
                 try {
-                    org.bukkit.potion.PotionEffectType haste = null;
-                    try { haste = (org.bukkit.potion.PotionEffectType) org.bukkit.potion.PotionEffectType.class.getField("FAST_DIGGING").get(null); } catch (Throwable ignored) {}
+                    org.bukkit.potion.PotionEffectType haste = PotionEffectType.HASTE;
                     if (haste == null) haste = org.bukkit.potion.PotionEffectType.SPEED;
                     player.addPotionEffect(new org.bukkit.potion.PotionEffect(haste, 20*60, 0, false, false, false));
                 } catch (Throwable ignored) {}
@@ -449,64 +493,37 @@ public class GuiManager {
 
     public void openShop(Player p) {
         if (p == null) return;
-        org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = plugin.getPlayerManager().get(p.getUniqueId());
-        org.bukkit.inventory.Inventory inv = org.bukkit.Bukkit.createInventory(null, 54, net.kyori.adventure.text.Component.text("Shop").color(net.kyori.adventure.text.format.NamedTextColor.GOLD));
-        fillBorder(inv, org.bukkit.Material.YELLOW_STAINED_GLASS_PANE);
+        org.bukkit.inventory.Inventory inv = org.bukkit.Bukkit.createInventory(null, 54, net.kyori.adventure.text.Component.text("Händler - Ausrüstung").color(net.kyori.adventure.text.format.NamedTextColor.GOLD));
+        fillBorder(inv, org.bukkit.Material.ORANGE_STAINED_GLASS_PANE);
         org.bukkit.configuration.file.FileConfiguration cfg = plugin.getConfigUtil().getConfig();
+        org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = plugin.getPlayerManager().get(p.getUniqueId());
         int slot = 10;
-        // Daily offers for weapons (limit via config)
-        int dailyN = cfg.getInt("shop.daily.max-weapons", 6);
-        java.util.List<java.util.Map<?, ?>> weapons = plugin.getShopManager().getDailyOffers("shop.categories.weapons", dailyN);
-        for (int i=0; i<weapons.size(); i++) {
-            java.util.Map<?, ?> m = weapons.get(i);
-            Object oName = m.containsKey("name") ? m.get("name") : "Upgrade";
-            Object oType = m.containsKey("type") ? m.get("type") : "UNKNOWN";
-            Object oValue = m.containsKey("value") ? m.get("value") : 0;
-            Object oPrice = m.containsKey("price") ? m.get("price") : 1;
-            String name = String.valueOf(oName);
-            String type = String.valueOf(oType);
-            double value = Double.parseDouble(String.valueOf(oValue));
-            int price = Integer.parseInt(String.valueOf(oPrice));
-            String key = "weapons:"+i; // daily index
-            boolean bought = sp.hasPurchased(key);
-            int leftRun = Math.max(0, cfg.getInt("shop.item-limits.weapons-per-run", 99) - sp.getPerRunCount(key));
-            int leftDay = Math.max(0, cfg.getInt("shop.item-limits.weapons-per-day", 99) - sp.getPerDayCount(key));
-            org.bukkit.Material mat = org.bukkit.Material.IRON_INGOT;
-            if (type.equalsIgnoreCase("DAMAGE_MULT")) mat = org.bukkit.Material.GOLDEN_SWORD;
-            else if (type.equalsIgnoreCase("RADIUS_MULT")) mat = org.bukkit.Material.BLAZE_POWDER;
+        // Gear only
+        java.util.List<java.util.Map<?, ?>> gear = cfg.getMapList("shop.categories.gear");
+        for (int i=0; i<gear.size() && slot < inv.getSize()-9; i++) {
+            java.util.Map<?, ?> m = gear.get(i);
+            String name = m.containsKey("name") ? String.valueOf(m.get("name")) : "Ausrüstung";
+            String type = m.containsKey("type") ? String.valueOf(m.get("type")) : "ARMOR_CHEST";
+            int price; try { price = Integer.parseInt(String.valueOf(m.get("price"))); } catch (Throwable t) { price = 1; }
+            String rarity = m.containsKey("rarity") ? String.valueOf(m.get("rarity")) : "common";
+            java.util.Map<?, ?> stats = null; Object so = m.get("stats"); if (so instanceof java.util.Map<?, ?>) stats = (java.util.Map<?, ?>) so;
             java.util.List<net.kyori.adventure.text.Component> lore = new java.util.ArrayList<>();
-            lore.add(net.kyori.adventure.text.Component.text(name).color(net.kyori.adventure.text.format.NamedTextColor.WHITE));
+            lore.add(net.kyori.adventure.text.Component.text("Seltenheit: "+rarity).color(net.kyori.adventure.text.format.NamedTextColor.WHITE));
             lore.add(net.kyori.adventure.text.Component.text("Preis: "+price+" Coins").color(net.kyori.adventure.text.format.NamedTextColor.YELLOW));
-            lore.add(net.kyori.adventure.text.Component.text("Übrig (Run/Tag): "+leftRun+"/"+leftDay).color(net.kyori.adventure.text.format.NamedTextColor.GRAY));
-            lore.add(net.kyori.adventure.text.Component.text(bought?"(bereits gekauft)":"Klicken zum Kaufen").color(bought?net.kyori.adventure.text.format.NamedTextColor.GRAY:net.kyori.adventure.text.format.NamedTextColor.GREEN));
-            org.bukkit.inventory.ItemStack it = createGuiItem(mat, net.kyori.adventure.text.Component.text(type).color(net.kyori.adventure.text.format.NamedTextColor.AQUA), lore, "shop_buy:"+key, bought);
-            inv.setItem(slot, it);
-            slot++;
-            if (slot % 9 == 8) slot += 2;
-            if (slot >= inv.getSize()-9) break;
-        }
-        // class/paladin offers (no daily shuffle for now; could also use daily)
-        java.util.List<java.util.Map<?, ?>> pal = cfg.getMapList("shop.categories.class.paladin");
-        for (int i=0; i<pal.size() && slot < inv.getSize()-9; i++) {
-            java.util.Map<?, ?> m = pal.get(i);
-            Object oName = m.containsKey("name") ? m.get("name") : "Upgrade";
-            Object oType = m.containsKey("type") ? m.get("type") : "UNKNOWN";
-            Object oValue = m.containsKey("value") ? m.get("value") : 0;
-            Object oPrice = m.containsKey("price") ? m.get("price") : 1;
-            String name = String.valueOf(oName);
-            String type = String.valueOf(oType);
-            double value = Double.parseDouble(String.valueOf(oValue));
-            int price = Integer.parseInt(String.valueOf(oPrice));
-            String key = "paladin:"+i;
-            boolean bought = sp.hasPurchased(key);
-            org.bukkit.Material mat = org.bukkit.Material.GOLDEN_APPLE;
-            java.util.List<net.kyori.adventure.text.Component> lore = new java.util.ArrayList<>();
-            lore.add(net.kyori.adventure.text.Component.text(name).color(net.kyori.adventure.text.format.NamedTextColor.WHITE));
-            lore.add(net.kyori.adventure.text.Component.text("Preis: "+price+" Coins").color(net.kyori.adventure.text.format.NamedTextColor.YELLOW));
-            lore.add(net.kyori.adventure.text.Component.text(bought?"(bereits gekauft)":"Klicken zum Kaufen").color(bought?net.kyori.adventure.text.format.NamedTextColor.GRAY:net.kyori.adventure.text.format.NamedTextColor.GREEN));
-            org.bukkit.inventory.ItemStack it = createGuiItem(mat, net.kyori.adventure.text.Component.text(type).color(net.kyori.adventure.text.format.NamedTextColor.AQUA), lore, "shop_buy:"+key, bought);
-            inv.setItem(slot, it);
-            slot++;
+            if (stats != null) {
+                Object prot = stats.get("prot"); if (prot != null) lore.add(net.kyori.adventure.text.Component.text("Schutz "+prot).color(net.kyori.adventure.text.format.NamedTextColor.GRAY));
+                Object health = stats.get("health"); if (health != null) lore.add(net.kyori.adventure.text.Component.text("+"+health+"❤").color(net.kyori.adventure.text.format.NamedTextColor.RED));
+                Object speed = stats.get("speed"); if (speed != null) {
+                    double spd; try { spd = Double.parseDouble(String.valueOf(speed)); } catch (Throwable t) { spd = 0.0; }
+                    lore.add(net.kyori.adventure.text.Component.text("+"+(int)(spd*100)+"% Speed").color(net.kyori.adventure.text.format.NamedTextColor.BLUE));
+                }
+            }
+            org.bukkit.Material mat = org.bukkit.Material.IRON_CHESTPLATE;
+            if (type.equalsIgnoreCase("ARMOR_HELMET")) mat = org.bukkit.Material.IRON_HELMET;
+            else if (type.equalsIgnoreCase("ARMOR_LEGS")) mat = org.bukkit.Material.IRON_LEGGINGS;
+            else if (type.equalsIgnoreCase("ARMOR_BOOTS")) mat = org.bukkit.Material.IRON_BOOTS;
+            boolean bought = sp.hasPurchased("gear:"+i);
+            inv.setItem(slot++, createGuiItem(mat, net.kyori.adventure.text.Component.text(name).color(net.kyori.adventure.text.format.NamedTextColor.AQUA), lore, "shop_buy:gear:"+i, bought));
             if (slot % 9 == 8) slot += 2;
         }
         String eta = plugin.getShopManager().formatRemainingHHMMSS();
@@ -523,59 +540,46 @@ public class GuiManager {
         String cat = parts[0];
         int idx;
         try { idx = Integer.parseInt(parts[1]); } catch (NumberFormatException ex) { return false; }
-        java.util.Map<?, ?> m = null;
-        if (cat.equals("weapons")) {
-            java.util.List<java.util.Map<?, ?>> list = cfg.getMapList("shop.categories.weapons");
-            if (idx < 0 || idx >= list.size()) return false;
-            m = list.get(idx);
-        } else if (cat.equals("paladin")) {
-            java.util.List<java.util.Map<?, ?>> list = cfg.getMapList("shop.categories.class.paladin");
-            if (idx < 0 || idx >= list.size()) return false;
-            m = list.get(idx);
-        } else {
-            return false;
-        }
-
-        // limits: per run and per day
-        int maxPerRun = cfg.getInt("shop.limits.max-per-run", 999);
-        int maxPerDay = cfg.getInt("shop.limits.max-per-day", 999);
-        int itemRunLim;
-        int itemDayLim;
-        if (cat.equals("weapons")) {
-            itemRunLim = cfg.getInt("shop.item-limits.weapons-per-run", 99);
-            itemDayLim = cfg.getInt("shop.item-limits.weapons-per-day", 99);
-        } else if (cat.equals("paladin")) {
-            itemRunLim = cfg.getInt("shop.item-limits.class-per-run", 99);
-            itemDayLim = cfg.getInt("shop.item-limits.class-per-day", 99);
-        } else { itemRunLim = 99; itemDayLim = 99; }
-        String today = new java.text.SimpleDateFormat("yyyyMMdd").format(new java.util.Date());
-        if (sp.getShopLastDay() == null || !today.equals(sp.getShopLastDay())) { sp.setShopLastDay(today); sp.setShopPurchasesToday(0); }
-        if (sp.getShopPurchasesRun() >= maxPerRun) { p.sendMessage("§cLauflimit erreicht (max "+maxPerRun+")."); return false; }
-        if (sp.getShopPurchasesToday() >= maxPerDay) { p.sendMessage("§cTageslimit erreicht (max "+maxPerDay+")."); return false; }
-        if (sp.getPerRunCount(key) >= itemRunLim) { p.sendMessage("§cItem-Run-Limit erreicht."); return false; }
-        if (sp.getPerDayCount(key) >= itemDayLim) { p.sendMessage("§cItem-Tageslimit erreicht."); return false; }
-
+        if (!cat.equals("gear")) return false; // nur Ausrüstung
+        java.util.List<java.util.Map<?, ?>> list = cfg.getMapList("shop.categories.gear");
+        if (idx < 0 || idx >= list.size()) return false;
+        java.util.Map<?, ?> m = list.get(idx);
         Object oType = m.containsKey("type") ? m.get("type") : "UNKNOWN";
-        Object oValue = m.containsKey("value") ? m.get("value") : 0;
         Object oPrice = m.containsKey("price") ? m.get("price") : 1;
         String type = String.valueOf(oType);
-        double value = Double.parseDouble(String.valueOf(oValue));
         int price = Integer.parseInt(String.valueOf(oPrice));
-        if (sp.hasPurchased(key)) { p.sendMessage("§cBereits gekauft."); return false; }
-        if (sp.getCoins() < price) { p.sendMessage("§cNicht genug Coins."); return false; }
-        // withdraw coins
+        String today = new java.text.SimpleDateFormat("yyyyMMdd").format(new java.util.Date());
+        if (sp.getShopLastDay() == null || !today.equals(sp.getShopLastDay())) { sp.setShopLastDay(today); sp.setShopPurchasesToday(0); }
+        if (sp.hasPurchased(key)) { org.bysenom.minecraftSurvivors.util.Msg.warn(p, "Bereits gekauft."); return false; }
+        if (sp.getCoins() < price) { org.bysenom.minecraftSurvivors.util.Msg.err(p, "Nicht genug Coins."); return false; }
+        int maxPerRun = cfg.getInt("shop.limits.max-per-run", 999);
+        int maxPerDay = cfg.getInt("shop.limits.max-per-day", 999);
+        if (sp.getShopPurchasesRun() >= maxPerRun) { org.bysenom.minecraftSurvivors.util.Msg.err(p, "Lauflimit erreicht (max "+maxPerRun+")."); return false; }
+        if (sp.getShopPurchasesToday() >= maxPerDay) { org.bysenom.minecraftSurvivors.util.Msg.err(p, "Tageslimit erreicht (max "+maxPerDay+")."); return false; }
+        // Withdraw
         sp.setCoins(sp.getCoins() - price);
-        // apply effect
-        switch (type.toUpperCase()) {
-            case "DAMAGE_MULT": sp.addDamageMult(value); break;
-            case "RADIUS_MULT": sp.addRadiusMult(value); break;
-            case "PALADIN_HEAL": sp.addHealBonus(value); break;
-            default: p.sendMessage("§eUnbekannter Effekt: "+type); return false;
-        }
+        boolean applied = plugin.getShopManager().applyPurchaseGear(p, sp, type, m);
+        if (!applied) { org.bysenom.minecraftSurvivors.util.Msg.warn(p, "Unbekannter Ausrüstungstyp: "+type); return false; }
         sp.markPurchased(key);
         sp.incrementShopRun(); sp.incrementShopToday(); sp.incPerRun(key); sp.incPerDay(key);
         try { p.playSound(p.getLocation(), org.bukkit.Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.8f, 1.2f); } catch (Throwable ignored) {}
-        p.sendMessage("§aGekauft: "+type+" §7("+value+")");
+        org.bysenom.minecraftSurvivors.util.Msg.ok(p, "Gekauft: "+type);
         return true;
+    }
+
+    public void openAdminPanel(Player p) {
+        if (p == null) return;
+        if (!p.hasPermission("minecraftsurvivors.admin")) { org.bysenom.minecraftSurvivors.util.Msg.err(p, "Keine Rechte."); return; }
+        Inventory inv = Bukkit.createInventory(null, 27, Component.text("Admin Panel").color(NamedTextColor.RED));
+        fillBorder(inv, Material.GRAY_STAINED_GLASS_PANE);
+        inv.setItem(10, createGuiItem(Material.GOLD_BLOCK, Component.text("+100 Coins").color(NamedTextColor.GOLD), java.util.List.of(Component.text("Test Coins")), "adm_coins"));
+        inv.setItem(12, createGuiItem(Material.AMETHYST_SHARD, Component.text("+10 Essence").color(NamedTextColor.LIGHT_PURPLE), java.util.List.of(Component.text("Meta testen")), "adm_essence"));
+        inv.setItem(14, createGuiItem(Material.ZOMBIE_HEAD, Component.text("Spawn Testmobs").color(NamedTextColor.GREEN), java.util.List.of(Component.text("5 Gegner um dich")), "adm_spawn"));
+        inv.setItem(16, createGuiItem(Material.CHEST, Component.text("LevelUp öffnen").color(NamedTextColor.AQUA), java.util.List.of(Component.text("Debug LevelUp UI")), "adm_levelup"));
+        inv.setItem(20, createGuiItem(Material.LIME_DYE, Component.text("Toggle Ready").color(NamedTextColor.GREEN), java.util.List.of(Component.text("Ready-Flag toggeln")), "adm_ready_toggle"));
+        inv.setItem(22, createGuiItem(Material.REDSTONE_BLOCK, Component.text("Force Start").color(NamedTextColor.RED), java.util.List.of(Component.text("Countdown 3s & Start")), "adm_force_start"));
+        inv.setItem(24, createGuiItem(Material.FEATHER, Component.text("Give Dash").color(NamedTextColor.AQUA), java.util.List.of(Component.text("Dash-Skill hinzufügen")), "adm_give_dash"));
+        inv.setItem(26, createGuiItem(Material.ARROW, Component.text("Zurück").color(NamedTextColor.RED), java.util.List.of(Component.text("Zurück")), "back"));
+        p.openInventory(inv);
     }
 }

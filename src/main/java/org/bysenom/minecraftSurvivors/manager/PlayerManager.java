@@ -26,4 +26,8 @@ public class PlayerManager {
     public void resetAll() {
         players.values().forEach(SurvivorPlayer::softReset);
     }
+
+    public void resetAllPreserveSkills() {
+        players.values().forEach(org.bysenom.minecraftSurvivors.model.SurvivorPlayer::softResetPreserveSkills);
+    }
 }

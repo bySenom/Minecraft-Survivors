@@ -61,7 +61,15 @@ public class GameManager {
         if (countdownTask != null) { countdownTask.cancel(); countdownTask = null; }
         starting = false;
         state = GameState.RUNNING;
-        playerManager.resetAll();
+        // preserve skills/slots across start
+        playerManager.resetAllPreserveSkills();
+        // Apply meta progression bonuses per player now
+        for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
+            try {
+                org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = playerManager.get(p.getUniqueId());
+                plugin.getMetaManager().applyMetaOnRunStart(p, sp);
+            } catch (Throwable ignored) {}
+        }
         this.currentWaveNumber = 1;
         boolean continuous = plugin.getConfigUtil().getBoolean("spawn.continuous.enabled", true);
         if (continuous) {
@@ -71,6 +79,8 @@ public class GameManager {
         }
         abilityManager.start();
         startHudTask();
+        // Spawn Shop-NPC using configured spawn location
+        try { plugin.getShopNpcManager().spawnConfigured(); } catch (Throwable ignored) {}
         Bukkit.getLogger().info("Game started");
     }
 
@@ -83,6 +93,7 @@ public class GameManager {
         // Ability-Task stoppen
         abilityManager.stop();
         if (xpHudTask != null) xpHudTask.cancel();
+        try { plugin.getShopNpcManager().despawnAll(); } catch (Throwable ignored) {}
         Bukkit.getLogger().info("Game stopped");
     }
 
@@ -131,7 +142,7 @@ public class GameManager {
         if (p != null && p.isOnline()) {
             try {
                 // show Title + Subtitle (Adventure Title API)
-                net.kyori.adventure.title.Title.Times times = net.kyori.adventure.title.Title.Times.of(java.time.Duration.ofMillis(250), java.time.Duration.ofSeconds(15), java.time.Duration.ofMillis(250));
+                net.kyori.adventure.title.Title.Times times = net.kyori.adventure.title.Title.Times.times(java.time.Duration.ofMillis(250), java.time.Duration.ofSeconds(15), java.time.Duration.ofMillis(250));
                 net.kyori.adventure.title.Title title = net.kyori.adventure.title.Title.title(net.kyori.adventure.text.Component.text("Auswahl", net.kyori.adventure.text.format.NamedTextColor.YELLOW), net.kyori.adventure.text.Component.text("Wähle dein Powerup... (Spiel pausiert für dich)", net.kyori.adventure.text.format.NamedTextColor.GRAY), times);
                 p.showTitle(title);
             } catch (Throwable ignored) {}
@@ -181,7 +192,7 @@ public class GameManager {
         org.bukkit.entity.Player p = org.bukkit.Bukkit.getPlayer(playerUuid);
         if (p != null && p.isOnline()) {
             try {
-                net.kyori.adventure.title.Title.Times times = net.kyori.adventure.title.Title.Times.of(java.time.Duration.ofMillis(250), java.time.Duration.ofSeconds(3), java.time.Duration.ofMillis(250));
+                net.kyori.adventure.title.Title.Times times = net.kyori.adventure.title.Title.Times.times(java.time.Duration.ofMillis(250), java.time.Duration.ofSeconds(3), java.time.Duration.ofMillis(250));
                 net.kyori.adventure.title.Title title = net.kyori.adventure.title.Title.title(net.kyori.adventure.text.Component.text("Fortgesetzt", net.kyori.adventure.text.format.NamedTextColor.GREEN), net.kyori.adventure.text.Component.text("Viel Erfolg!", net.kyori.adventure.text.format.NamedTextColor.GRAY), times);
                 p.showTitle(title);
             } catch (Throwable ignored) {}
@@ -253,25 +264,35 @@ public class GameManager {
         starting = true;
         final int total = Math.max(1, seconds);
         final int[] remaining = { total };
-        // Broadcast countdown via Title/ActionBar and tick sound
         if (countdownTask != null) countdownTask.cancel();
         countdownTask = org.bukkit.Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             try {
+                java.util.Set<java.util.UUID> ready = new java.util.HashSet<>();
+                for (org.bukkit.entity.Player op : org.bukkit.Bukkit.getOnlinePlayers()) {
+                    org.bysenom.minecraftSurvivors.model.SurvivorPlayer osp = plugin.getPlayerManager().get(op.getUniqueId());
+                    if (osp != null && osp.getSelectedClass() != null && osp.isReady()) ready.add(op.getUniqueId());
+                }
                 for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
+                    boolean isReady = ready.contains(p.getUniqueId());
                     try {
-                        net.kyori.adventure.title.Title.Times times = net.kyori.adventure.title.Title.Times.of(java.time.Duration.ofMillis(80), java.time.Duration.ofMillis(900), java.time.Duration.ofMillis(20));
-                        net.kyori.adventure.title.Title t = net.kyori.adventure.title.Title.title(
-                                net.kyori.adventure.text.Component.text(String.valueOf(remaining[0]), net.kyori.adventure.text.format.NamedTextColor.GOLD),
-                                net.kyori.adventure.text.Component.text("Spiel startet...", net.kyori.adventure.text.format.NamedTextColor.GRAY), times);
-                        p.showTitle(t);
-                        p.sendActionBar(net.kyori.adventure.text.Component.text("Start in " + remaining[0] + "s"));
-                        try { p.playSound(p.getLocation(), org.bukkit.Sound.BLOCK_NOTE_BLOCK_HAT, 0.8f, 1.9f); } catch (Throwable ignored) {}
+                        if (isReady) {
+                            net.kyori.adventure.title.Title.Times times = net.kyori.adventure.title.Title.Times.times(java.time.Duration.ofMillis(80), java.time.Duration.ofMillis(900), java.time.Duration.ofMillis(20));
+                            net.kyori.adventure.title.Title t = net.kyori.adventure.title.Title.title(
+                                    net.kyori.adventure.text.Component.text(String.valueOf(remaining[0]), net.kyori.adventure.text.format.NamedTextColor.GOLD),
+                                    net.kyori.adventure.text.Component.text("Spiel startet...", net.kyori.adventure.text.format.NamedTextColor.GRAY), times);
+                            p.showTitle(t);
+                        } else {
+                            p.sendActionBar(net.kyori.adventure.text.Component.text("Warte auf Ready... " + remaining[0] + "s", net.kyori.adventure.text.format.NamedTextColor.YELLOW));
+                        }
+                        try { p.playSound(p.getLocation(), org.bukkit.Sound.BLOCK_NOTE_BLOCK_HAT, 0.6f, 1.9f); } catch (Throwable ignored) {}
                     } catch (Throwable ignored) {}
                 }
                 if (remaining[0] <= 0) {
                     try {
                         for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
-                            try { p.playSound(p.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 0.9f, 1.2f); } catch (Throwable ignored) {}
+                            if (ready.contains(p.getUniqueId())) {
+                                try { p.playSound(p.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 0.9f, 1.2f); } catch (Throwable ignored) {}
+                            }
                         }
                     } catch (Throwable ignored) {}
                     org.bukkit.scheduler.BukkitTask t = countdownTask; if (t != null) t.cancel();

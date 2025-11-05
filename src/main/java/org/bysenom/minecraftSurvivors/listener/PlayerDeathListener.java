@@ -26,23 +26,22 @@ public class PlayerDeathListener implements Listener {
     public void onPlayerDeath(PlayerDeathEvent e) {
         Player player = e.getPlayer();
         if (gameManager.getState() == GameState.RUNNING) {
-            // Spiel stoppen, Spieler-Daten aufräumen und Broadcast
-            // Reset XP but preserve coins: save coins to disk first
             org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = playerManager.get(player.getUniqueId());
             if (sp != null) {
-                // reset XP
                 sp.setXp(0);
                 sp.setXpToNext(Math.max(1, 5 * sp.getClassLevel()));
-                // persist coins (and other permanent fields) via dataManager if available
-                try {
-                    if (dataManager != null) dataManager.saveCoins(sp.getUuid(), sp.getCoins());
-                } catch (Throwable ignored) {}
             }
+            try {
+                int minutes = Math.max(1, sp != null ? sp.getClassLevel() : 1);
+                org.bysenom.minecraftSurvivors.MinecraftSurvivors.getInstance().getMetaManager().awardEndOfRunEssence(player, sp, minutes);
+            } catch (Throwable ignored) {}
+            // Coins reset per Run
+            if (sp != null) sp.setCoins(0);
             gameManager.stopGame();
             if (playerManager != null) {
                 playerManager.remove(player.getUniqueId());
             }
-            Bukkit.getServer().sendMessage(Component.text("§cDie Wave endet — Spieler " + player.getName() + " ist gestorben."));
+            Bukkit.getServer().sendMessage(Component.text("§cRun beendet — " + player.getName() + " ist gestorben."));
         }
     }
 }

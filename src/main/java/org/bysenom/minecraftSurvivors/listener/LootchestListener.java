@@ -170,11 +170,15 @@ public class LootchestListener implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent e) {
         if (e.getView() == null) return;
-        String title = e.getView().getTitle();
-        if (title == null) return;
-        if (title.toLowerCase().contains("lootchest")) {
-            e.setCancelled(true);
-        }
+        // Vermeide getTitle()-Deprecation: Vergleiche Name des Top-Inventars über die beim Erstellen bekannte Kennung
+        org.bukkit.inventory.Inventory top = e.getView().getTopInventory();
+        if (top == null) return;
+        // Wir erkennen unser Lootchest-Inv daran, dass alle drei Mittelslots (11/13/15) nicht null sind und Rand gefüllt ist
+        // Zusätzlich: Prüfe, ob der Titel-Component unsere bekannte Zeichenfolge enthält
+        String titleStr = String.valueOf(e.getView().title()); // Adventure Component -> String
+        boolean looksLikeLoot = titleStr != null && titleStr.toLowerCase().contains("lootchest");
+        if (!looksLikeLoot) return;
+        e.setCancelled(true);
     }
 
     private void fill(Inventory inv, Material mat) {

@@ -49,6 +49,12 @@ public class SurvivorPlayer {
     // Evo flags
     private boolean evoPyroNova = false;
 
+    // Skill slots
+    private int maxSkillSlots = 1;
+    private final java.util.List<String> skills = new java.util.ArrayList<>(); // keys like "shockwave", "dash"
+    private final java.util.Map<String,Integer> skillLevels = new java.util.HashMap<>();
+    private boolean ready = false;
+
     public SurvivorPlayer(UUID uuid) {
         this.uuid = uuid;
     }
@@ -108,6 +114,10 @@ public class SurvivorPlayer {
         // keep daily across runs, not reset here except run counts
         this.rangerPierce = 0;
         this.evoPyroNova = false;
+        this.maxSkillSlots = 1;
+        this.skills.clear();
+        this.skillLevels.clear();
+        this.ready = false;
     }
 
     public void softReset() {
@@ -136,7 +146,40 @@ public class SurvivorPlayer {
         this.perRunCounts.clear();
         this.rangerPierce = 0;
         this.evoPyroNova = false;
+        this.maxSkillSlots = 1;
+        this.skills.clear();
+        this.skillLevels.clear();
+        this.ready = false;
         // daily persists
+    }
+
+    public void softResetPreserveSkills() {
+        // preserve selectedClass, skills, skillLevels, maxSkillSlots
+        this.kills = 0;
+        this.coins = 0;
+        this.classLevel = 1;
+        this.xp = 0;
+        this.xpToNext = 5;
+        this.bonusDamage = 0.0;
+        this.bonusStrikes = 0;
+        this.flatDamage = 0.0;
+        this.extraHearts = 0;
+        this.radiusMult = 0.0;
+        this.damageMult = 0.0;
+        this.igniteBonusTicks = 0;
+        this.knockbackBonus = 0.0;
+        this.healBonus = 0.0;
+        this.moveSpeedMult = 0.0;
+        this.attackSpeedMult = 0.0;
+        this.damageResist = 0.0;
+        this.luck = 0.0;
+        this.purchasedKeys.clear();
+        this.shopPurchasesRun = 0;
+        this.perRunCounts.clear();
+        this.rangerPierce = 0;
+        this.evoPyroNova = false;
+        // keep maxSkillSlots, skills, skillLevels
+        this.ready = false;
     }
 
     // Neue Methoden zur Klassenverwaltung
@@ -313,4 +356,22 @@ public class SurvivorPlayer {
     // Evo flags
     public boolean isEvoPyroNova() { return evoPyroNova; }
     public void setEvoPyroNova(boolean v) { this.evoPyroNova = v; }
+
+    public int getMaxSkillSlots() { return maxSkillSlots; }
+    public void setMaxSkillSlots(int v) { this.maxSkillSlots = Math.max(1, Math.min(5, v)); }
+
+    public java.util.List<String> getSkills() { return skills; }
+    public boolean addSkill(String key) {
+        if (key == null) return false;
+        if (skills.contains(key)) { skillLevels.put(key, skillLevels.getOrDefault(key,1)+1); return true; }
+        if (skills.size() >= maxSkillSlots) return false;
+        skills.add(key);
+        skillLevels.putIfAbsent(key, 1);
+        return true;
+    }
+    public int getSkillLevel(String key) { return skillLevels.getOrDefault(key, 0); }
+
+    public boolean isReady() { return ready; }
+    public void setReady(boolean r) { this.ready = r; }
+
 }
