@@ -30,9 +30,9 @@ public class PyromancerAbility implements Ability {
         double baseRadius = plugin.getConfigUtil().getDouble("pyromancer.radius", 8.0);
         double radius = baseRadius * (1.0 + (sp != null ? sp.getRadiusMult() : 0.0));
         int targets = Math.max(1, plugin.getConfigUtil().getInt("pyromancer.targets-per-tick", 2) + (sp != null ? sp.getBonusStrikes() : 0));
-        // AttackSpeed scaling: more targets per tick with cap
+        // AttackSpeed scaling: ohne Cap
         double as = sp != null ? Math.max(0.0, sp.getAttackSpeedMult()) : 0.0;
-        double speedFactor = Math.min(2.5, 1.0 + as); // cap 2.5x for AoE sanity
+        double speedFactor = 1.0 + as;
         targets = Math.max(1, (int) Math.floor(targets * speedFactor));
 
         double baseDamage = plugin.getConfigUtil().getDouble("pyromancer.base-damage", 4.0);
@@ -40,13 +40,13 @@ public class PyromancerAbility implements Ability {
         int igniteTicks = igniteTicksBase + (sp != null ? sp.getIgniteBonusTicks() : 0);
         int level = Math.max(1, sp != null ? sp.getClassLevel() : 1);
 
-        double damage = baseDamage + (sp != null ? sp.getFlatDamage() : 0.0) + (sp != null ? sp.getBonusDamage() : 0.0);
+        double damage = baseDamage + (sp != null ? sp.getDamageAddTotal() : 0.0);
         damage *= Math.max(1.0, 1.0 + 0.1 * (level - 1));
         if (sp != null) {
             damage *= (1.0 + sp.getDamageMult());
         }
 
-        // Evolution: Flammennova wenn Ignite >= X und DamageMult >= Y
+        // Evolution Nova Partikel mit realem Radius
         try {
             if (sp != null && !sp.isEvoPyroNova()) {
                 int ignReq = plugin.getConfigUtil().getInt("evo.pyromancer.ignite-ticks-min", 60);
@@ -63,7 +63,7 @@ public class PyromancerAbility implements Ability {
                     try { m.damage(Math.max(1.0, damage * 0.25), player); } catch (Throwable ignored) {}
                     try { m.setFireTicks(Math.max(m.getFireTicks(), igniteTicks/2)); } catch (Throwable ignored) {}
                 }
-                // Partikelkreis
+                // Partikelkreis anhand novaR (Hitbox)
                 for (int i = 0; i < 24; i++) {
                     double ang = 2 * Math.PI * i / 24.0;
                     double x = loc.getX() + Math.cos(ang) * novaR;

@@ -43,6 +43,9 @@ public class PlayerDataManager {
         cfg.set("attackSpeedMult", sp.getAttackSpeedMult());
         cfg.set("damageResist", sp.getDamageResist());
         cfg.set("luck", sp.getLuck());
+        // unlocked abilities and glyphs
+        cfg.set("unlockedAbilities", new java.util.ArrayList<>(sp.getUnlockedAbilities()));
+        cfg.set("unlockedGlyphs", new java.util.ArrayList<>(sp.getUnlockedGlyphs()));
         try {
             cfg.save(f);
         } catch (IOException e) {
@@ -76,6 +79,10 @@ public class PlayerDataManager {
             sp.setAttackSpeedMult(cfg.getDouble("attackSpeedMult", 0.0));
             sp.setDamageResist(cfg.getDouble("damageResist", 0.0));
             sp.setLuck(cfg.getDouble("luck", 0.0));
+            java.util.List<String> uas = cfg.getStringList("unlockedAbilities");
+            for (String a : uas) { try { if (a != null && !a.isEmpty()) sp.unlockAbility(a); } catch (Throwable ignored) {} }
+            java.util.List<String> ugs = cfg.getStringList("unlockedGlyphs");
+            for (String g : ugs) { try { if (g != null && !g.isEmpty()) sp.unlockGlyph(g); } catch (Throwable ignored) {} }
             return sp;
         } catch (Throwable t) {
             plugin.getLogger().warning("Failed to load player data for " + uuid + ": " + t.getMessage());
@@ -103,6 +110,22 @@ public class PlayerDataManager {
             cfg.save(f);
         } catch (IOException e) {
             plugin.getLogger().severe("Failed to save coins for " + uuid + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * Persist a single player's full data asynchronously to avoid blocking the main thread.
+     */
+    public void saveAsync(SurvivorPlayer sp) {
+        if (sp == null) return;
+        // schedule asynchronous save using Bukkit scheduler
+        try {
+            org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                try { save(sp); } catch (Throwable t) { plugin.getLogger().warning("Async save failed for " + sp.getUuid() + ": " + t.getMessage()); }
+            });
+        } catch (Throwable t) {
+            // Fallback: do synchronous save if scheduling not possible
+            try { save(sp); } catch (Throwable ignored) {}
         }
     }
 }

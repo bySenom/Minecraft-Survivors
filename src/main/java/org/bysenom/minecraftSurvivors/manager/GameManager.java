@@ -63,11 +63,14 @@ public class GameManager {
         }
     }
 
+    private final BossManager bossManager; // neu
+
     public GameManager(MinecraftSurvivors plugin, PlayerManager playerManager) {
         this.plugin = plugin;
         this.playerManager = playerManager;
         this.spawnManager = new SpawnManager(plugin, playerManager);
         this.abilityManager = new AbilityManager(plugin, playerManager, spawnManager, this);
+        this.bossManager = new BossManager(plugin, spawnManager);
     }
 
     private void startWaveTask() {
@@ -91,8 +94,12 @@ public class GameManager {
                     p.sendActionBar(Component.text("XP: " + currentXp + "/" + xpToNext + " • Lvl " + sp.getClassLevel()));
                 } catch (Throwable ignored) {}
             }
+            // BossManager tick
+            try { bossManager.tick(); } catch (Throwable ignored) {}
         }, 0L, hudIntervalTicks);
     }
+
+    public BossManager getBossManager() { return bossManager; }
 
     public synchronized void startGame() {
         if (state == GameState.RUNNING) return;
@@ -208,7 +215,9 @@ public class GameManager {
                         if (remaining[0] <= 0) {
                             org.bukkit.scheduler.BukkitTask t = pauseTimeoutTasks.remove(playerUuid);
                             if (t != null) t.cancel();
+                            // auto-resume this player and try to open next queued GUI (if any)
                             resumeForPlayer(playerUuid);
+                            tryOpenNextQueuedDelayed(playerUuid);
                         }
                         remaining[0]--;
                     } catch (Throwable ignored) {}
@@ -294,6 +303,25 @@ public class GameManager {
         this.currentWaveNumber = n;
     }
 
+    /**
+     * Abort a running start countdown (if any). Used when players leave or become unready.
+     */
+    public synchronized void abortStartCountdown(String reason) {
+        if (countdownTask != null) {
+            try {
+                countdownTask.cancel();
+            } catch (Throwable ignored) {}
+            countdownTask = null;
+        }
+        starting = false;
+        plugin.getLogger().info("Start countdown aborted: " + (reason == null ? "unknown" : reason));
+        try {
+            for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
+                try { p.sendActionBar(net.kyori.adventure.text.Component.text("Start abgebrochen: " + (reason == null ? "" : reason)).color(net.kyori.adventure.text.format.NamedTextColor.RED)); } catch (Throwable ignored) {}
+            }
+        } catch (Throwable ignored) {}
+    }
+
     public synchronized void startGameWithCountdown(int seconds) {
         if (starting || state == GameState.RUNNING) {
             plugin.getLogger().info("Start requested but game already starting/running");
@@ -305,15 +333,21 @@ public class GameManager {
         if (countdownTask != null) countdownTask.cancel();
         countdownTask = org.bukkit.Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             try {
+                // compute ready players: must have selected class, set ready, and not be locally paused
                 java.util.Set<java.util.UUID> ready = new java.util.HashSet<>();
+                java.util.List<org.bukkit.entity.Player> online = new java.util.ArrayList<>();
                 for (org.bukkit.entity.Player op : org.bukkit.Bukkit.getOnlinePlayers()) {
+                    online.add(op);
                     org.bysenom.minecraftSurvivors.model.SurvivorPlayer osp = plugin.getPlayerManager().get(op.getUniqueId());
-                    if (osp != null && osp.getSelectedClass() != null && osp.isReady()) ready.add(op.getUniqueId());
+                    if (osp != null && osp.getSelectedClass() != null && osp.isReady() && !isPlayerPaused(op.getUniqueId())) ready.add(op.getUniqueId());
                 }
-                for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
-                    boolean isReady = ready.contains(p.getUniqueId());
+
+                boolean allReady = (!online.isEmpty() && ready.size() == online.size()) || (online.isEmpty());
+
+                // Visual feedback per-player
+                for (org.bukkit.entity.Player p : online) {
                     try {
-                        if (isReady) {
+                        if (allReady) {
                             net.kyori.adventure.title.Title.Times times = net.kyori.adventure.title.Title.Times.times(java.time.Duration.ofMillis(80), java.time.Duration.ofMillis(900), java.time.Duration.ofMillis(20));
                             net.kyori.adventure.title.Title t = net.kyori.adventure.title.Title.title(
                                     net.kyori.adventure.text.Component.text(String.valueOf(remaining[0]), net.kyori.adventure.text.format.NamedTextColor.GOLD),
@@ -325,12 +359,25 @@ public class GameManager {
                         try { p.playSound(p.getLocation(), org.bukkit.Sound.BLOCK_NOTE_BLOCK_HAT, 0.6f, 1.9f); } catch (Throwable ignored) {}
                     } catch (Throwable ignored) {}
                 }
+
+                if (!allReady) {
+                    // Abort countdown if any player became unready/paused
+                    try {
+                        for (org.bukkit.entity.Player p : online) {
+                            try { p.sendActionBar(net.kyori.adventure.text.Component.text("Countdown abgebrochen: Spieler nicht bereit").color(net.kyori.adventure.text.format.NamedTextColor.RED)); } catch (Throwable ignored) {}
+                        }
+                    } catch (Throwable ignored) {}
+                    org.bukkit.scheduler.BukkitTask t = countdownTask; if (t != null) t.cancel();
+                    countdownTask = null;
+                    starting = false;
+                    plugin.getLogger().info("Start countdown aborted because not all players are ready/unpaused");
+                    return;
+                }
+
                 if (remaining[0] <= 0) {
                     try {
-                        for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
-                            if (ready.contains(p.getUniqueId())) {
-                                try { p.playSound(p.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 0.9f, 1.2f); } catch (Throwable ignored) {}
-                            }
+                        for (org.bukkit.entity.Player p : online) {
+                            try { p.playSound(p.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 0.9f, 1.2f); } catch (Throwable ignored) {}
                         }
                     } catch (Throwable ignored) {}
                     org.bukkit.scheduler.BukkitTask t = countdownTask; if (t != null) t.cancel();
@@ -342,5 +389,13 @@ public class GameManager {
                 remaining[0]--;
             } catch (Throwable ignored) {}
         }, 0L, 20L);
+    }
+
+    // Utility: nach kurzer Verzögerung das nächste aus der Queue öffnen
+    public void tryOpenNextQueuedDelayed(java.util.UUID uuid) {
+        if (uuid == null) return;
+        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            try { tryOpenNextQueued(uuid); } catch (Throwable ignored) {}
+        }, 2L);
     }
 }

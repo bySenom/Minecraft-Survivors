@@ -36,15 +36,15 @@ public class PaladinAbility implements Ability {
         double heal = healBase + (sp != null ? sp.getHealBonus() : 0.0);
         int level = Math.max(1, sp != null ? sp.getClassLevel() : 1);
 
-        double damage = baseDamage + (sp != null ? sp.getFlatDamage() : 0.0) + (sp != null ? sp.getBonusDamage() : 0.0);
+        double damage = baseDamage + (sp != null ? sp.getDamageAddTotal() : 0.0);
         damage *= Math.max(1.0, 1.0 + 0.08 * (level - 1));
         if (sp != null) damage *= (1.0 + sp.getDamageMult());
 
-        // attack speed factor: repeat light-weight damage/heal loop more times (cap x2.5) without re-spawning heavy pulse each time
+        // attack speed factor: repeat light-weight damage/heal loop mehr ohne Cap
         double as = sp != null ? Math.max(0.0, sp.getAttackSpeedMult()) : 0.0;
-        int repeats = Math.max(1, (int) Math.floor(Math.min(2.5, 1.0 + as)));
+        int repeats = Math.max(1, (int) Math.floor(1.0 + as));
 
-        // spawn one pulse visual only once per tick
+        // spawn one pulse visual scaled to actual radius
         try { spawnPulse(player, radius); } catch (Throwable ignored) {}
 
         for (int rep = 0; rep < repeats; rep++) {
@@ -80,9 +80,10 @@ public class PaladinAbility implements Ability {
 
     private void spawnPulse(Player player, double radius) {
         if (player == null || !player.isOnline() || !player.isValid()) return;
-        final int steps = 6;            // quicker
-        final int total = steps + 4;    // expand then quick fade
-        final int points = 36;          // fewer points for less continuous disc
+        final int steps = 6;            // schneller Aufbau
+        final int total = steps + 4;    // expand dann kurzer fade
+        // Punkteanzahl proportional zum Umfang, damit große Kreise nicht löchrig sind
+        final int points = Math.max(36, (int) Math.round(2 * Math.PI * radius));
         try { player.playSound(player.getLocation(), Sound.BLOCK_BEACON_AMBIENT, 0.28f, 2.0f); } catch (Throwable ignored) {}
         final int[] t = {0};
         Bukkit.getScheduler().runTaskTimer(plugin, task -> {
@@ -92,15 +93,14 @@ public class PaladinAbility implements Ability {
             if (t[0] > total) {
                 task.cancel();
                 if (plugin.getConfigUtil().getBoolean("paladin.implosion-enabled", true)) {
-                    implosion(player, radius * 0.9);
+                    implosion(player, Math.max(0.1, radius * 0.9));
                 }
                 return;
             }
             double phase = t[0] / (double) steps;       // 0..1
             double r = Math.max(0.1, radius * Math.min(1.0, phase));
-            double fade = Math.max(0.0, 1.0 - phase);   // fade out quickly
+            double fade = Math.max(0.0, 1.0 - phase);   // fade out
             org.bukkit.World w = base.getWorld();
-            // outer sparse ring
             for (int i = 0; i < points; i++) {
                 double ang = 2 * Math.PI * i / points;
                 double x = base.getX() + Math.cos(ang) * r;
@@ -108,23 +108,14 @@ public class PaladinAbility implements Ability {
                 Location p = new Location(w, x, base.getY() + 0.15, z);
                 try { w.spawnParticle(Particle.END_ROD, p, (int)Math.max(1, 2*fade), 0.01, 0.01, 0.01, 0.0); } catch (Throwable ignored) {}
             }
-            // tiny inner sparks that disappear even quicker
-            double r2 = Math.max(0.05, r * 0.55);
-            for (int i = 0; i < points/3; i++) {
-                double ang = 2 * Math.PI * i / (points/3);
-                double x = base.getX() + Math.cos(ang) * r2;
-                double z = base.getZ() + Math.sin(ang) * r2;
-                Location p = new Location(w, x, base.getY() + 0.22, z);
-                try { w.spawnParticle(Particle.CRIT, p, (int)Math.max(0, 1*fade), 0.005, 0.005, 0.005, 0.0); } catch (Throwable ignored) {}
-            }
             t[0]++;
         }, 0L, 1L);
     }
 
     private void implosion(Player player, double radius) {
         if (player == null || !player.isOnline() || !player.isValid()) return;
-        final int ticks = 3; // 2–3 ticks
-        final int points = 24;
+        final int ticks = 3; // sehr kurz
+        final int points = Math.max(24, (int) Math.round(2 * Math.PI * radius * 0.75));
         final double startR = Math.max(0.3, radius);
         for (int i = 0; i < ticks; i++) {
             final int ti = i;

@@ -12,6 +12,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
+import org.bysenom.minecraftSurvivors.manager.GameManager;
 import org.bysenom.minecraftSurvivors.manager.PlayerManager;
 import org.bysenom.minecraftSurvivors.model.SurvivorPlayer;
 import org.bysenom.minecraftSurvivors.util.PlayerDataManager;
@@ -74,6 +75,14 @@ public class PlayerDataListener implements Listener {
         if (sp != null) {
             Bukkit.getScheduler().runTaskAsynchronously(MinecraftSurvivors.getInstance(), () -> dataManager.save(sp));
         }
+        // If a player leaves while a countdown is running, abort the countdown
+        try {
+            GameManager gm = MinecraftSurvivors.getInstance().getGameManager();
+            if (gm != null) {
+                try { gm.abortStartCountdown("player quit: " + e.getPlayer().getName()); } catch (Throwable ignored) {}
+                try { gm.resumeForPlayer(uuid); } catch (Throwable ignored) {}
+            }
+        } catch (Throwable ignored) {}
         playerManager.remove(uuid);
         loading.remove(uuid);
     }

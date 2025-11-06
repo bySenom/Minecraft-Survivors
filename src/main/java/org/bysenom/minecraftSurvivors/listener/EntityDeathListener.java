@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bysenom.minecraftSurvivors.ability.AbilityCatalog;
 import org.bysenom.minecraftSurvivors.gui.GuiManager;
 import org.bysenom.minecraftSurvivors.manager.PlayerManager;
 import org.bysenom.minecraftSurvivors.model.SurvivorPlayer;
@@ -25,12 +26,13 @@ public class EntityDeathListener implements Listener {
 
     @EventHandler
     public void onEntityDeath(EntityDeathEvent e) {
+        Player killer = null;
         if (e.getEntity().getKiller() instanceof Player) {
-            Player killer = e.getEntity().getKiller();
+            killer = (Player) e.getEntity().getKiller();
             SurvivorPlayer sp = playerManager.get(killer.getUniqueId());
             sp.addKill();
             sp.addCoins(1); // einfache Belohnung
-            killer.sendActionBar(Component.text("Kills: " + sp.getKills() + "  Coins: " + sp.getCoins()));
+            try { killer.sendActionBar(Component.text("Kills: " + sp.getKills() + "  Coins: " + sp.getCoins())); } catch (Throwable ignored) {}
 
             int xpGain = 1;
             try { if (config != null) xpGain = config.getInt("levelup.xp-per-kill", 1); } catch (Throwable ignored) {}
@@ -67,8 +69,37 @@ public class EntityDeathListener implements Listener {
             int chance = org.bysenom.minecraftSurvivors.MinecraftSurvivors.getInstance().getConfigUtil().getInt("spawn.loot.chest-drop-chance-percentage", 5);
             if (chance > 0 && new java.util.Random().nextInt(100) < chance) {
                 org.bukkit.Location loc = dead.getLocation();
-                // Spawne schwebende Lootchest (ItemDisplay + TextDisplay); Öffnen per N&auml;herung
+                // Spawne schwebende Lootchest (ItemDisplay + TextDisplay); Öffnen per Nähe
                 org.bysenom.minecraftSurvivors.listener.LootchestListener.spawnLootChest(loc);
+            }
+
+            // Glyph drop chance (configurable). Picks a random ability from AbilityCatalog and spawns a glyph like a lootchest
+            int glyphChance = org.bysenom.minecraftSurvivors.MinecraftSurvivors.getInstance().getConfigUtil().getInt("spawn.glyph.drop-chance-percentage", 2);
+            if (glyphChance > 0 && new java.util.Random().nextInt(100) < glyphChance) {
+                org.bukkit.Location loc = dead.getLocation();
+                java.util.List<AbilityCatalog.Def> allDefs = new java.util.ArrayList<>(AbilityCatalog.all());
+                java.util.List<AbilityCatalog.Def> pool = new java.util.ArrayList<>();
+                // Prefer glyphs the killer actually has/unlocked. Also ensure equipment compatibility if configured.
+                try {
+                    if (killer != null) {
+                        org.bysenom.minecraftSurvivors.model.SurvivorPlayer spk = playerManager.get(killer.getUniqueId());
+                        for (AbilityCatalog.Def d : allDefs) {
+                            try {
+                                // Only include abilities the player has (active) or explicitly unlocked
+                                boolean owned = spk != null && (spk.hasAbility(d.key) || spk.hasUnlockedAbility(d.key));
+                                if (!owned) continue;
+                                // Optional: still respect equipment compatibility as a secondary check
+                                if (isAbilityCompatibleWithPlayer(d, killer)) pool.add(d);
+                                else pool.add(d); // keep for now to not over-filter; change if you want stricter behavior
+                            } catch (Throwable ignored) {}
+                        }
+                    }
+                } catch (Throwable ignored) {}
+                if (pool.isEmpty()) pool = allDefs; // fallback: if nothing matched, keep original behaviour
+                if (!pool.isEmpty()) {
+                    AbilityCatalog.Def pick = pool.get(new java.util.Random().nextInt(pool.size()));
+                    try { org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.spawnGlyph(loc, pick.key); } catch (Throwable ignored) {}
+                }
             }
         } catch (Throwable ignored) {}
     }
@@ -88,5 +119,33 @@ public class EntityDeathListener implements Listener {
             if (afterLevel > beforeLevel) player.sendMessage(Component.text("§aLevel up! Du bist jetzt Level " + afterLevel));
             else player.sendMessage(Component.text("§aLevel up!"));
         }
+    }
+
+    // Determine if an ability makes sense to spawn for a given player based on their equipment
+    private boolean isAbilityCompatibleWithPlayer(AbilityCatalog.Def def, Player p) {
+        if (def == null || p == null) return true;
+        try {
+            org.bukkit.Material icon = def.icon;
+            if (icon == null) return true;
+            // If ability uses BOW as icon, require player to have BOW/CROSSBOW in main/offhand or hotbar
+            if (icon == org.bukkit.Material.BOW) {
+                // check main/off hand
+                org.bukkit.inventory.ItemStack main = p.getInventory().getItemInMainHand();
+                org.bukkit.inventory.ItemStack off = p.getInventory().getItemInOffHand();
+                if (main != null && (main.getType() == org.bukkit.Material.BOW || main.getType() == org.bukkit.Material.CROSSBOW)) return true;
+                if (off != null && (off.getType() == org.bukkit.Material.BOW || off.getType() == org.bukkit.Material.CROSSBOW)) return true;
+                // check hotbar
+                for (int i = 0; i < 9; i++) {
+                    org.bukkit.inventory.ItemStack it = p.getInventory().getItem(i);
+                    if (it == null) continue;
+                    org.bukkit.Material t = it.getType();
+                    if (t == org.bukkit.Material.BOW || t == org.bukkit.Material.CROSSBOW) return true;
+                }
+                return false; // no bow/crossbow found
+            }
+            // Other icons/abilities are considered universal for now
+            return true;
+        } catch (Throwable ignored) {}
+        return true;
     }
 }

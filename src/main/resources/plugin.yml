@@ -31,6 +31,22 @@ commands:
     permission: minecraftsurvivors.admin
     permission-message: "§cKeine Berechtigung."
 
+  msversion:
+    description: "Zeigt Plugin-Version an."
+    usage: "/msversion"
+
+  mshealth:
+    description: "Zeigt eine kompakte Statusübersicht (Admin)."
+    usage: "/mshealth"
+    permission: minecraftsurvivors.admin
+    permission-message: "§cKeine Berechtigung."
+
+  spawnglyph:
+    description: "(DEV) Spawnt eine Glyphen-Sockel in deiner Nähe: /spawnglyph <abilityKey|random>"
+    usage: "/spawnglyph <abilityKey|random>"
+    permission: minecraftsurvivors.admin
+    permission-message: "§cKeine Berechtigung."
+
   party:
     description: "Party-System: /party create|invite|join|leave|disband|list"
     usage: "/party <sub>"
@@ -38,6 +54,12 @@ commands:
   msversion:
     description: "Zeigt Plugin-Version an."
     usage: "/msversion"
+
+  mshealth:
+    description: "Zeigt eine kompakte Statusübersicht (Admin)."
+    usage: "/mshealth"
+    permission: minecraftsurvivors.admin
+    permission-message: "§cKeine Berechtigung."
 permissions:
   minecraftsurvivors.admin:
     description: "Erlaubnis zum Starten/Stoppen und Admin-Kommandos"

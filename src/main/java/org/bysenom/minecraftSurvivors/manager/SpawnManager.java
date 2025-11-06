@@ -42,10 +42,56 @@ public class SpawnManager {
     private static final org.bukkit.NamespacedKey MOVEMENT_SPEED = org.bukkit.NamespacedKey.minecraft("generic.movement_speed");
     private static final org.bukkit.NamespacedKey ATTACK_DAMAGE = org.bukkit.NamespacedKey.minecraft("generic.attack_damage");
 
+    // PDC Keys für Baseline-Attribute
+    private static final org.bukkit.NamespacedKey BASE_MAX_HP = new org.bukkit.NamespacedKey("minecraftsurvivors","base_max_hp");
+    private static final org.bukkit.NamespacedKey BASE_SPEED = new org.bukkit.NamespacedKey("minecraftsurvivors","base_speed");
+    private static final org.bukkit.NamespacedKey BASE_DAMAGE = new org.bukkit.NamespacedKey("minecraftsurvivors","base_damage");
+
     public SpawnManager(MinecraftSurvivors plugin, @SuppressWarnings("unused") PlayerManager playerManager) {
         this.plugin = plugin;
         this.waveKey = new NamespacedKey(plugin, "ms_wave");
         this.eliteKey = new org.bukkit.NamespacedKey(plugin, "ms_elite");
+    }
+
+    private BukkitTask scalingTask;
+
+    private void ensureScalingTask() {
+        if (scalingTask != null && !scalingTask.isCancelled()) return;
+        int periodTicks = Math.max(20, plugin.getConfigUtil().getInt("scaling.update-interval-ticks", 40));
+        scalingTask = org.bukkit.Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            try {
+                if (plugin.getGameManager() == null || plugin.getGameManager().getState() != org.bysenom.minecraftSurvivors.model.GameState.RUNNING) return;
+                double minutes = getElapsedMinutes();
+                for (org.bukkit.World w : org.bukkit.Bukkit.getWorlds()) {
+                    for (org.bukkit.entity.Entity e : w.getEntities()) {
+                        if (!(e instanceof org.bukkit.entity.LivingEntity)) continue;
+                        if (!e.getPersistentDataContainer().has(waveKey, org.bukkit.persistence.PersistentDataType.BYTE)) continue;
+                        applyScaling((org.bukkit.entity.LivingEntity) e, minutes);
+                    }
+                }
+            } catch (Throwable ignored) {}
+        }, periodTicks, periodTicks);
+    }
+
+    private void captureBaselineIfMissing(LivingEntity mob) {
+        try {
+            org.bukkit.persistence.PersistentDataContainer pdc = mob.getPersistentDataContainer();
+            if (!pdc.has(BASE_MAX_HP, org.bukkit.persistence.PersistentDataType.DOUBLE)) {
+                double v = 20.0;
+                try { org.bukkit.attribute.AttributeInstance a = mob.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH); if (a != null) v = a.getBaseValue(); } catch (Throwable ignored) {}
+                pdc.set(BASE_MAX_HP, org.bukkit.persistence.PersistentDataType.DOUBLE, v);
+            }
+            if (!pdc.has(BASE_SPEED, org.bukkit.persistence.PersistentDataType.DOUBLE)) {
+                double v = 0.25;
+                try { org.bukkit.attribute.AttributeInstance a = mob.getAttribute(org.bukkit.attribute.Attribute.MOVEMENT_SPEED); if (a != null) v = a.getBaseValue(); } catch (Throwable ignored) {}
+                pdc.set(BASE_SPEED, org.bukkit.persistence.PersistentDataType.DOUBLE, v);
+            }
+            if (!pdc.has(BASE_DAMAGE, org.bukkit.persistence.PersistentDataType.DOUBLE)) {
+                double v = 3.0;
+                try { org.bukkit.attribute.AttributeInstance a = mob.getAttribute(org.bukkit.attribute.Attribute.ATTACK_DAMAGE); if (a != null) v = a.getBaseValue(); } catch (Throwable ignored) {}
+                pdc.set(BASE_DAMAGE, org.bukkit.persistence.PersistentDataType.DOUBLE, v);
+            }
+        } catch (Throwable ignored) {}
     }
 
     public void spawnWave(int waveNumber) {
@@ -65,6 +111,7 @@ public class SpawnManager {
 
                 // mark as wave mob
                 mob.getPersistentDataContainer().set(waveKey, PersistentDataType.BYTE, (byte) 1);
+                captureBaselineIfMissing(mob);
 
                 if (shouldGlow) {
                     try {
@@ -83,6 +130,7 @@ public class SpawnManager {
                 playSpawnAnimation(spawnLoc);
             }
         }
+        ensureScalingTask();
     }
 
     public void clearWaveMobs() {
@@ -300,6 +348,7 @@ public class SpawnManager {
             }
         }.runTaskTimer(plugin, 0L, Math.max(1L, ticksPerCycle));
         plugin.getLogger().info("Continuous spawn started (ticks-per-cycle=" + ticksPerCycle + ")");
+        ensureScalingTask();
     }
 
     public synchronized void pauseContinuous() {
@@ -323,6 +372,7 @@ public class SpawnManager {
             continuousTask = null;
         }
         spawnAccumulator.clear();
+        if (scalingTask != null) { scalingTask.cancel(); scalingTask = null; }
     }
 
     private void continuousTick() {
@@ -419,6 +469,7 @@ public class SpawnManager {
                     mob = (LivingEntity) p.getWorld().spawnEntity(spawnLoc, EntityType.ZOMBIE);
                 }
                 mob.getPersistentDataContainer().set(waveKey, PersistentDataType.BYTE, (byte) 1);
+                captureBaselineIfMissing(mob);
                 // Elite roll
                 maybeMakeElite(mob);
                 if (shouldGlow) {
@@ -451,6 +502,12 @@ public class SpawnManager {
 
     private void applyScaling(LivingEntity mob, double minutes) {
         try {
+            captureBaselineIfMissing(mob);
+            org.bukkit.persistence.PersistentDataContainer pdc = mob.getPersistentDataContainer();
+            double baseHp = pdc.getOrDefault(BASE_MAX_HP, org.bukkit.persistence.PersistentDataType.DOUBLE, 20.0);
+            double baseSpd = pdc.getOrDefault(BASE_SPEED, org.bukkit.persistence.PersistentDataType.DOUBLE, 0.25);
+            double baseDmg = pdc.getOrDefault(BASE_DAMAGE, org.bukkit.persistence.PersistentDataType.DOUBLE, 3.0);
+
             double baseHpm = plugin.getConfigUtil().getDouble("scaling.health-mult-per-minute", 0.10);
             double midMin = plugin.getConfigUtil().getDouble("scaling.health-mid-minute", 4.0);
             double lateMin = plugin.getConfigUtil().getDouble("scaling.health-late-minute", 10.0);
@@ -470,28 +527,94 @@ public class SpawnManager {
             if (minutes >= lateMin) dmgMul = dmgLateMul; else if (minutes >= midMin) dmgMul = dmgMidMul;
             double dmgAdd = Math.max(0, minutes) * (dmgAddPerMin * dmgMul);
 
+            EnrageFactors ef = computeEnrage(minutes);
+
+            // Zielwerte relativ zu Baselines
+            double targetMaxHp = Math.max(1.0, baseHp * healthMult * ef.hMul);
+            double targetSpeed = Math.max(0.01, baseSpd * speedMult * ef.sMul);
+            double targetDamage = Math.max(0.0, (baseDmg + dmgAdd) * ef.dMul);
+
+            // Setzen mit prozentualer Gesundheitserhaltung
             try {
-                org.bukkit.attribute.Attribute maxHealthAttr = org.bukkit.Registry.ATTRIBUTE.get(MAX_HEALTH);
-                org.bukkit.attribute.AttributeInstance maxHp = mob.getAttribute(maxHealthAttr);
+                org.bukkit.attribute.AttributeInstance maxHp = mob.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
                 if (maxHp != null) {
-                    double newBase = Math.max(1.0, maxHp.getBaseValue() * healthMult);
-                    maxHp.setBaseValue(newBase);
-                    try { mob.setHealth(Math.min(newBase, mob.getHealth())); } catch (Throwable ignored) {}
+                    double oldMax = maxHp.getBaseValue();
+                    double oldHealth = mob.getHealth();
+                    double ratio = oldMax > 0.0 ? Math.min(1.0, oldHealth / oldMax) : 1.0;
+                    maxHp.setBaseValue(targetMaxHp);
+                    mob.setHealth(Math.max(1.0, Math.min(targetMaxHp, ratio * targetMaxHp)));
                 }
             } catch (Throwable ignored) {}
             try {
-                org.bukkit.attribute.Attribute moveAttr = org.bukkit.Registry.ATTRIBUTE.get(MOVEMENT_SPEED);
-                org.bukkit.attribute.AttributeInstance move = mob.getAttribute(moveAttr);
-                if (move != null) move.setBaseValue(Math.max(0.01, move.getBaseValue() * speedMult));
+                org.bukkit.attribute.AttributeInstance move = mob.getAttribute(org.bukkit.attribute.Attribute.MOVEMENT_SPEED);
+                if (move != null) move.setBaseValue(targetSpeed);
             } catch (Throwable ignored) {}
             try {
-                org.bukkit.attribute.Attribute dmgAttr = org.bukkit.Registry.ATTRIBUTE.get(ATTACK_DAMAGE);
-                org.bukkit.attribute.AttributeInstance dmg = mob.getAttribute(dmgAttr);
-                if (dmg != null) dmg.setBaseValue(Math.max(0.0, dmg.getBaseValue() + dmgAdd));
+                org.bukkit.attribute.AttributeInstance dmg = mob.getAttribute(org.bukkit.attribute.Attribute.ATTACK_DAMAGE);
+                if (dmg != null) dmg.setBaseValue(targetDamage);
             } catch (Throwable ignored) {}
         } catch (Throwable ignored) {}
     }
 
+    // Enrage-Konfiguration wird aus der Config gelesen
+    private boolean enrageEnabled() { return plugin.getConfigUtil().getBoolean("enrage.enabled", true); }
+    private double enrageStartMinute() { return plugin.getConfigUtil().getDouble("enrage.start-minute", 12.0); }
+    private double enrageRampMinutes() { return Math.max(0.1, plugin.getConfigUtil().getDouble("enrage.ramp-minutes", 3.0)); }
+    private double enrageHealthMax() { return Math.max(1.0, plugin.getConfigUtil().getDouble("enrage.health-mult-max", 3.0)); }
+    private double enrageSpeedMax() { return Math.max(1.0, plugin.getConfigUtil().getDouble("enrage.speed-mult-max", 1.6)); }
+    private double enrageDamageMax() { return Math.max(1.0, plugin.getConfigUtil().getDouble("enrage.damage-mult-max", 2.0)); }
+
+    private EnrageFactors computeEnrage(double minutes) {
+        if (!enrageEnabled()) return new EnrageFactors(0.0, 1.0, 1.0, 1.0);
+        double start = enrageStartMinute();
+        double ramp = enrageRampMinutes();
+        if (minutes <= start) return new EnrageFactors(0.0, 1.0, 1.0, 1.0);
+        // Kein Max-Cap: nach der Ramp geht es linear weiter
+        double prog = Math.max(0.0, (minutes - start) / ramp);
+        double h = 1.0 + (enrageHealthMax() - 1.0) * prog;
+        double s = 1.0 + (enrageSpeedMax() - 1.0) * prog;
+        double d = 1.0 + (enrageDamageMax() - 1.0) * prog;
+        return new EnrageFactors(Math.min(1.0, prog), h, s, d);
+    }
+
+    // Öffentliche Metriken für Anzeige
+    public double getElapsedMinutes() {
+        if (continuousStartMillis <= 0L) return 0.0;
+        long dt = System.currentTimeMillis() - continuousStartMillis;
+        return dt / 60000.0;
+    }
+
+    public double getEnrageProgress() {
+        double m = getElapsedMinutes();
+        return computeEnrage(m).prog;
+    }
+
+    public double getEnemyPowerIndex() {
+        double minutes = getElapsedMinutes();
+        double baseHpm = plugin.getConfigUtil().getDouble("scaling.health-mult-per-minute", 0.10);
+        double midMin = plugin.getConfigUtil().getDouble("scaling.health-mid-minute", 4.0);
+        double lateMin = plugin.getConfigUtil().getDouble("scaling.health-late-minute", 10.0);
+        double midMul = plugin.getConfigUtil().getDouble("scaling.health-mid-multiplier", 1.35);
+        double lateMul = plugin.getConfigUtil().getDouble("scaling.health-late-multiplier", 1.80);
+        double speedPerMin = plugin.getConfigUtil().getDouble("scaling.speed-mult-per-minute", 0.05);
+        double dmgAddPerMin = plugin.getConfigUtil().getDouble("scaling.damage-add-per-minute", 0.5);
+        double dmgMidMul = plugin.getConfigUtil().getDouble("scaling.damage-mid-multiplier", 1.10);
+        double dmgLateMul = plugin.getConfigUtil().getDouble("scaling.damage-late-multiplier", 1.25);
+
+        double healthMultPerMin = baseHpm;
+        if (minutes >= lateMin) healthMultPerMin *= lateMul; else if (minutes >= midMin) healthMultPerMin *= midMul;
+        double h = 1.0 + Math.max(0, minutes) * healthMultPerMin;
+        double s = 1.0 + Math.max(0, minutes) * (speedPerMin * 0.9);
+        double dAdd = Math.max(0, minutes) * (dmgAddPerMin * (minutes >= lateMin ? dmgLateMul : (minutes >= midMin ? dmgMidMul : 1.0)));
+
+        EnrageFactors ef = computeEnrage(minutes);
+        double dMul = ef.dMul;
+        double power = h * ef.hMul * s * ef.sMul * (1.0 + (dAdd / 5.0)) * dMul; // grobe Gesamtstärke
+        if (!Double.isFinite(power)) power = 1.0;
+        return Math.max(0.1, power);
+    }
+
+    // Re-add missing methods
     private void maybeMakeElite(LivingEntity mob) {
         try {
             int baseChance = plugin.getConfigUtil().getInt("spawn.elite.chance-percentage", 8);
@@ -523,12 +646,6 @@ public class SpawnManager {
     private static class Weighted {
         final EntityType type; final int weight;
         Weighted(EntityType t, int w) { this.type = t; this.weight = w; }
-    }
-
-    private double getElapsedMinutes() {
-        if (continuousStartMillis <= 0L) return 0.0;
-        long dt = System.currentTimeMillis() - continuousStartMillis;
-        return dt / 60000.0;
     }
 
     private EntityType pickEntityType(double minutes) {
@@ -597,11 +714,12 @@ public class SpawnManager {
                     double y = 0.35 + 0.15 * random.nextDouble();
                     org.bukkit.util.Vector v = new org.bukkit.util.Vector(dir.getX() * strength, y, dir.getZ() * strength);
                     le.setVelocity(v);
-                    // kleiner Effekt
                     try { le.getWorld().playSound(le.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_ATTACK_KNOCKBACK, 0.8f, 1.0f); } catch (Throwable ignored) {}
                     try { le.getWorld().spawnParticle(org.bukkit.Particle.CLOUD, le.getLocation().add(0,0.2,0), 6, 0.25, 0.1, 0.25, 0.01); } catch (Throwable ignored) {}
                 } catch (Throwable ignored) {}
             }
         } catch (Throwable ignored) {}
     }
+
+    private static final class EnrageFactors { final double prog, hMul, sMul, dMul; EnrageFactors(double p,double h,double s,double d){prog=p;hMul=h;sMul=s;dMul=d;} }
 }

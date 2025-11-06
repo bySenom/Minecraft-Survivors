@@ -36,7 +36,7 @@ public class RangerAbility implements Ability {
         double baseDamage = plugin.getConfigUtil().getDouble("ranger.base-damage", 7.0);
         int level = Math.max(1, sp != null ? sp.getClassLevel() : 1);
 
-        double damage = baseDamage + (sp != null ? sp.getFlatDamage() : 0.0) + (sp != null ? sp.getBonusDamage() : 0.0);
+        double damage = baseDamage + (sp != null ? sp.getDamageAddTotal() : 0.0);
         damage *= Math.max(1.0, 1.0 + 0.12 * (level - 1));
         if (sp != null) {
             damage *= (1.0 + sp.getDamageMult());
@@ -61,11 +61,11 @@ public class RangerAbility implements Ability {
 
         int multi = 1 + Math.max(0, (sp != null ? sp.getBonusStrikes() : 0)); // mehrere Pfeile
         int pierce = Math.max(0, (sp != null ? sp.getRangerPierce() : 0));    // wie viele Ziele wird ein Pfeil durchdringen
-        // AttackSpeed scaling: more arrows and slight pierce boost
+        // AttackSpeed scaling: ohne Cap; Piercing wächst mit AS leicht mit
         double as = sp != null ? Math.max(0.0, sp.getAttackSpeedMult()) : 0.0;
-        double factor = Math.min(3.0, 1.0 + as);
+        double factor = 1.0 + as;
         multi = Math.max(1, (int) Math.floor(multi * factor));
-        pierce = Math.min(8, (int) Math.floor(pierce * (1.0 + as * 0.5)));
+        pierce = Math.max(0, (int) Math.floor(pierce * (1.0 + as * 0.5)));
 
         int fired = 0;
         for (LivingEntity target : mobs) {

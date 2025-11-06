@@ -26,6 +26,8 @@ public final class MinecraftSurvivors extends JavaPlugin {
     private GuiManager guiManager;
     private org.bysenom.minecraftSurvivors.manager.ShopNpcManager shopNpcManager;
     private org.bysenom.minecraftSurvivors.manager.SkillManager skillManager;
+    private org.bysenom.minecraftSurvivors.manager.HoloHpManager holoHpManager;
+    private org.bysenom.minecraftSurvivors.manager.TablistManager tablistManager;
     private org.bukkit.scheduler.BukkitTask autosaveTask;
 
     @Override
@@ -47,6 +49,8 @@ public final class MinecraftSurvivors extends JavaPlugin {
         this.shopManager = new org.bysenom.minecraftSurvivors.manager.ShopManager(this);
         this.metaManager = new org.bysenom.minecraftSurvivors.manager.MetaProgressionManager(this);
         this.skillManager = new org.bysenom.minecraftSurvivors.manager.SkillManager(this);
+        this.holoHpManager = new org.bysenom.minecraftSurvivors.manager.HoloHpManager(this);
+        this.tablistManager = new org.bysenom.minecraftSurvivors.manager.TablistManager(this, playerManager, gameManager);
 
         // GuiManager als Feld speichern
         this.guiManager = new GuiManager(this, gameManager);
@@ -76,6 +80,13 @@ public final class MinecraftSurvivors extends JavaPlugin {
             cmd = getCommand("msversion");
             if (cmd != null) cmd.setExecutor(new org.bysenom.minecraftSurvivors.command.VersionCommand());
 
+            cmd = getCommand("mshealth");
+            if (cmd != null) cmd.setExecutor(new org.bysenom.minecraftSurvivors.command.MsHealthCommand());
+
+            // dev command to spawn glyphs for testing
+            cmd = getCommand("spawnglyph");
+            if (cmd != null) cmd.setExecutor(new org.bysenom.minecraftSurvivors.command.SpawnGlyphCommand());
+
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.EntityDeathListener(playerManager, guiManager, this.configUtil), this);
             getServer().getPluginManager().registerEvents(new PlayerDeathListener(gameManager, playerManager, this.playerDataManager), this);
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.PlayerDataListener(this.playerDataManager, playerManager), this);
@@ -83,15 +94,22 @@ public final class MinecraftSurvivors extends JavaPlugin {
             getServer().getPluginManager().registerEvents(new GuiClickListener(this, guiManager), this);
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.gui.LevelUpMenuListener(guiManager), this);
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.DamageHealListener(this), this);
+            // ReplaceAbilityMenu Listener
+            getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.gui.ReplaceAbilityMenu.Listener(this), this);
+            // ReplaceConfirmMenu Listener (confirmation dialog)
+            getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.gui.ReplaceConfirmMenu.Listener(this), this);
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.LootchestListener(this), this);
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.SkillListener(this), this);
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.ShopNpcListener(this, shopNpcManager), this);
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.DashListener(this), this);
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.HungerListener(), this);
+            getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.gui.GlyphSocketMenu.Listener(this), this);
+            getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.GlyphPickupListener(this), this);
 
             this.scoreboardManager.start();
             try { this.statsDisplayManager.start(); } catch (Throwable ignored) {}
             try { this.skillManager.start(); } catch (Throwable ignored) {}
+            try { this.tablistManager.start(); } catch (Throwable ignored) {}
 
             // Autosave Spieler-Daten asynchron in konfigurierbarem Intervall
             int autosaveSec = this.configUtil.getInt("data.autosave-interval-seconds", 120);
@@ -122,6 +140,7 @@ public final class MinecraftSurvivors extends JavaPlugin {
     public void onDisable() {
         try { if (this.scoreboardManager != null) this.scoreboardManager.stop(); } catch (Throwable ignored) {}
         try { if (this.statsDisplayManager != null) this.statsDisplayManager.stop(); } catch (Throwable ignored) {}
+        try { if (this.tablistManager != null) this.tablistManager.stop(); } catch (Throwable ignored) {}
         try { if (this.metaManager != null) this.metaManager.saveAll(); } catch (Throwable ignored) {}
         try { if (this.shopNpcManager != null) this.shopNpcManager.despawnAll(); } catch (Throwable ignored) {}
         try { if (this.skillManager != null) this.skillManager.stop(); } catch (Throwable ignored) {}
@@ -144,4 +163,7 @@ public final class MinecraftSurvivors extends JavaPlugin {
     public GuiManager getGuiManager() { return guiManager; }
     public org.bysenom.minecraftSurvivors.manager.ShopNpcManager getShopNpcManager() { return shopNpcManager; }
     public org.bysenom.minecraftSurvivors.manager.SkillManager getSkillManager() { return skillManager; }
+    public org.bysenom.minecraftSurvivors.manager.HoloHpManager getHoloHpManager() { return holoHpManager; }
+    public org.bysenom.minecraftSurvivors.manager.TablistManager getTablistManager() { return tablistManager; }
+    public org.bysenom.minecraftSurvivors.util.PlayerDataManager getPlayerDataManager() { return playerDataManager; }
 }

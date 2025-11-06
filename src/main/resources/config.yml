@@ -82,16 +82,16 @@ spawnMobTypes:
 
 # Scaling (verstärkt Gegner über Zeit)
 scaling:
-  health-mult-per-minute: 0.10
+  health-mult-per-minute: 0.18
   # New: separate mid/late knobs for live tuning
-  health-mid-minute: 4.0
-  health-late-minute: 10.0
-  health-mid-multiplier: 1.35
-  health-late-multiplier: 1.80
-  speed-mult-per-minute: 0.05
-  damage-add-per-minute: 0.5
-  damage-mid-multiplier: 1.10
-  damage-late-multiplier: 1.25
+  health-mid-minute: 3.0
+  health-late-minute: 8.0
+  health-mid-multiplier: 1.45
+  health-late-multiplier: 1.90
+  speed-mult-per-minute: 0.08
+  damage-add-per-minute: 0.8
+  damage-mid-multiplier: 1.20
+  damage-late-multiplier: 1.35
 
 # Slotmaschine Tuning
 lootchest:
@@ -401,3 +401,22 @@ meta:
 # Daten & Persistenz
 data:
   autosave-interval-seconds: 120  # 0 zum Deaktivieren; Standard alle 120s werden Spieler-Daten asynchron gespeichert
+enrage:
+  enabled: true
+  start-minute: 12.0       # Ab wann Enrage beginnt (10–15min empfohlen)
+  ramp-minutes: 3.0        # Über wie viele Minuten auf Max hochfahren
+  health-mult-max: 3.0     # Maximaler zusätzlicher Health-Multiplikator (x3)
+  speed-mult-max: 1.6      # Maximaler Speed-Multiplikator (x1.6)
+  damage-mult-max: 2.0     # Maximaler Damage-Multiplikator (x2.0)
+
+endgame:
+  enabled: true
+  boss:
+    type: WITHER
+
+tablist:
+  enabled: true
+  update-interval-ticks: 20
+  header-title: "Minecraft Survivors"
+  show-enemy-power: true
+  show-party-hp: true

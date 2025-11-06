@@ -1,10 +1,8 @@
 # MinecraftSurvivors
 
-[Hinweis: Ersetze OWNER/REPO unten durch dein GitHub Repo z. B. bySenom/MinecraftSurvivors]
-
-[![Build](https://github.com/OWNER/REPO/actions/workflows/build.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/build.yml)
-[![Release](https://github.com/OWNER/REPO/actions/workflows/release.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/release.yml)
-[![CodeQL](https://github.com/OWNER/REPO/actions/workflows/codeql.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/codeql.yml)
+[![Build](https://github.com/bySenom/Minecraft-Survivors/actions/workflows/build.yml/badge.svg)](https://github.com/bySenom/Minecraft-Survivors/actions/workflows/build.yml)
+[![Release](https://github.com/bySenom/Minecraft-Survivors/actions/workflows/release.yml/badge.svg)](https://github.com/bySenom/Minecraft-Survivors/actions/workflows/release.yml)
+[![CodeQL](https://github.com/bySenom/Minecraft-Survivors/actions/workflows/codeql.yml/badge.svg)](https://github.com/bySenom/Minecraft-Survivors/actions/workflows/codeql.yml)
 
 Ein kompaktes, erweiterbares Minecraft (Paper/Spigot) Minigame im Stil von "Vampire Survivors". Enthält Klassen, kontinuierliche Gegner-Spawns, Level‑Ups mit Upgrades, ein ausgebautes GUI (Party/Stats/Config steuerbar) und einen DPS/HPS‑Meter mit umschaltbaren Anzeigemodi.
 

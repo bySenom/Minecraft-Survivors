@@ -18,6 +18,7 @@ public class StatsDisplayManager {
     private final StatsMeterManager meter;
     private final Map<UUID, BossBar> bossbarsDps = new java.util.concurrent.ConcurrentHashMap<>();
     private final Map<UUID, BossBar> bossbarsHps = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Map<UUID, BossBar> bossbarsEnemy = new java.util.concurrent.ConcurrentHashMap<>();
     private org.bukkit.scheduler.BukkitTask task;
     private org.bukkit.scheduler.BukkitTask broadcastTask;
     private final java.util.Map<java.util.UUID, Double> stickyDpsCap = new java.util.concurrent.ConcurrentHashMap<>();
@@ -85,6 +86,7 @@ public class StatsDisplayManager {
                     break;
                 case BOSSBAR:
                     updateBossbars(p, dps, hps);
+                    updateEnemyBossbar(p);
                     break;
                 case SCOREBOARD:
                     // handled by ScoreboardManager HUD
@@ -140,6 +142,24 @@ public class StatsDisplayManager {
         p.showBossBar(h);
     }
 
+    private void updateEnemyBossbar(Player p) {
+        try {
+            SpawnManager sm = plugin.getGameManager().getSpawnManager();
+            double minutes = sm.getElapsedMinutes();
+            double power = sm.getEnemyPowerIndex();
+            double enrage = sm.getEnrageProgress();
+            BossBar e = bossbarsEnemy.computeIfAbsent(p.getUniqueId(), id -> BossBar.bossBar(Component.text("Enemy Power"), 0.0f, BossBar.Color.PURPLE, BossBar.Overlay.PROGRESS));
+            // Zeige Power mit 2 Nachkommastellen und dynamischem Cap durch log-Skalierung
+            e.name(Component.text(String.format("Enemy %.2fx • %dm %02ds • Enrage %d%%", power, (int)minutes, (int)((minutes*60)%60), (int)Math.round(enrage*100)), NamedTextColor.LIGHT_PURPLE));
+            // Progress: log-sigmoid, damit hohe Werte nicht sofort 100% clampen
+            double prog = Math.tanh(Math.log10(Math.max(1.0, power)));
+            e.progress((float) Math.max(0.0, Math.min(1.0, prog)));
+            BossBar.Color col = enrage >= 1.0 ? BossBar.Color.RED : (enrage > 0.0 ? BossBar.Color.PINK : BossBar.Color.PURPLE);
+            try { e.color(col); } catch (Throwable ignored) {}
+            p.showBossBar(e);
+        } catch (Throwable ignored) {}
+    }
+
     private double smoothSticky(java.util.Map<java.util.UUID, Double> map, java.util.UUID id, double target, double alpha) {
         Double prev = map.get(id);
         double out = (prev == null) ? target : (prev * (1.0 - alpha) + target * alpha);
@@ -153,8 +173,10 @@ public class StatsDisplayManager {
         for (Player p : Bukkit.getOnlinePlayers()) {
             BossBar d = bossbarsDps.remove(p.getUniqueId());
             BossBar h = bossbarsHps.remove(p.getUniqueId());
+            BossBar e = bossbarsEnemy.remove(p.getUniqueId());
             try { if (d != null) p.hideBossBar(d); } catch (Throwable ignored) {}
             try { if (h != null) p.hideBossBar(h); } catch (Throwable ignored) {}
+            try { if (e != null) p.hideBossBar(e); } catch (Throwable ignored) {}
         }
     }
 

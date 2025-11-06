@@ -51,7 +51,14 @@ public class DamageHealListener implements Listener {
         double amount = e.getFinalDamage();
         if (amount <= 0) return;
         try { plugin.getStatsMeterManager().recordDamage(damagerPlayer.getUniqueId(), amount); } catch (Throwable ignored) {}
+        // HP-Bar via HoloHpManager (ruckelfrei als Passenger/Follow)
+        try {
+            LivingEntity le = (LivingEntity) e.getEntity();
+            double hp = Math.max(0.0, le.getHealth() - amount);
+            double max = le.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH) != null ? le.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getBaseValue() : Math.max(1.0, le.getHealth());
+            plugin.getHoloHpManager().updateBar(le, hp, max);
+        } catch (Throwable ignored) {}
     }
 
-    // For HPS, PaladinAbility will call plugin.getStatsMeterManager().recordHeal(...) directly
+    // Entfernt: lokale makeBar/Timer/TextDisplay-Implementierung – jetzt zentral im Manager
 }

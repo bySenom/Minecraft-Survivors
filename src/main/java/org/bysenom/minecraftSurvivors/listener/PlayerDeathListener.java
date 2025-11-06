@@ -1,7 +1,6 @@
 package org.bysenom.minecraftSurvivors.listener;
 
 import net.kyori.adventure.text.Component;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -37,11 +36,15 @@ public class PlayerDeathListener implements Listener {
             } catch (Throwable ignored) {}
             // Coins reset per Run
             if (sp != null) sp.setCoins(0);
+            // Multiplayer: Run-Ende für alle, und Skills nicht behalten
+            try {
+                for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
+                    org.bysenom.minecraftSurvivors.model.SurvivorPlayer spx = playerManager.get(p.getUniqueId());
+                    if (spx != null) spx.softReset(); // Skills & Waffen resetten
+                }
+            } catch (Throwable ignored) {}
             gameManager.stopGame();
-            if (playerManager != null) {
-                playerManager.remove(player.getUniqueId());
-            }
-            Bukkit.getServer().sendMessage(Component.text("§cRun beendet — " + player.getName() + " ist gestorben."));
+            org.bukkit.Bukkit.getServer().sendMessage(Component.text("§cRun beendet — " + player.getName() + " ist gestorben."));
         }
     }
 }
