@@ -316,7 +316,7 @@ public class GuiClickListener implements Listener {
                         org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.setPendingGlyphWithLog(player.getUniqueId(), pending);
                     }
                     // selection closed now
-                    try { org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.setSelectionOpen(player.getUniqueId(), false); org.bysenom.minecraftSurvivors.listener.clearSelectionContext(player.getUniqueId()); } catch (Throwable ignored) {}
+                    try { org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.setSelectionOpen(player.getUniqueId(), false); org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.clearSelectionContext(player.getUniqueId()); } catch (Throwable ignored) {}
                     new org.bysenom.minecraftSurvivors.gui.GlyphSocketMenu(player, sp, abilityKey);
                     return;
                 }
@@ -360,7 +360,7 @@ public class GuiClickListener implements Listener {
                 boolean ok = sp.replaceGlyph(abilityKey, slot, null);
                 if (ok) { plugin.getPlayerDataManager().saveAsync(sp); org.bysenom.minecraftSurvivors.util.Msg.ok(player, "Glyph entfernt"); }
                 // selection closed now
-                try { org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.setSelectionOpen(player.getUniqueId(), false); org.bysenom.minecraftSurvivors.listener.clearSelectionContext(player.getUniqueId()); } catch (Throwable ignored) {}
+                try { org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.setSelectionOpen(player.getUniqueId(), false); org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.clearSelectionContext(player.getUniqueId()); } catch (Throwable ignored) {}
                 new org.bysenom.minecraftSurvivors.gui.GlyphSocketMenu(player, sp, abilityKey);
             } catch (Throwable ignored) {}
             return;
