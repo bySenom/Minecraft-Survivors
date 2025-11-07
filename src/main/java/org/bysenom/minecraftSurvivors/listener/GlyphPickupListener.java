@@ -42,6 +42,10 @@ public class GlyphPickupListener implements Listener {
     private static final java.util.Set<java.util.UUID> SELECTION_OPEN = java.util.concurrent.ConcurrentHashMap.newKeySet();
     // store selection context so we can reopen socket menu after selection close
     private static final java.util.Map<java.util.UUID, java.util.Map<String, Object>> SELECTION_CTX = new java.util.concurrent.ConcurrentHashMap<>();
+    // mark that selection was handled (clicked) to avoid the close-listener reopening UI twice
+    private static final java.util.Set<java.util.UUID> SELECTION_HANDLED = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    // prevent reopen window for a short period after selection (timestamp expiry)
+    private static final java.util.Map<java.util.UUID, Long> NO_REOPEN_UNTIL = new java.util.concurrent.ConcurrentHashMap<>();
 
     public static void setPendingGlyph(java.util.UUID playerUuid, String glyphKey) { if (playerUuid==null) return; if (glyphKey==null) { PENDING_BY_PLAYER.remove(playerUuid); } else PENDING_BY_PLAYER.put(playerUuid, glyphKey); }
     public static String getPendingGlyph(java.util.UUID playerUuid) { if (playerUuid==null) return null; return PENDING_BY_PLAYER.get(playerUuid); }
@@ -191,8 +195,24 @@ public class GlyphPickupListener implements Listener {
         m.put("slot", slot);
         SELECTION_CTX.put(playerUuid, m);
     }
-    public static java.util.Map<String,Object> consumeSelectionContext(java.util.UUID playerUuid) {
-        if (playerUuid == null) return null; return SELECTION_CTX.remove(playerUuid);
-    }
+    public static java.util.Map<String,Object> consumeSelectionContext(java.util.UUID playerUuid) { if (playerUuid == null) return null; return SELECTION_CTX.remove(playerUuid); }
     public static void clearSelectionContext(java.util.UUID playerUuid) { if (playerUuid == null) return; SELECTION_CTX.remove(playerUuid); }
+
+    public static void markSelectionHandled(java.util.UUID playerUuid) { if (playerUuid == null) return; SELECTION_HANDLED.add(playerUuid); }
+    public static boolean consumeSelectionHandled(java.util.UUID playerUuid) { if (playerUuid == null) return false; return SELECTION_HANDLED.remove(playerUuid); }
+
+    // Prevent reopen window for a short period after selection (timestamp expiry)
+    public static void setNoReopenFor(java.util.UUID playerUuid, int seconds) {
+        if (playerUuid == null) return;
+        long until = System.currentTimeMillis() + Math.max(1, seconds) * 1000L;
+        NO_REOPEN_UNTIL.put(playerUuid, until);
+    }
+    public static boolean isNoReopen(java.util.UUID playerUuid) {
+        if (playerUuid == null) return false;
+        Long t = NO_REOPEN_UNTIL.get(playerUuid);
+        if (t == null) return false;
+        if (System.currentTimeMillis() > t) { NO_REOPEN_UNTIL.remove(playerUuid); return false; }
+        return true;
+    }
+    public static void clearNoReopen(java.util.UUID playerUuid) { if (playerUuid == null) return; NO_REOPEN_UNTIL.remove(playerUuid); }
 }

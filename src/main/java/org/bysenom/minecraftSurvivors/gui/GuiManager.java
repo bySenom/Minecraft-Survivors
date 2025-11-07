@@ -359,6 +359,8 @@ public class GuiManager {
         inv.setItem(12, createGuiItem(Material.AMETHYST_SHARD, Component.text("+10 Essence").color(NamedTextColor.LIGHT_PURPLE), java.util.List.of(Component.text("Meta testen")), "adm_essence"));
         inv.setItem(14, createGuiItem(Material.ZOMBIE_HEAD, Component.text("Spawn Testmobs").color(NamedTextColor.GREEN), java.util.List.of(Component.text("5 Gegner um dich")), "adm_spawn"));
         inv.setItem(16, createGuiItem(Material.CHEST, Component.text("LevelUp öffnen").color(NamedTextColor.AQUA), java.util.List.of(Component.text("Debug LevelUp UI")), "adm_levelup"));
+        // Config Editor entry
+        inv.setItem(8, createGuiItem(Material.CLOCK, Component.text("Config Editor").color(NamedTextColor.YELLOW), java.util.List.of(Component.text("Ingame Konfiguration editieren (Admin)")), "admin_config"));
         inv.setItem(20, createGuiItem(Material.LIME_DYE, Component.text("Toggle Ready").color(NamedTextColor.GREEN), java.util.List.of(Component.text("Ready-Flag toggeln")), "adm_ready_toggle"));
         inv.setItem(22, createGuiItem(Material.REDSTONE_BLOCK, Component.text("Force Start").color(NamedTextColor.RED), java.util.List.of(Component.text("Countdown 3s & Start")), "adm_force_start"));
         inv.setItem(18, createGuiItem(Material.EXPERIENCE_BOTTLE, Component.text("Give Skill Slot +1").color(NamedTextColor.AQUA), java.util.List.of(Component.text("Erhöhe die Anzahl der Skill-Slots um 1")), "adm_skillslot"));
@@ -366,79 +368,198 @@ public class GuiManager {
         p.openInventory(inv);
     }
 
-    public void openShop(Player p) {
+    public void openAdminConfigEditor(Player p) {
         if (p == null) return;
+        if (!p.hasPermission("minecraftsurvivors.admin")) { org.bysenom.minecraftSurvivors.util.Msg.err(p, "Keine Rechte."); return; }
         org.bukkit.configuration.file.FileConfiguration cfg = plugin.getConfigUtil().getConfig();
-        Inventory inv = Bukkit.createInventory(null, 54, Component.text("MinecraftSurvivors - Shop").color(NamedTextColor.LIGHT_PURPLE));
-        // decorative border
-        fillBorder(inv, Material.PURPLE_STAINED_GLASS_PANE);
+        java.util.Set<String> keys = cfg.getKeys(false);
+        plugin.getLogger().info("openAdminConfigEditor invoked by " + p.getName() + " - runtime config top keys count=" + (keys==null?0:keys.size()));
+        // Fallback: wenn keine keys gefunden werden, versuche die eingebettete resource config.yml zu parsen
+        String cfgSource = "runtime";
+        if (keys == null || keys.isEmpty()) {
+            try {
+                java.io.InputStream is = plugin.getResource("config.yml");
+                plugin.getLogger().info("AdminConfigEditor: runtime keys empty, plugin.getResource(config.yml)=" + (is != null));
+                if (is != null) {
+                    java.io.InputStreamReader r = new java.io.InputStreamReader(is, java.nio.charset.StandardCharsets.UTF_8);
+                    org.bukkit.configuration.file.FileConfiguration rc = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(r);
+                    java.util.Set<String> rkeys = rc.getKeys(false);
+                    if (rkeys != null && !rkeys.isEmpty()) {
+                        keys = rkeys;
+                        cfg = rc; // use resource-backed config for display
+                        cfgSource = "embedded-resource";
+                        plugin.getLogger().info("AdminConfigEditor: using embedded resource config (fallback), firstKeys=" + firstN(rkeys,5));
+                    } else {
+                        plugin.getLogger().warning("AdminConfigEditor: embedded config.yml parsed but no top-level keys found");
+                    }
+                } else {
+                    plugin.getLogger().warning("AdminConfigEditor: runtime config has no keys and embedded resource config.yml not found");
+                }
+            } catch (Throwable t) {
+                plugin.getLogger().warning("AdminConfigEditor: failed to load embedded config.yml: " + t.getMessage());
+            }
+        }
+        if (keys == null) keys = java.util.Collections.emptySet();
+        // Compute rows so interior capacity ((rows-2)*7) can hold all keys.
+        // interiorPerRow = 7 (cols 1..7). rowsNeeded = ceil(keys/7) + 2 (for border rows). Clamp to [3..6].
+        int keyCount = keys.size();
+        int neededInnerRows = (int) Math.ceil((double) keyCount / 7.0);
+        int rowsNeeded = Math.max(3, Math.min(6, neededInnerRows + 2));
+        int size = rowsNeeded * 9;
+        // Debug: send a quick chat message to the admin showing first keys
+        try {
+            String ks = firstN(keys, 12);
+            p.sendMessage("§6AdminConfig: found top-level keys: §f" + ks);
+        } catch (Throwable ignored) {}
+        Inventory inv = Bukkit.createInventory(null, size, Component.text("Admin Config - Kategorien").color(NamedTextColor.YELLOW));
+        fillBorder(inv, Material.GRAY_STAINED_GLASS_PANE);
+        int rows = size / 9;
+        // compute interior slots: rows 1..rows-2, cols 1..7
+        java.util.List<Integer> interiorSlots = new java.util.ArrayList<>();
+        for (int r = 1; r <= rows - 2; r++) {
+            for (int c = 1; c <= 7; c++) {
+                interiorSlots.add(r * 9 + c);
+            }
+        }
+        plugin.getLogger().info("AdminConfigEditor: inventory size=" + size + " rows=" + rows + " interiorSlots=" + interiorSlots.size());
+        // place items into interiorSlots
+        int placed = 0;
+        if (keys == null || keys.isEmpty()) {
+             // show placeholder so admin sees there's no categories and a hint in the UI
+             java.util.List<Component> lore = new java.util.ArrayList<>();
+             lore.add(Component.text("Keine Kategorien gefunden").color(NamedTextColor.GRAY));
+             lore.add(Component.text("Siehe Server-Log (plugin) für Details").color(NamedTextColor.DARK_GRAY));
+             lore.add(Component.text("Konfig geladen: " + (cfg == null ? "null" : (cfg.getName()==null?"resource/config":cfg.getName()))).color(NamedTextColor.DARK_GRAY));
+             inv.setItem(13, createGuiItem(Material.PAPER, Component.text("Keine Kategorien").color(NamedTextColor.RED), lore, "noop"));
+        } else {
+            java.util.Iterator<String> it = keys.iterator();
+            for (int slotIndex = 0; slotIndex < interiorSlots.size() && it.hasNext(); slotIndex++) {
+                String k = it.next();
+                java.util.List<Component> lore = new java.util.ArrayList<>();
+                Object val = cfg.get(k);
+                lore.add(Component.text("Typ: "+(val==null?"null":val.getClass().getSimpleName())).color(NamedTextColor.GRAY));
+                lore.add(Component.text("Pfad: "+k).color(NamedTextColor.DARK_GRAY));
+                Component name = Component.text(k).color(NamedTextColor.AQUA);
+                ItemStack itStack = GuiTheme.createAction(plugin, Material.PAPER, name, lore, "admin_cfg_cat:"+k, false);
+                int placeSlot = interiorSlots.get(slotIndex);
+                inv.setItem(placeSlot, itStack);
+                try { plugin.getLogger().info("AdminConfigEditor: placed category='"+k+"' slot="+placeSlot+" action=admin_cfg_cat:"+k); } catch (Throwable ignored) {}
+                placed++;
+            }
+            if (placed < keys.size()) {
+                plugin.getLogger().info("AdminConfigEditor: displayed " + placed + " of " + keys.size() + " keys (inventory too small)");
+            } else {
+                plugin.getLogger().info("AdminConfigEditor: displayed all " + placed + " keys");
+            }
+            try { p.sendMessage("§6AdminConfig: showing " + placed + " of " + keys.size() + " categories"); } catch (Throwable ignored) {}
+         }
+         inv.setItem(inv.getSize()-5, createGuiItem(Material.GLOWSTONE_DUST, Component.text("Reload All").color(NamedTextColor.GOLD), java.util.List.of(Component.text("Reload config & apply")), "config_reload"));
+         inv.setItem(inv.getSize()-4, createGuiItem(Material.ARROW, Component.text("Zurück").color(NamedTextColor.RED), java.util.List.of(Component.text("Zurück zum Admin-Panel")), "admin"));
+         p.openInventory(inv);
+     }
 
-        // Header card
-        java.util.List<Component> hdr = new java.util.ArrayList<>();
-        hdr.add(Component.text("Willkommen im Shop").color(NamedTextColor.GOLD));
-        hdr.add(Component.text("").color(NamedTextColor.DARK_GRAY));
-        hdr.add(Component.text("Abilities & Glyphen sind derzeit standardmäßig verfügbar.").color(NamedTextColor.GRAY));
-        hdr.add(Component.text("Rüstungen / Gear sind vorübergehend entfernt.").color(NamedTextColor.GRAY));
-        hdr.add(Component.text("").color(NamedTextColor.DARK_GRAY));
-        hdr.add(Component.text("Essence: ").color(NamedTextColor.LIGHT_PURPLE).append(Component.text(String.valueOf(plugin.getMetaManager().get(p.getUniqueId()).getEssence())).color(NamedTextColor.WHITE)));
-        inv.setItem(13, createGuiItem(Material.PLAYER_HEAD, Component.text("Shop Übersicht").color(NamedTextColor.AQUA), hdr, "noop", false));
+    // wrapper that defaults to page = 0
+    public void openAdminCategoryEditor(Player p, String category) { openAdminCategoryEditor(p, category, 0); }
 
-        // Quick category buttons
-        inv.setItem(20, createGuiItem(Material.BOOK, Component.text("Cosmetics").color(NamedTextColor.LIGHT_PURPLE), java.util.List.of(Component.text("Kosmetische Items & Skins (coming soon)").color(NamedTextColor.GRAY)), "shop_cat:cosmetics"));
-        inv.setItem(22, createGuiItem(Material.CHEST, Component.text("Meta Shop").color(NamedTextColor.GOLD), java.util.List.of(Component.text("Permanente Upgrades & Essence Shop").color(NamedTextColor.GRAY)), "meta"));
-        inv.setItem(24, createGuiItem(Material.ENCHANTED_BOOK, Component.text("Abilities (Info)").color(NamedTextColor.AQUA), java.util.List.of(Component.text("Abilities sind standardmäßig verfügbar — kein Kauf nötig").color(NamedTextColor.GRAY)), "shop_cat:abilities_info"));
-        inv.setItem(29, createGuiItem(Material.AMETHYST_SHARD, Component.text("Glyphen (Info)").color(NamedTextColor.LIGHT_PURPLE), java.util.List.of(Component.text("Glyphen spawnen wie Lootchests — nicht kaufbar im Shop").color(NamedTextColor.GRAY)), "shop_cat:glyphs_info"));
+    // paginated category editor: page index starts at 0
+    public void openAdminCategoryEditor(Player p, String category, int page) {
+        if (p == null || category == null) return;
+        if (!p.hasPermission("minecraftsurvivors.admin")) { org.bysenom.minecraftSurvivors.util.Msg.err(p, "Keine Rechte."); return; }
+        org.bukkit.configuration.file.FileConfiguration cfg = plugin.getConfigUtil().getConfig();
+        org.bukkit.configuration.ConfigurationSection sec = cfg.getConfigurationSection(category);
+        try { plugin.getLogger().info("openAdminCategoryEditor: requested category='" + category + "' secExists=" + (sec != null) + " page=" + page); } catch (Throwable ignored) {}
 
-        // Placeholder cosmetics area (reads config if present)
-        java.util.List<java.util.Map<?, ?>> cosmetics = cfg.getMapList("shop.categories.cosmetics");
-        int slot = 30;
-        if (cosmetics != null && !cosmetics.isEmpty()) {
-            for (java.util.Map<?, ?> node : cosmetics) {
-                Object nameObj = node.get("name");
-                String name = nameObj != null ? String.valueOf(nameObj) : "Cosmetic";
-                Object keyObj = node.get("key");
-                String key = keyObj != null ? String.valueOf(keyObj) : ("cosmetic_" + slot);
-                Object priceObj = node.get("price");
-                int price = priceObj != null ? Integer.parseInt(String.valueOf(priceObj)) : 10;
-                Material mat = Material.ARMOR_STAND;
-                try {
-                    Object iconObj = node.get("icon");
-                    String matS = iconObj != null ? String.valueOf(iconObj) : "AMETHYST_SHARD";
-                    mat = Material.valueOf(matS.toUpperCase(java.util.Locale.ROOT));
-                } catch (Throwable ignored) {}
-                java.util.List<Component> cl = new java.util.ArrayList<>();
-                cl.add(Component.text(name).color(NamedTextColor.WHITE));
-                cl.add(Component.text("Preis: " + price + " Coins").color(NamedTextColor.GOLD));
-                inv.setItem(slot, createGuiItem(mat, Component.text(name).color(NamedTextColor.AQUA), cl, "shop_buy:cosmetic:" + key, false));
-                slot++; if (slot % 9 == 8) slot += 2; if (slot >= 53) break;
+        java.util.Set<String> childSections = new java.util.TreeSet<>();
+        java.util.Set<String> leafKeys = new java.util.TreeSet<>();
+
+        if (sec != null) {
+            for (String k : sec.getKeys(false)) {
+                String full = category + "." + k;
+                if (cfg.isConfigurationSection(full)) childSections.add(full); else leafKeys.add(full);
+            }
+            for (String k : sec.getKeys(true)) {
+                String full = category + "." + k;
+                if (!cfg.isConfigurationSection(full)) leafKeys.add(full);
             }
         } else {
-            inv.setItem(31, createGuiItem(Material.AMETHYST_SHARD, Component.text("Keine Cosmetics").color(NamedTextColor.GRAY), java.util.List.of(Component.text("Derzeit gibt es keine kosmetischen Items im Shop.").color(NamedTextColor.DARK_GRAY)), "noop"));
+            try {
+                plugin.getLogger().info("openAdminCategoryEditor: section not found for '" + category + "' - performing fallback grouping search");
+                java.util.Set<String> allKeys = cfg.getKeys(true);
+                for (String k : allKeys) {
+                    if (cfg.isConfigurationSection(k)) continue;
+                    if (k.equalsIgnoreCase(category)) { leafKeys.add(k); continue; }
+                    if (k.startsWith(category + ".")) {
+                        String remainder = k.substring(category.length() + 1);
+                        String[] parts = remainder.split("\\.");
+                        if (parts.length >= 2) childSections.add(category + "." + parts[0]); else leafKeys.add(k);
+                    } else {
+                        String[] parts = k.split("\\."); if (parts.length > 0 && parts[0].equalsIgnoreCase(category)) leafKeys.add(k);
+                    }
+                }
+            } catch (Throwable t) { plugin.getLogger().warning("openAdminCategoryEditor: fallback grouping failed: " + t.getMessage()); }
         }
 
-        // Footer
-        inv.setItem(49, createGuiItem(Material.ARROW, Component.text("Zurück").color(NamedTextColor.RED), java.util.List.of(Component.text("Schließt das Menü")), "back"));
+        java.util.List<String> displayOrder = new java.util.ArrayList<>(); displayOrder.addAll(childSections); displayOrder.addAll(leafKeys);
+
+        try { plugin.getLogger().info("openAdminCategoryEditor: childSections=" + childSections.size() + " leafKeys=" + leafKeys.size() + " for category='" + category + "'"); } catch (Throwable ignored) {}
+
+        // determine rows/pages. Minimum inventory size 27 (3 rows) to ensure slot indices are valid.
+        int items = displayOrder.size();
+        int rowsNeededInner = (int) Math.ceil((double) items / 7.0); // inner rows count if we want 7 cols
+        int rows = Math.max(3, Math.min(6, rowsNeededInner + 2));
+        int invSize = rows * 9; // between 27 and 54
+        Inventory inv = Bukkit.createInventory(null, invSize, Component.text("Config: " + category).color(NamedTextColor.YELLOW));
+        fillBorder(inv, Material.GRAY_STAINED_GLASS_PANE);
+
+        int innerRows = rows - 2; // number of rows available for content
+        int capacity = innerRows * 7; // per page
+        int totalPages = (int) Math.ceil((double) items / capacity);
+        if (totalPages == 0) totalPages = 1;
+        if (page < 0) page = 0; if (page >= totalPages) page = totalPages - 1;
+
+        int startIdx = page * capacity;
+        int endIdx = Math.min(items, startIdx + capacity);
+
+        int slot = 10; // first interior slot
+        for (int i = startIdx; i < endIdx; i++) {
+            String itemKey = displayOrder.get(i);
+            if (childSections.contains(itemKey)) {
+                java.util.List<Component> lore = new java.util.ArrayList<>();
+                int cnt = 0; try { org.bukkit.configuration.ConfigurationSection child = cfg.getConfigurationSection(itemKey); if (child != null) cnt = (int) child.getKeys(true).stream().filter(k -> !cfg.isConfigurationSection(itemKey + "." + k)).count(); } catch (Throwable ignored) {}
+                lore.add(Component.text("Unterkategorie").color(NamedTextColor.GRAY));
+                lore.add(Component.text("Leaf-Keys: " + cnt).color(NamedTextColor.DARK_GRAY));
+                lore.add(Component.text("Pfad: " + itemKey).color(NamedTextColor.DARK_GRAY));
+                inv.setItem(slot, createGuiItem(Material.CHEST, Component.text(lastPathSegment(itemKey)).color(NamedTextColor.AQUA), lore, "admin_cfg_cat:" + itemKey + ":0", false));
+            } else {
+                Object v = cfg.get(itemKey);
+                java.util.List<Component> lore = new java.util.ArrayList<>();
+                lore.add(Component.text("Wert: " + String.valueOf(v)).color(NamedTextColor.WHITE));
+                lore.add(Component.text("Pfad: " + itemKey).color(NamedTextColor.DARK_GRAY));
+                lore.add(Component.text("Typ: " + (v == null ? "null" : v.getClass().getSimpleName())).color(NamedTextColor.GRAY));
+                inv.setItem(slot, createGuiItem(Material.WRITTEN_BOOK, Component.text(lastPathSegment(itemKey)).color(NamedTextColor.AQUA), lore, "cfg_edit:" + itemKey, false));
+            }
+            slot++; if (slot % 9 == 8) slot += 2;
+            if (slot >= inv.getSize() - 9) break;
+        }
+
+        // navigation
+        if (totalPages > 1) {
+            if (page > 0) inv.setItem(inv.getSize() - 7, createGuiItem(Material.ARROW, Component.text("<- Prev").color(NamedTextColor.YELLOW), java.util.List.of(Component.text("Seite " + page + " von " + totalPages)), "admin_cfg_cat_page:" + category + ":" + (page - 1)));
+            inv.setItem(inv.getSize() - 6, createGuiItem(Material.PAPER, Component.text("Seite").color(NamedTextColor.GRAY), java.util.List.of(Component.text("" + (page + 1) + " / " + totalPages)), "noop"));
+            if (page < totalPages - 1) inv.setItem(inv.getSize() - 5, createGuiItem(Material.ARROW, Component.text("Next ->").color(NamedTextColor.YELLOW), java.util.List.of(Component.text("Seite " + (page + 2) + " von " + totalPages)), "admin_cfg_cat_page:" + category + ":" + (page + 1)));
+        }
+
+        inv.setItem(inv.getSize() - 4, createGuiItem(Material.ARROW, Component.text("Admin Panel").color(NamedTextColor.RED), java.util.List.of(Component.text("Zurück zum Admin-Panel")), "admin"));
+        inv.setItem(inv.getSize() - 3, createGuiItem(Material.BARRIER, Component.text("Zurück").color(NamedTextColor.RED), java.util.List.of(Component.text("Zurück zu Kategorien")), "admin_config"));
         p.openInventory(inv);
     }
 
-    private void fillBorder(Inventory inv, Material borderMat) {
-        ItemStack border = org.bysenom.minecraftSurvivors.gui.GuiTheme.borderItem(borderMat);
-        for (int i = 0; i < inv.getSize(); i++) {
-            int row = i / 9;
-            int col = i % 9;
-            if (row == 0 || row == (inv.getSize()/9 -1) || col == 0 || col == 8) {
-                inv.setItem(i, border);
-            }
-        }
+    private String lastPathSegment(String path) {
+        if (path == null) return "";
+        String[] parts = path.split("\\\\.");
+        return parts.length == 0 ? path : parts[parts.length - 1];
     }
 
-    private ItemStack createGuiItem(Material mat, Component name, List<Component> lore, String action) {
-        return createGuiItem(mat, name, lore, action, false);
-    }
-
-    private ItemStack createGuiItem(Material mat, Component name, List<Component> lore, String action, boolean glow) {
-        return GuiTheme.createAction(plugin, mat, name, lore, action, glow);
-    }
 
     /**
      * Behandelt die Auswahl im Level-Up-Menü (ItemStack-Variante).
@@ -654,17 +775,106 @@ public class GuiManager {
      * Behandelt die Auswahl im Level-Up-Menü (String-Variante).
      */
     public void handleLevelChoice(Player player, String displayName, int level) {
-        if (player == null || displayName == null) return;
-        player.closeInventory();
-        try {
-            plugin.getPlayerManager().get(player.getUniqueId()).addCoins(5);
-            player.sendMessage(net.kyori.adventure.text.Component.text("§aAusgewählt: " + displayName + " (Level " + level + ") — §e+5 Münzen"));
-        } catch (Exception ex) {
-            player.sendMessage(net.kyori.adventure.text.Component.text("§aAusgewählt: " + displayName + " (Level " + level + ")"));
+         if (player == null || displayName == null) return;
+         player.closeInventory();
+         try {
+             plugin.getPlayerManager().get(player.getUniqueId()).addCoins(5);
+             player.sendMessage(net.kyori.adventure.text.Component.text("§aAusgewählt: " + displayName + " (Level " + level + ") — §e+5 Münzen"));
+         } catch (Exception ex) {
+             player.sendMessage(net.kyori.adventure.text.Component.text("§aAusgewählt: " + displayName + " (Level " + level + ")"));
+         }
+         try {
+             plugin.getGameManager().resumeForPlayer(player.getUniqueId());
+             plugin.getGameManager().tryOpenNextQueuedDelayed(player.getUniqueId());
+         } catch (Throwable ignored) {}
+    }
+
+    // Helper wrappers (restore if missing) -------------------------------------------------
+    private void fillBorder(Inventory inv, Material borderMat) {
+        ItemStack border = org.bysenom.minecraftSurvivors.gui.GuiTheme.borderItem(borderMat);
+        for (int i = 0; i < inv.getSize(); i++) {
+            int row = i / 9; int col = i % 9;
+            if (row == 0 || row == (inv.getSize()/9 -1) || col == 0 || col == 8) inv.setItem(i, border);
         }
-        try {
-            plugin.getGameManager().resumeForPlayer(player.getUniqueId());
-            plugin.getGameManager().tryOpenNextQueuedDelayed(player.getUniqueId());
-        } catch (Throwable ignored) {}
+    }
+
+    private ItemStack createGuiItem(Material mat, Component name, List<Component> lore, String action) {
+        return createGuiItem(mat, name, lore, action, false);
+    }
+
+    private ItemStack createGuiItem(Material mat, Component name, List<Component> lore, String action, boolean glow) {
+        return GuiTheme.createAction(plugin, mat, name, lore, action, glow);
+    }
+
+    public void openShop(Player p) {
+        if (p == null) return;
+        org.bukkit.configuration.file.FileConfiguration cfg = plugin.getConfigUtil().getConfig();
+        Inventory inv = Bukkit.createInventory(null, 54, Component.text("MinecraftSurvivors - Shop").color(NamedTextColor.LIGHT_PURPLE));
+        // decorative border
+        fillBorder(inv, Material.PURPLE_STAINED_GLASS_PANE);
+
+        // Header card
+        java.util.List<Component> hdr = new java.util.ArrayList<>();
+        hdr.add(Component.text("Willkommen im Shop").color(NamedTextColor.GOLD));
+        hdr.add(Component.text("",
+                NamedTextColor.DARK_GRAY));
+        hdr.add(Component.text("Abilities & Glyphen sind derzeit standardmäßig verfügbar.").color(NamedTextColor.GRAY));
+        hdr.add(Component.text("Rüstungen / Gear sind vorübergehend entfernt.").color(NamedTextColor.GRAY));
+        hdr.add(Component.text("",
+                NamedTextColor.DARK_GRAY));
+        hdr.add(Component.text("Essence: ").color(NamedTextColor.LIGHT_PURPLE).append(Component.text(String.valueOf(plugin.getMetaManager().get(p.getUniqueId()).getEssence())).color(NamedTextColor.WHITE)));
+        inv.setItem(13, createGuiItem(Material.PLAYER_HEAD, Component.text("Shop Übersicht").color(NamedTextColor.AQUA), hdr, "noop", false));
+
+        // Quick category buttons
+        inv.setItem(20, createGuiItem(Material.BOOK, Component.text("Cosmetics").color(NamedTextColor.LIGHT_PURPLE), java.util.List.of(Component.text("Kosmetische Items & Skins (coming soon)").color(NamedTextColor.GRAY)), "shop_cat:cosmetics"));
+        inv.setItem(22, createGuiItem(Material.CHEST, Component.text("Meta Shop").color(NamedTextColor.GOLD), java.util.List.of(Component.text("Permanente Upgrades & Essence Shop").color(NamedTextColor.GRAY)), "meta"));
+        inv.setItem(24, createGuiItem(Material.ENCHANTED_BOOK, Component.text("Abilities (Info)").color(NamedTextColor.AQUA), java.util.List.of(Component.text("Abilities sind standardmäßig verfügbar — kein Kauf nötig").color(NamedTextColor.GRAY)), "shop_cat:abilities_info"));
+        inv.setItem(29, createGuiItem(Material.AMETHYST_SHARD, Component.text("Glyphen (Info)").color(NamedTextColor.LIGHT_PURPLE), java.util.List.of(Component.text("Glyphen spawnen wie Lootchests — nicht kaufbar im Shop").color(NamedTextColor.GRAY)), "shop_cat:glyphs_info"));
+
+        // Placeholder cosmetics area (reads config if present)
+        java.util.List<java.util.Map<?, ?>> cosmetics = cfg.getMapList("shop.categories.cosmetics");
+        int slot = 30;
+        if (cosmetics != null && !cosmetics.isEmpty()) {
+            for (java.util.Map<?, ?> node : cosmetics) {
+                Object nameObj = node.get("name");
+                String name = nameObj != null ? String.valueOf(nameObj) : "Cosmetic";
+                Object keyObj = node.get("key");
+                String key = keyObj != null ? String.valueOf(keyObj) : ("cosmetic_" + slot);
+                Object priceObj = node.get("price");
+                int price = priceObj != null ? Integer.parseInt(String.valueOf(priceObj)) : 10;
+                Material mat = Material.ARMOR_STAND;
+                try {
+                    Object iconObj = node.get("icon");
+                    String matS = iconObj != null ? String.valueOf(iconObj) : "AMETHYST_SHARD";
+                    mat = Material.valueOf(matS.toUpperCase(java.util.Locale.ROOT));
+                } catch (Throwable ignored) {}
+                java.util.List<Component> cl = new java.util.ArrayList<>();
+                cl.add(Component.text(name).color(NamedTextColor.WHITE));
+                cl.add(Component.text("Preis: " + price + " Coins").color(NamedTextColor.GOLD));
+                inv.setItem(slot, createGuiItem(mat, Component.text(name).color(NamedTextColor.AQUA), cl, "shop_buy:cosmetic:" + key, false));
+                slot++; if (slot % 9 == 8) slot += 2; if (slot >= 53) break;
+            }
+        } else {
+            inv.setItem(31, createGuiItem(Material.AMETHYST_SHARD, Component.text("Keine Cosmetics").color(NamedTextColor.GRAY), java.util.List.of(Component.text("Derzeit gibt es keine kosmetischen Items im Shop.").color(NamedTextColor.DARK_GRAY)), "noop"));
+        }
+
+        // Footer
+        inv.setItem(49, createGuiItem(Material.ARROW, Component.text("Zurück").color(NamedTextColor.RED), java.util.List.of(Component.text("Schließt das Menü")), "back"));
+        p.openInventory(inv);
+    }
+
+    // small helper to return first N elements of a set as string
+    private static String firstN(java.util.Set<String> s, int n) {
+        if (s == null || s.isEmpty()) return "[]";
+        StringBuilder sb = new StringBuilder("[");
+        int i = 0;
+        for (String v : s) {
+            if (i++ >= n) break;
+            if (sb.length() > 1) sb.append(", ");
+            sb.append(v);
+        }
+        if (s.size() > n) sb.append(", ...");
+        sb.append("]");
+        return sb.toString();
     }
 }

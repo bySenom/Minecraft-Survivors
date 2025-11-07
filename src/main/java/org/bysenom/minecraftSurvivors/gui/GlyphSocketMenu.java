@@ -108,7 +108,15 @@ public class GlyphSocketMenu {
                     try {
                         // mark selection as closed
                         org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.setSelectionOpen(e.getPlayer().getUniqueId(), false);
+                        // if the selection was just handled via click, don't reopen the socket menu
+                        boolean handled = org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.consumeSelectionHandled(e.getPlayer().getUniqueId());
+                        // always consume context
                         java.util.Map<String,Object> ctx = org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.consumeSelectionContext(e.getPlayer().getUniqueId());
+                        if (handled) {
+                            // selection already applied/removed -> resume the paused game and do not reopen
+                            try { plugin.getGameManager().resumeForPlayer(e.getPlayer().getUniqueId()); } catch (Throwable ignored) {}
+                            return;
+                        }
                         if (ctx != null) {
                             String ability = (String) ctx.get("ability");
                             // reopen socket menu for this ability

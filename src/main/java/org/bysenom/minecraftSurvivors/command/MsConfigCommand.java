@@ -20,7 +20,7 @@ public class MsConfigCommand implements CommandExecutor {
             return true;
         }
         if (args.length == 0) {
-            sender.sendMessage("Usage: /msconfig reload | /msconfig preset <name> | /msconfig show");
+            sender.sendMessage("Usage: /msconfig reload | /msconfig preset <name> | /msconfig set <path> <value> | /msconfig show");
             return true;
         }
         if (args[0].equalsIgnoreCase("reload")) {
@@ -79,6 +79,59 @@ public class MsConfigCommand implements CommandExecutor {
                 sender.sendMessage("§aPreset '" + preset + "' applied and config reloaded.");
             } else {
                 sender.sendMessage("§cPreset not found: " + preset);
+            }
+            return true;
+        }
+        if (args[0].equalsIgnoreCase("set")) {
+            if (args.length < 3) {
+                sender.sendMessage("Usage: /msconfig set <path> <value>");
+                return true;
+            }
+            String path = args[1];
+            // join remaining args as value
+            StringBuilder sb = new StringBuilder();
+            for (int i = 2; i < args.length; i++) {
+                if (i > 2) sb.append(' ');
+                sb.append(args[i]);
+            }
+            String raw = sb.toString();
+            org.bukkit.configuration.file.FileConfiguration cfg = gameManager.getPlugin().getConfig();
+            // try to infer type from existing value
+            Object cur = cfg.get(path);
+            try {
+                if (cur instanceof Boolean) {
+                    boolean v = Boolean.parseBoolean(raw);
+                    gameManager.getPlugin().getConfigUtil().setValue(path, v);
+                } else if (cur instanceof Integer) {
+                    int v = Integer.parseInt(raw);
+                    gameManager.getPlugin().getConfigUtil().setValue(path, v);
+                } else if (cur instanceof Double || cur instanceof Float) {
+                    double v = Double.parseDouble(raw);
+                    gameManager.getPlugin().getConfigUtil().setValue(path, v);
+                } else {
+                    // fallback: if raw looks like boolean or number, cast accordingly
+                    if (raw.equalsIgnoreCase("true") || raw.equalsIgnoreCase("false")) {
+                        gameManager.getPlugin().getConfigUtil().setValue(path, Boolean.parseBoolean(raw));
+                    } else {
+                        try {
+                            if (raw.contains(".")) {
+                                double dv = Double.parseDouble(raw);
+                                gameManager.getPlugin().getConfigUtil().setValue(path, dv);
+                            } else {
+                                int iv = Integer.parseInt(raw);
+                                gameManager.getPlugin().getConfigUtil().setValue(path, iv);
+                            }
+                        } catch (NumberFormatException nfe) {
+                            // treat as string
+                            gameManager.getPlugin().getConfigUtil().setValue(path, raw);
+                        }
+                    }
+                }
+                // apply immediately
+                gameManager.reloadConfigAndApply();
+                sender.sendMessage("§aSet: " + path + " = " + raw);
+            } catch (Throwable t) {
+                sender.sendMessage("§cFailed to set config: " + t.getMessage());
             }
             return true;
         }
