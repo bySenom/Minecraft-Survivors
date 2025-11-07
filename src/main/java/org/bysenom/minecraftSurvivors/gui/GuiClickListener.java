@@ -61,9 +61,21 @@ public class GuiClickListener implements Listener {
             }
             plugin.getLogger().info("GuiClickListener: admin category click detected, opening category='" + cat + "' page="+page+" for " + player.getName());
             try {
-                guiManager.openAdminCategoryEditor(player, cat, page);
+                // try 3-arg variant first
+                try {
+                    java.lang.reflect.Method m = guiManager.getClass().getMethod("openAdminCategoryEditor", org.bukkit.entity.Player.class, String.class, int.class);
+                    m.invoke(guiManager, player, cat, page);
+                } catch (NoSuchMethodException nsme) {
+                    // try 2-arg variant
+                    try {
+                        java.lang.reflect.Method m2 = guiManager.getClass().getMethod("openAdminCategoryEditor", org.bukkit.entity.Player.class, String.class);
+                        m2.invoke(guiManager, player, cat);
+                    } catch (NoSuchMethodException nsme2) {
+                        plugin.getLogger().warning("openAdminCategoryEditor method not found (3-arg or 2-arg)");
+                    }
+                }
             } catch (Throwable t) {
-                plugin.getLogger().warning("Failed to open admin category editor for '" + cat + "': " + t.getMessage());
+                plugin.getLogger().warning("Reflective openAdminCategoryEditor failed: " + t.getMessage());
             }
             return;
         }
@@ -74,7 +86,15 @@ public class GuiClickListener implements Listener {
             if (parts.length >= 2) {
                 String cat = parts[0]; int page = 0; try { page = Integer.parseInt(parts[1]); } catch (Throwable ignored) {}
                 plugin.getLogger().info("GuiClickListener: admin category pagination click detected, category='"+cat+"' page="+page+" by="+player.getName());
-                try { guiManager.openAdminCategoryEditor(player, cat, page); } catch (Throwable t) { plugin.getLogger().warning("Failed to open admin category page for '"+cat+"': "+t.getMessage()); }
+                try {
+                    try {
+                        java.lang.reflect.Method m = guiManager.getClass().getMethod("openAdminCategoryEditor", org.bukkit.entity.Player.class, String.class, int.class);
+                        m.invoke(guiManager, player, cat, page);
+                    } catch (NoSuchMethodException nsme) {
+                        java.lang.reflect.Method m2 = guiManager.getClass().getMethod("openAdminCategoryEditor", org.bukkit.entity.Player.class, String.class);
+                        m2.invoke(guiManager, player, cat);
+                    }
+                } catch (Throwable t) { plugin.getLogger().warning("Reflective openAdminCategoryEditor failed: "+t.getMessage()); }
             }
             return;
         }
@@ -236,6 +256,79 @@ public class GuiClickListener implements Listener {
                 try { plugin.getGameManager().resumeForPlayer(player.getUniqueId()); } catch (Throwable ignored) {}
                 try { player.closeInventory(); } catch (Throwable ignored) {}
             } catch (Throwable ignored) {}
+            return;
+        }
+
+        // Config editing handlers --------------------------------------------------
+        if (action.startsWith("cfg_edit:")) {
+            String fullPath = action.substring("cfg_edit:".length());
+            plugin.getLogger().info("GuiClickListener: open key editor for='" + fullPath + "' by=" + player.getName());
+            try {
+                java.lang.reflect.Method m = guiManager.getClass().getMethod("openAdminConfigKeyEditor", org.bukkit.entity.Player.class, String.class);
+                m.invoke(guiManager, player, fullPath);
+            } catch (NoSuchMethodException nsme) {
+                plugin.getLogger().warning("openAdminConfigKeyEditor method not found: " + nsme.getMessage());
+            } catch (Throwable t) { plugin.getLogger().warning("Failed to open key editor for '"+fullPath+"' via reflection: "+t.getMessage()); }
+            return;
+        }
+
+        if (action.startsWith("cfg_chat:")) {
+            String fullPath = action.substring("cfg_chat:".length());
+            plugin.getLogger().info("GuiClickListener: start chat-edit for='" + fullPath + "' by=" + player.getName());
+            try {
+                // start a chat session for this admin
+                org.bysenom.minecraftSurvivors.manager.ConfigEditSessionManager.Session s = plugin.getConfigEditSessionManager().startChatSession(player.getUniqueId(), fullPath);
+                // close inventory and pause player locally so game isn't progressing for them
+                try { player.closeInventory(); } catch (Throwable ignored) {}
+                try { plugin.getGameManager().pauseForPlayer(player.getUniqueId()); } catch (Throwable ignored) {}
+                player.sendMessage("§aBearbeite Config: " + fullPath + " — Gib nun den neuen Wert im Chat ein (60s). Verwende /msconfig confirm oder /msconfig cancel.");
+            } catch (Throwable t) {
+                plugin.getLogger().warning("Failed to start chat-edit session for '"+fullPath+"': "+t.getMessage());
+                player.sendMessage("§cKonnte Chat-Edit-Session nicht starten: " + t.getMessage());
+            }
+            return;
+        }
+
+        if (action.startsWith("cfg_toggle:")) {
+            String fullPath = action.substring("cfg_toggle:".length());
+            plugin.getLogger().info("GuiClickListener: toggle cfg '"+fullPath+"' by="+player.getName());
+            try {
+                org.bukkit.configuration.file.FileConfiguration cfg = plugin.getConfigUtil().getConfig();
+                Object v = cfg.get(fullPath);
+                if (v instanceof Boolean) {
+                    boolean cur = (Boolean) v;
+                    plugin.getConfigUtil().setValue(fullPath, !cur);
+                } else {
+                    player.sendMessage("§cDieser Key ist kein Boolean: " + fullPath);
+                }
+            } catch (Throwable t) { plugin.getLogger().warning("cfg_toggle failed: "+t.getMessage()); player.sendMessage("§cFehler beim Setzen der Config"); }
+            try { java.lang.reflect.Method m = guiManager.getClass().getMethod("openAdminConfigKeyEditor", org.bukkit.entity.Player.class, String.class); m.invoke(guiManager, player, fullPath); } catch (Throwable ignored) {}
+            return;
+        }
+
+        if (action.startsWith("cfg_inc:") || action.startsWith("cfg_dec:")) {
+            String[] parts = action.split(":", 3);
+            if (parts.length >= 3) {
+                String op = parts[0]; String fullPath = parts[1]; String stepS = parts[2];
+                double step = 0; try { step = Double.parseDouble(stepS); } catch (Throwable ignored) {}
+                plugin.getLogger().info("GuiClickListener: cfg op="+op+" path='"+fullPath+"' step='"+step+"' by="+player.getName());
+                try {
+                    org.bukkit.configuration.file.FileConfiguration cfg = plugin.getConfigUtil().getConfig();
+                    Object cur = cfg.get(fullPath);
+                    if (cur instanceof Number) {
+                        double curd = ((Number) cur).doubleValue();
+                        double nw = op.equals("cfg_inc") ? (curd + step) : (curd - step);
+                        if (cur instanceof Integer || (Math.floor(curd) == curd && Math.floor(step) == step)) {
+                            plugin.getConfigUtil().setValue(fullPath, (int) Math.round(nw));
+                        } else {
+                            plugin.getConfigUtil().setValue(fullPath, nw);
+                        }
+                    } else {
+                        player.sendMessage("§cDieser Key ist kein numerischer Wert: " + fullPath);
+                    }
+                } catch (Throwable t) { plugin.getLogger().warning("cfg_inc/dec failed: "+t.getMessage()); player.sendMessage("§cFehler beim Setzen der Config"); }
+                try { java.lang.reflect.Method m = guiManager.getClass().getMethod("openAdminConfigKeyEditor", org.bukkit.entity.Player.class, String.class); m.invoke(guiManager, player, parts[1]); } catch (Throwable ignored) {}
+            }
             return;
         }
     }

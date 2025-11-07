@@ -135,6 +135,31 @@ public class MsConfigCommand implements CommandExecutor {
             }
             return true;
         }
+        if (args[0].equalsIgnoreCase("confirm")) {
+            // confirm pending chat edit for the sender (must be a player)
+            if (!(sender instanceof org.bukkit.entity.Player)) { sender.sendMessage("§cNur Spieler können bestätigen."); return true; }
+            java.util.UUID uid = ((org.bukkit.entity.Player) sender).getUniqueId();
+            org.bysenom.minecraftSurvivors.manager.ConfigEditSessionManager mgr = gameManager.getPlugin().getConfigEditSessionManager();
+            if (mgr == null) { sender.sendMessage("§cKeine Session-Manager verfügbar."); return true; }
+            boolean ok = mgr.applySession(uid);
+            if (ok) {
+                sender.sendMessage("§aConfig-Wert übernommen.");
+                try { gameManager.getPlugin().getGameManager().resumeForPlayer(uid); } catch (Throwable ignored) {}
+            } else {
+                sender.sendMessage("§cKeine aktive Edit-Session oder Fehler beim Anwenden.");
+            }
+            return true;
+        }
+        if (args[0].equalsIgnoreCase("cancel")) {
+            if (!(sender instanceof org.bukkit.entity.Player)) { sender.sendMessage("§cNur Spieler können abbrechen."); return true; }
+            java.util.UUID uid = ((org.bukkit.entity.Player) sender).getUniqueId();
+            org.bysenom.minecraftSurvivors.manager.ConfigEditSessionManager mgr = gameManager.getPlugin().getConfigEditSessionManager();
+            if (mgr == null) { sender.sendMessage("§cKeine Session-Manager verfügbar."); return true; }
+            mgr.clearSession(uid);
+            sender.sendMessage("§eEdit-Session abgebrochen.");
+            try { gameManager.getPlugin().getGameManager().resumeForPlayer(uid); } catch (Throwable ignored) {}
+            return true;
+        }
         sender.sendMessage("Unknown subcommand. Usage: /msconfig reload");
         return true;
     }

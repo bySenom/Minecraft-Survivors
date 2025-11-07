@@ -29,6 +29,7 @@ public final class MinecraftSurvivors extends JavaPlugin {
     private org.bysenom.minecraftSurvivors.manager.HoloHpManager holoHpManager;
     private org.bysenom.minecraftSurvivors.manager.TablistManager tablistManager;
     private org.bukkit.scheduler.BukkitTask autosaveTask;
+    private org.bysenom.minecraftSurvivors.manager.ConfigEditSessionManager configEditSessionManager;
 
     @Override
     public void onLoad() {
@@ -54,6 +55,8 @@ public final class MinecraftSurvivors extends JavaPlugin {
 
         // GuiManager als Feld speichern
         this.guiManager = new GuiManager(this, gameManager);
+        // Config edit session manager
+        this.configEditSessionManager = new org.bysenom.minecraftSurvivors.manager.ConfigEditSessionManager(this);
         // Shop-NPC Manager
         this.shopNpcManager = new org.bysenom.minecraftSurvivors.manager.ShopNpcManager(this, guiManager);
 
@@ -92,6 +95,7 @@ public final class MinecraftSurvivors extends JavaPlugin {
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.PlayerDataListener(this.playerDataManager, playerManager), this);
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.SpawnFreezeListener(gameManager, gameManager.getSpawnManager()), this);
             getServer().getPluginManager().registerEvents(new GuiClickListener(this, guiManager), this);
+            getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.AdminChatInputListener(this, this.configEditSessionManager), this);
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.gui.LevelUpMenuListener(guiManager), this);
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.DamageHealListener(this), this);
             // ReplaceAbilityMenu Listener
@@ -166,4 +170,5 @@ public final class MinecraftSurvivors extends JavaPlugin {
     public org.bysenom.minecraftSurvivors.manager.HoloHpManager getHoloHpManager() { return holoHpManager; }
     public org.bysenom.minecraftSurvivors.manager.TablistManager getTablistManager() { return tablistManager; }
     public org.bysenom.minecraftSurvivors.util.PlayerDataManager getPlayerDataManager() { return playerDataManager; }
+    public org.bysenom.minecraftSurvivors.manager.ConfigEditSessionManager getConfigEditSessionManager() { return this.configEditSessionManager; }
 }

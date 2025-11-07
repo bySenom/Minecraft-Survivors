@@ -369,14 +369,14 @@ public class GuiManager {
     }
 
     public void openAdminConfigEditor(Player p) {
-        if (p == null) return;
-        if (!p.hasPermission("minecraftsurvivors.admin")) { org.bysenom.minecraftSurvivors.util.Msg.err(p, "Keine Rechte."); return; }
-        org.bukkit.configuration.file.FileConfiguration cfg = plugin.getConfigUtil().getConfig();
-        java.util.Set<String> keys = cfg.getKeys(false);
-        plugin.getLogger().info("openAdminConfigEditor invoked by " + p.getName() + " - runtime config top keys count=" + (keys==null?0:keys.size()));
-        // Fallback: wenn keine keys gefunden werden, versuche die eingebettete resource config.yml zu parsen
-        String cfgSource = "runtime";
-        if (keys == null || keys.isEmpty()) {
+         if (p == null) return;
+         if (!p.hasPermission("minecraftsurvivors.admin")) { org.bysenom.minecraftSurvivors.util.Msg.err(p, "Keine Rechte."); return; }
+         org.bukkit.configuration.file.FileConfiguration cfg = plugin.getConfigUtil().getConfig();
+         java.util.Set<String> keys = cfg.getKeys(false);
+         plugin.getLogger().info("openAdminConfigEditor invoked by " + p.getName() + " - runtime config top keys count=" + (keys==null?0:keys.size()));
+         // Fallback: wenn keine keys gefunden werden, versuche die eingebettete resource config.yml zu parsen
+         String cfgSource = "runtime";
+         if (keys == null || keys.isEmpty()) {
             try {
                 java.io.InputStream is = plugin.getResource("config.yml");
                 plugin.getLogger().info("AdminConfigEditor: runtime keys empty, plugin.getResource(config.yml)=" + (is != null));
@@ -458,108 +458,40 @@ public class GuiManager {
          p.openInventory(inv);
      }
 
-    // wrapper that defaults to page = 0
-    public void openAdminCategoryEditor(Player p, String category) { openAdminCategoryEditor(p, category, 0); }
-
-    // paginated category editor: page index starts at 0
-    public void openAdminCategoryEditor(Player p, String category, int page) {
-        if (p == null || category == null) return;
+    public void openAdminConfigKeyEditor(Player p, String fullPath) {
+        if (p == null || fullPath == null) return;
         if (!p.hasPermission("minecraftsurvivors.admin")) { org.bysenom.minecraftSurvivors.util.Msg.err(p, "Keine Rechte."); return; }
         org.bukkit.configuration.file.FileConfiguration cfg = plugin.getConfigUtil().getConfig();
-        org.bukkit.configuration.ConfigurationSection sec = cfg.getConfigurationSection(category);
-        try { plugin.getLogger().info("openAdminCategoryEditor: requested category='" + category + "' secExists=" + (sec != null) + " page=" + page); } catch (Throwable ignored) {}
-
-        java.util.Set<String> childSections = new java.util.TreeSet<>();
-        java.util.Set<String> leafKeys = new java.util.TreeSet<>();
-
-        if (sec != null) {
-            for (String k : sec.getKeys(false)) {
-                String full = category + "." + k;
-                if (cfg.isConfigurationSection(full)) childSections.add(full); else leafKeys.add(full);
-            }
-            for (String k : sec.getKeys(true)) {
-                String full = category + "." + k;
-                if (!cfg.isConfigurationSection(full)) leafKeys.add(full);
-            }
-        } else {
-            try {
-                plugin.getLogger().info("openAdminCategoryEditor: section not found for '" + category + "' - performing fallback grouping search");
-                java.util.Set<String> allKeys = cfg.getKeys(true);
-                for (String k : allKeys) {
-                    if (cfg.isConfigurationSection(k)) continue;
-                    if (k.equalsIgnoreCase(category)) { leafKeys.add(k); continue; }
-                    if (k.startsWith(category + ".")) {
-                        String remainder = k.substring(category.length() + 1);
-                        String[] parts = remainder.split("\\.");
-                        if (parts.length >= 2) childSections.add(category + "." + parts[0]); else leafKeys.add(k);
-                    } else {
-                        String[] parts = k.split("\\."); if (parts.length > 0 && parts[0].equalsIgnoreCase(category)) leafKeys.add(k);
-                    }
-                }
-            } catch (Throwable t) { plugin.getLogger().warning("openAdminCategoryEditor: fallback grouping failed: " + t.getMessage()); }
-        }
-
-        java.util.List<String> displayOrder = new java.util.ArrayList<>(); displayOrder.addAll(childSections); displayOrder.addAll(leafKeys);
-
-        try { plugin.getLogger().info("openAdminCategoryEditor: childSections=" + childSections.size() + " leafKeys=" + leafKeys.size() + " for category='" + category + "'"); } catch (Throwable ignored) {}
-
-        // determine rows/pages. Minimum inventory size 27 (3 rows) to ensure slot indices are valid.
-        int items = displayOrder.size();
-        int rowsNeededInner = (int) Math.ceil((double) items / 7.0); // inner rows count if we want 7 cols
-        int rows = Math.max(3, Math.min(6, rowsNeededInner + 2));
-        int invSize = rows * 9; // between 27 and 54
-        Inventory inv = Bukkit.createInventory(null, invSize, Component.text("Config: " + category).color(NamedTextColor.YELLOW));
+        Object v = cfg.get(fullPath);
+        Inventory inv = Bukkit.createInventory(null, 27, Component.text("Edit: " + fullPath).color(NamedTextColor.YELLOW));
         fillBorder(inv, Material.GRAY_STAINED_GLASS_PANE);
+        java.util.List<Component> info = new java.util.ArrayList<>();
+        info.add(Component.text("Aktueller Wert: " + String.valueOf(v)).color(NamedTextColor.WHITE));
+        info.add(Component.text("Pfad: " + fullPath).color(NamedTextColor.DARK_GRAY));
+        inv.setItem(13, createGuiItem(Material.PAPER, Component.text("Key").color(NamedTextColor.AQUA), info, "noop"));
 
-        int innerRows = rows - 2; // number of rows available for content
-        int capacity = innerRows * 7; // per page
-        int totalPages = (int) Math.ceil((double) items / capacity);
-        if (totalPages == 0) totalPages = 1;
-        if (page < 0) page = 0; if (page >= totalPages) page = totalPages - 1;
-
-        int startIdx = page * capacity;
-        int endIdx = Math.min(items, startIdx + capacity);
-
-        int slot = 10; // first interior slot
-        for (int i = startIdx; i < endIdx; i++) {
-            String itemKey = displayOrder.get(i);
-            if (childSections.contains(itemKey)) {
-                java.util.List<Component> lore = new java.util.ArrayList<>();
-                int cnt = 0; try { org.bukkit.configuration.ConfigurationSection child = cfg.getConfigurationSection(itemKey); if (child != null) cnt = (int) child.getKeys(true).stream().filter(k -> !cfg.isConfigurationSection(itemKey + "." + k)).count(); } catch (Throwable ignored) {}
-                lore.add(Component.text("Unterkategorie").color(NamedTextColor.GRAY));
-                lore.add(Component.text("Leaf-Keys: " + cnt).color(NamedTextColor.DARK_GRAY));
-                lore.add(Component.text("Pfad: " + itemKey).color(NamedTextColor.DARK_GRAY));
-                inv.setItem(slot, createGuiItem(Material.CHEST, Component.text(lastPathSegment(itemKey)).color(NamedTextColor.AQUA), lore, "admin_cfg_cat:" + itemKey + ":0", false));
-            } else {
-                Object v = cfg.get(itemKey);
-                java.util.List<Component> lore = new java.util.ArrayList<>();
-                lore.add(Component.text("Wert: " + String.valueOf(v)).color(NamedTextColor.WHITE));
-                lore.add(Component.text("Pfad: " + itemKey).color(NamedTextColor.DARK_GRAY));
-                lore.add(Component.text("Typ: " + (v == null ? "null" : v.getClass().getSimpleName())).color(NamedTextColor.GRAY));
-                inv.setItem(slot, createGuiItem(Material.WRITTEN_BOOK, Component.text(lastPathSegment(itemKey)).color(NamedTextColor.AQUA), lore, "cfg_edit:" + itemKey, false));
-            }
-            slot++; if (slot % 9 == 8) slot += 2;
-            if (slot >= inv.getSize() - 9) break;
+        if (v instanceof Boolean) {
+            boolean cur = (Boolean) v;
+            inv.setItem(11, createGuiItem(cur ? Material.LIME_DYE : Material.REDSTONE_BLOCK,
+                    Component.text("Toggle").color(NamedTextColor.GREEN), java.util.List.of(Component.text("Aktuell: " + cur)), "cfg_toggle:" + fullPath));
+        } else if (v instanceof Number) {
+            double val = ((Number) v).doubleValue();
+            double mag = Math.max(1.0, Math.abs(val));
+            double step1 = (mag >= 10 ? 10 : mag >= 1 ? 1 : 0.1);
+            double step2 = step1 * 0.1;
+            inv.setItem(10, createGuiItem(Material.RED_STAINED_GLASS, Component.text("- " + step1).color(NamedTextColor.RED), java.util.List.of(Component.text("Decrease by " + step1)), "cfg_dec:" + fullPath + ":" + step1));
+            inv.setItem(12, createGuiItem(Material.RED_STAINED_GLASS, Component.text("- " + step2).color(NamedTextColor.RED), java.util.List.of(Component.text("Decrease by " + step2)), "cfg_dec:" + fullPath + ":" + step2));
+            inv.setItem(14, createGuiItem(Material.LIME_STAINED_GLASS, Component.text("+ " + step2).color(NamedTextColor.GREEN), java.util.List.of(Component.text("Increase by " + step2)), "cfg_inc:" + fullPath + ":" + step2));
+            inv.setItem(16, createGuiItem(Material.LIME_STAINED_GLASS, Component.text("+ " + step1).color(NamedTextColor.GREEN), java.util.List.of(Component.text("Increase by " + step1)), "cfg_inc:" + fullPath + ":" + step1));
+        } else if (v instanceof String) {
+            inv.setItem(11, createGuiItem(Material.PAPER, Component.text("Set via Chat").color(NamedTextColor.AQUA), java.util.List.of(Component.text("Gebe neuen Wert im Chat ein:"), Component.text("/msconfig set " + fullPath + " <value>").color(NamedTextColor.GRAY)), "cfg_chat:" + fullPath));
+        } else {
+            inv.setItem(11, createGuiItem(Material.BOOK, Component.text("Nicht editierbar").color(NamedTextColor.GRAY), java.util.List.of(Component.text("Dieser Typ wird von der UI nicht direkt unterstützt.")), "noop"));
         }
 
-        // navigation
-        if (totalPages > 1) {
-            if (page > 0) inv.setItem(inv.getSize() - 7, createGuiItem(Material.ARROW, Component.text("<- Prev").color(NamedTextColor.YELLOW), java.util.List.of(Component.text("Seite " + page + " von " + totalPages)), "admin_cfg_cat_page:" + category + ":" + (page - 1)));
-            inv.setItem(inv.getSize() - 6, createGuiItem(Material.PAPER, Component.text("Seite").color(NamedTextColor.GRAY), java.util.List.of(Component.text("" + (page + 1) + " / " + totalPages)), "noop"));
-            if (page < totalPages - 1) inv.setItem(inv.getSize() - 5, createGuiItem(Material.ARROW, Component.text("Next ->").color(NamedTextColor.YELLOW), java.util.List.of(Component.text("Seite " + (page + 2) + " von " + totalPages)), "admin_cfg_cat_page:" + category + ":" + (page + 1)));
-        }
-
-        inv.setItem(inv.getSize() - 4, createGuiItem(Material.ARROW, Component.text("Admin Panel").color(NamedTextColor.RED), java.util.List.of(Component.text("Zurück zum Admin-Panel")), "admin"));
-        inv.setItem(inv.getSize() - 3, createGuiItem(Material.BARRIER, Component.text("Zurück").color(NamedTextColor.RED), java.util.List.of(Component.text("Zurück zu Kategorien")), "admin_config"));
+        inv.setItem(22, createGuiItem(Material.ARROW, Component.text("Zurück").color(NamedTextColor.RED), java.util.List.of(Component.text("Zurück zur Kategorie")), "admin_config"));
         p.openInventory(inv);
     }
-
-    private String lastPathSegment(String path) {
-        if (path == null) return "";
-        String[] parts = path.split("\\\\.");
-        return parts.length == 0 ? path : parts[parts.length - 1];
-    }
-
 
     /**
      * Behandelt die Auswahl im Level-Up-Menü (ItemStack-Variante).
@@ -876,5 +808,11 @@ public class GuiManager {
         if (s.size() > n) sb.append(", ...");
         sb.append("]");
         return sb.toString();
+    }
+
+    private String lastPathSegment(String path) {
+        if (path == null) return null;
+        int idx = path.lastIndexOf('.');
+        return idx >= 0 ? path.substring(idx+1) : path;
     }
 }

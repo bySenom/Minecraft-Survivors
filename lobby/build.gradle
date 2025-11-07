@@ -1,0 +1,68 @@
+plugins {
+    id 'java'
+    alias(libs.plugins.run.paper)
+    alias(libs.plugins.spotless)
+}
+
+group = 'org.bysenom'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+    maven {
+        name = "papermc-repo"
+        url = "https://repo.papermc.io/repository/maven-public/"
+    }
+}
+
+dependencies {
+    compileOnly libs.paper.api
+    testImplementation libs.junit.jupiter
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+}
+
+spotless {
+    java {
+        target 'src/**/*.java'
+        importOrder()
+        removeUnusedImports()
+        endWithNewline()
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release.set(21)
+    options.compilerArgs += ['-Xlint:deprecation', '-Xlint:unchecked']
+}
+
+processResources {
+    def props = [version: version]
+    inputs.properties props
+    filteringCharset 'UTF-8'
+    filesMatching('plugin.yml') { expand props }
+}
+
+jar {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+    manifest { attributes([
+        'Implementation-Title': project.name,
+        'Implementation-Version': project.version
+    ]) }
+}
+
+// Kopiert das erzeugte JAR in den gemeinsamen run/plugins Ordner
+tasks.register('copyToRunPlugins', Copy) {
+    dependsOn jar
+    from(layout.buildDirectory.file("libs/${project.name}-${project.version}.jar"))
+    into(rootProject.layout.projectDirectory.dir('run/plugins'))
+}
+
+runServer {
+    def mcVer = libs.versions.paper.get().split('-')[0]
+    minecraftVersion(mcVer)
+}

@@ -1,0 +1,10 @@
+# LobbySystem Konfiguration
+min-players: 2            # Mindestanzahl für Auto-Start
+max-players: 8            # Optionale Obergrenze; bei Erreichen sofort Countdown
+autostart-seconds: 15     # Countdown-Dauer bei ausreichender Queue
+open-menu-on-join: true   # Öffnet das Lobby-Menü beim Join
+bossbar-enabled: true     # Zeigt BossBar mit Queue-Status
+bossbar-color: BLUE       # BLUE, RED, GREEN, YELLOW, PURPLE, WHITE, PINK
+bossbar-overlay: PROGRESS # PROGRESS | NOTCHED_6 | NOTCHED_10 | NOTCHED_12 | NOTCHED_20
+survivors-start-command: "msstart" # Befehl zum Start der Survivors-Runde (von der Konsole)
+
