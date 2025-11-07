@@ -10,8 +10,8 @@ commands:
     description: "Öffnet das Lobby-Menü"
     usage: "/lobby"
   queue:
-    description: "Queue-Beitritt oder Verlassen"
-    usage: "/queue join|leave"
+    description: "Queue: /queue join|leave|status|next"
+    usage: "/queue <join|leave|status|next>"
   startsurvivors:
     description: "Admin: Startet eine Survivors-Runde für gequeue-te Spieler"
     usage: "/startsurvivors"

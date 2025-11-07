@@ -72,12 +72,14 @@ public class StatsDisplayManager {
     }
 
     private void tick() {
+        org.bysenom.minecraftSurvivors.model.GameState gState = plugin.getGameManager().getState();
+        boolean running = gState == org.bysenom.minecraftSurvivors.model.GameState.RUNNING;
         for (Player p : Bukkit.getOnlinePlayers()) {
             double dps = meter.getDps(p.getUniqueId());
             double hps = meter.getHps(p.getUniqueId());
             switch (mode) {
                 case ACTIONBAR:
-                    // include XP/Lvl for convenience
+                    if (!running) continue; // keine Survivors-HUD wenn Lobby
                     org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = plugin.getPlayerManager().get(p.getUniqueId());
                     int currentXp = sp != null ? sp.getXp() : 0;
                     int xpToNext = sp != null ? sp.getXpToNext() : 1;
@@ -85,6 +87,7 @@ public class StatsDisplayManager {
                     p.sendActionBar(Component.text(String.format("XP %d/%d • Lvl %d • DPS %.1f • HPS %.1f", currentXp, xpToNext, lvl, dps, hps)));
                     break;
                 case BOSSBAR:
+                    if (!running) { clearBossbarsFor(p); continue; }
                     updateBossbars(p, dps, hps);
                     updateEnemyBossbar(p);
                     break;
@@ -178,6 +181,15 @@ public class StatsDisplayManager {
             try { if (h != null) p.hideBossBar(h); } catch (Throwable ignored) {}
             try { if (e != null) p.hideBossBar(e); } catch (Throwable ignored) {}
         }
+    }
+
+    private void clearBossbarsFor(Player p) {
+        BossBar d = bossbarsDps.remove(p.getUniqueId());
+        BossBar h = bossbarsHps.remove(p.getUniqueId());
+        BossBar e = bossbarsEnemy.remove(p.getUniqueId());
+        try { if (d != null) p.hideBossBar(d); } catch (Throwable ignored) {}
+        try { if (h != null) p.hideBossBar(h); } catch (Throwable ignored) {}
+        try { if (e != null) p.hideBossBar(e); } catch (Throwable ignored) {}
     }
 
     private Mode parseMode(String s) {

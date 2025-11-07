@@ -56,6 +56,11 @@ public class ScoreboardManager {
 
     private void updateFor(Player p) {
         if (p == null || !p.isOnline()) return;
+        // Zeige Scoreboard nur wenn Spiel läuft
+        if (gameManager.getState() != org.bysenom.minecraftSurvivors.model.GameState.RUNNING) {
+            try { p.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard()); } catch (Throwable ignored) {}
+            return;
+        }
         Scoreboard sb;
         try {
             sb = Bukkit.getScoreboardManager().getNewScoreboard();
@@ -137,6 +142,7 @@ public class ScoreboardManager {
             for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
                 try {
                     if (gameManager != null && gameManager.isPlayerPaused(p.getUniqueId())) continue;
+                    if (gameManager.getState() != org.bysenom.minecraftSurvivors.model.GameState.RUNNING) continue; // keine HUD vor Spielstart
                     org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = playerManager.get(p.getUniqueId());
                     if (sp == null) continue;
                     int currentXp = sp.getXp();

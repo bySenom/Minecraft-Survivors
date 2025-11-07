@@ -93,3 +93,22 @@ tasks.register('printVersion') {
         println "${project.name} version ${project.version}"
     }
 }
+
+// Zentrales Dist-Verzeichnis für alle JARs
+def distDir = layout.projectDirectory.dir('dist')
+
+tasks.register('collectJars', Copy) {
+    // Stelle sicher, dass alle Subprojekte ihre JARs gebaut haben
+    dependsOn(gradle.includedBuilds.collect { })
+    dependsOn(subprojects.collect { it.tasks.named('jar') })
+    // Quelle: alle build/libs der Subprojekte und das Root-Projekt
+    from(layout.buildDirectory.dir('libs'))
+    from(subprojects.collect { it.layout.buildDirectory.dir('libs') })
+    into(distDir)
+}
+
+// Root-Build finalisiert: JARs einsammeln
+tasks.named('build') { finalizedBy('collectJars') }
+
+// Clean löscht zusätzlich das Dist-Verzeichnis
+tasks.named('clean') { doLast { delete(distDir) } }

@@ -2,6 +2,7 @@ package org.bysenom.lobby;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class LobbySystem extends JavaPlugin {
@@ -55,19 +56,39 @@ public final class LobbySystem extends JavaPlugin {
         org.bukkit.boss.BarStyle style = parseStyle(getConfig().getString("bossbar-overlay", "PROGRESS"));
         bossBar = Bukkit.createBossBar("Lobby • Warten auf Spieler…", color, style);
         bossBar.setProgress(0.0);
-        // beim Join allen anzeigen
+        // Nur Quit-Handling: aus BossBar entfernen
         Bukkit.getPluginManager().registerEvents(new org.bukkit.event.Listener() {
             @org.bukkit.event.EventHandler
-            public void onJoin(org.bukkit.event.player.PlayerJoinEvent e) {
-                if (bossBar != null) bossBar.addPlayer(e.getPlayer());
+            public void onQuit(org.bukkit.event.player.PlayerQuitEvent e) {
+                removeFromBossBar(e.getPlayer());
             }
             @org.bukkit.event.EventHandler
-            public void onQuit(org.bukkit.event.player.PlayerQuitEvent e) {
-                if (bossBar != null) bossBar.removePlayer(e.getPlayer());
+            public void onJoin(org.bukkit.event.player.PlayerJoinEvent e) {
+                // Nur hinzufügen, falls bereits in Queue (z.B. Rejoin)
+                try {
+                    if (queueManager != null && queueManager.isInQueue(e.getPlayer().getUniqueId())) {
+                        addToBossBar(e.getPlayer());
+                    }
+                } catch (Throwable ignored) {}
             }
         }, this);
-        // initial hinzufügen
-        for (org.bukkit.entity.Player p : Bukkit.getOnlinePlayers()) bossBar.addPlayer(p);
+        // Initial synchronisieren: alle bereits gequeueten Spieler hinzufügen
+        try {
+            for (java.util.UUID id : queueManager.snapshot()) {
+                Player p = Bukkit.getPlayer(id);
+                if (p != null && p.isOnline()) addToBossBar(p);
+            }
+        } catch (Throwable ignored) {}
+    }
+
+    public void addToBossBar(Player p) {
+        if (bossBar == null || p == null) return;
+        try { bossBar.addPlayer(p); } catch (Throwable ignored) {}
+    }
+
+    public void removeFromBossBar(Player p) {
+        if (bossBar == null || p == null) return;
+        try { bossBar.removePlayer(p); } catch (Throwable ignored) {}
     }
 
     private org.bukkit.boss.BarColor parseColor(String s) {
@@ -123,13 +144,17 @@ public final class LobbySystem extends JavaPlugin {
     }
 
     private void setupAutoStartLoop() {
+        boolean admission = getConfig().getBoolean("admission.enabled", true);
+        if (admission) {
+            setupAdmissionLoop();
+            return;
+        }
         final int min = Math.max(1, getConfig().getInt("min-players", 2));
         final int max = Math.max(min, getConfig().getInt("max-players", 8));
         final int seconds = Math.max(3, getConfig().getInt("autostart-seconds", 15));
         final String startCmd = getConfig().getString("survivors-start-command", "msstart");
         autoStartTask = Bukkit.getScheduler().runTaskTimer(this, () -> {
             int size = queueManager.size();
-            // Bossbar aktualisieren
             if (bossBar != null) {
                 double prog = Math.min(1.0, size / (double) min);
                 bossBar.setProgress(prog);
@@ -137,21 +162,61 @@ public final class LobbySystem extends JavaPlugin {
                 bossBar.setTitle(title);
             }
             if (size >= min) {
-                if (countdownValue < 0) countdownValue = seconds; // countdown starten
-                if (size >= max) countdownValue = Math.min(countdownValue, 5); // schneller starten bei voller Lobby
+                if (countdownValue < 0) countdownValue = seconds;
+                if (size >= max) countdownValue = Math.min(countdownValue, 5);
                 if (countdownValue <= 0) {
-                    // Start: öffne bei allen Queue-Spielern das Survivors-Menü und sende Startkommando
                     for (java.util.UUID id : queueManager.snapshot()) {
                         org.bukkit.entity.Player p = Bukkit.getPlayer(id);
                         if (p != null && p.isOnline()) p.performCommand("msmenu");
                     }
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), startCmd);
-                    countdownValue = -1; // zurücksetzen
+                    countdownValue = -1;
                 } else {
                     countdownValue--;
                 }
             } else {
-                countdownValue = -1; // warten
+                countdownValue = -1;
+            }
+        }, 20L, 20L);
+    }
+
+    private void setupAdmissionLoop() {
+        final int interval = Math.max(1, getConfig().getInt("admission.interval-seconds", 3));
+        final String startWhen = getConfig().getString("admission.start-when", "min");
+        final boolean backfill = getConfig().getBoolean("admission.backfill-while-running", true);
+        final int min = Math.max(1, getConfig().getInt("min-players", 2));
+        final String startCmd = getConfig().getString("survivors-start-command", "msstart");
+        autoStartTask = Bukkit.getScheduler().runTaskTimer(this, () -> {
+            int queued = queueManager.size();
+            int admitted = queueManager.admittedCount();
+            if (bossBar != null) {
+                int etaNext = (countdownValue < 0 ? interval : countdownValue);
+                String title = "Lobby • In Queue: " + queued + " • Zugelassen: " + admitted + " • Next in " + etaNext + "s";
+                bossBar.setTitle(title);
+                double target = Math.max(1.0, (double) (queued + admitted));
+                double prog = Math.min(1.0, admitted / target);
+                bossBar.setProgress(prog);
+            }
+            // Alle 'interval' Sekunden genau eine Zulassung
+            if (countdownValue < 0) countdownValue = interval;
+            if (countdownValue <= 0) {
+                queueManager.admitNext();
+                countdownValue = interval;
+            } else {
+                countdownValue--;
+            }
+            // Startbedingungen
+            boolean shouldStart;
+            switch (startWhen.toLowerCase()) {
+                case "queue_empty": shouldStart = queued == 0 && admitted > 0; break;
+                case "manual": shouldStart = false; break;
+                default: // min
+                    shouldStart = admitted >= min;
+                    break;
+            }
+            if (shouldStart) {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), startCmd);
+                if (!backfill) { countdownValue = -1; }
             }
         }, 20L, 20L);
     }

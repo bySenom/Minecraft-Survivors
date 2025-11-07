@@ -1,10 +1,15 @@
 # LobbySystem Konfiguration
-min-players: 2            # Mindestanzahl für Auto-Start
-max-players: 8            # Optionale Obergrenze; bei Erreichen sofort Countdown
-autostart-seconds: 15     # Countdown-Dauer bei ausreichender Queue
+min-players: 2            # Mindestanzahl für Auto-Start (nur relevant ohne admission)
+max-players: 8            # Obergrenze; bei Erreichen schneller starten (nur ohne admission)
+autostart-seconds: 15     # Countdown-Dauer bei ausreichender Queue (nur ohne admission)
 open-menu-on-join: true   # Öffnet das Lobby-Menü beim Join
 bossbar-enabled: true     # Zeigt BossBar mit Queue-Status
 bossbar-color: BLUE       # BLUE, RED, GREEN, YELLOW, PURPLE, WHITE, PINK
 bossbar-overlay: PROGRESS # PROGRESS | NOTCHED_6 | NOTCHED_10 | NOTCHED_12 | NOTCHED_20
 survivors-start-command: "msstart" # Befehl zum Start der Survivors-Runde (von der Konsole)
 
+admission:
+  enabled: true              # Wenn true, Spieler werden nacheinander zugelassen
+  interval-seconds: 3        # Zeitabstand zwischen zwei Zulassungen
+  start-when: min            # min | queue_empty | manual — Startbedingung für MS
+  backfill-while-running: true # Wenn MS bereits läuft, weiterhin Spieler zulassen
