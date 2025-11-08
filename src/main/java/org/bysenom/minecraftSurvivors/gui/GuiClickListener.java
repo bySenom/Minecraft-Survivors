@@ -48,27 +48,16 @@ public class GuiClickListener implements Listener {
 
         e.setCancelled(true);
 
-        // Admin Category open
+        // Admin Category open (direkte Aufrufe statt Reflection)
         if (action.startsWith("admin_cfg_cat:")) {
             String rest = action.substring("admin_cfg_cat:".length());
-            String cat = rest;
-            int page = 0;
+            String cat = rest; int page = 0;
             if (rest.contains(":")) {
                 String[] parts = rest.split(":", 2);
                 cat = parts[0];
                 try { page = Integer.parseInt(parts[1]); } catch (Throwable ignored) {}
             }
-            try {
-                try {
-                    guiManager.getClass().getMethod("openAdminCategoryEditor", Player.class, String.class, int.class)
-                        .invoke(guiManager, player, cat, page);
-                } catch (NoSuchMethodException nsme) {
-                    guiManager.getClass().getMethod("openAdminCategoryEditor", Player.class, String.class)
-                        .invoke(guiManager, player, cat);
-                }
-            } catch (Throwable t) {
-                plugin.getLogger().warning("openAdminCategoryEditor failed: " + t.getMessage());
-            }
+            try { guiManager.openAdminCategoryEditor(player, cat, page); } catch (Throwable t) { plugin.getLogger().warning("openAdminCategoryEditor failed: " + t.getMessage()); }
             return;
         }
 
@@ -78,15 +67,7 @@ public class GuiClickListener implements Listener {
             if (parts.length >= 2) {
                 String cat = parts[0];
                 int page = 0; try { page = Integer.parseInt(parts[1]); } catch (Throwable ignored) {}
-                try {
-                    try {
-                        guiManager.getClass().getMethod("openAdminCategoryEditor", Player.class, String.class, int.class)
-                            .invoke(guiManager, player, cat, page);
-                    } catch (NoSuchMethodException nsme) {
-                        guiManager.getClass().getMethod("openAdminCategoryEditor", Player.class, String.class)
-                            .invoke(guiManager, player, cat);
-                    }
-                } catch (Throwable t) { plugin.getLogger().warning("openAdminCategoryEditor page failed: " + t.getMessage()); }
+                try { guiManager.openAdminCategoryEditor(player, cat, page); } catch (Throwable t) { plugin.getLogger().warning("openAdminCategoryEditor page failed: " + t.getMessage()); }
             }
             return;
         }
@@ -104,6 +85,7 @@ public class GuiClickListener implements Listener {
             }
             case "start" -> {
                 try { plugin.getGameManager().enterSurvivorsContext(player.getUniqueId()); } catch (Throwable ignored) {}
+                // "start" bleibt Hinweis, eigentliche Wahl passiert über start_wizard
                 player.sendMessage("§eBitte nutze 'Spiel starten' und wähle eine Klasse.");
                 return;
             }
@@ -156,10 +138,16 @@ public class GuiClickListener implements Listener {
             var sp = plugin.getPlayerManager().get(player.getUniqueId());
             if (sp != null) {
                 sp.setSelectedClass(chosen);
+                sp.setReady(true); // Nach Wahl direkt als "bereit" markieren
                 try { plugin.getGameManager().enterSurvivorsContext(player.getUniqueId()); } catch (Throwable ignored) {}
                 player.sendMessage("§aKlasse gewählt: §f" + chosen.name());
                 try { player.playSound(player.getLocation(), org.bukkit.Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.3f); } catch (Throwable ignored) {}
                 try { plugin.getScoreboardManager().forceUpdate(player); } catch (Throwable ignored) {}
+                // Autostart-Countdown anstoßen (idempotent)
+                try {
+                    int cd = Math.max(1, plugin.getConfigUtil().getInt("lobby.autostart-countdown-seconds", 3));
+                    plugin.getGameManager().startGameWithCountdown(cd);
+                } catch (Throwable ignored) {}
             }
             guiManager.openMainMenu(player);
             return;
@@ -246,9 +234,7 @@ public class GuiClickListener implements Listener {
         if (action.startsWith("cfg_edit:")) {
             String fullPath = action.substring("cfg_edit:".length());
             try {
-                guiManager.getClass().getMethod("openAdminConfigKeyEditor", Player.class, String.class).invoke(guiManager, player, fullPath);
-            } catch (NoSuchMethodException nsme) {
-                plugin.getLogger().warning("openAdminConfigKeyEditor not found: " + nsme.getMessage());
+                guiManager.openAdminConfigKeyEditor(player, fullPath);
             } catch (Throwable t) { plugin.getLogger().warning("openAdminConfigKeyEditor failed: " + t.getMessage()); }
             return;
         }
@@ -279,7 +265,7 @@ public class GuiClickListener implements Listener {
                     player.sendMessage("§cNicht Boolean: " + fullPath);
                 }
             } catch (Throwable t) { plugin.getLogger().warning("cfg_toggle failed: " + t.getMessage()); player.sendMessage("§cFehler beim Setzen"); }
-            try { guiManager.getClass().getMethod("openAdminConfigKeyEditor", Player.class, String.class).invoke(guiManager, player, fullPath); } catch (Throwable ignored) {}
+            try { guiManager.openAdminConfigKeyEditor(player, fullPath); } catch (Throwable ignored) {}
             return;
         }
 
@@ -304,7 +290,7 @@ public class GuiClickListener implements Listener {
                         player.sendMessage("§cNicht numerisch: " + fullPath);
                     }
                 } catch (Throwable t) { plugin.getLogger().warning("cfg_inc/dec failed: " + t.getMessage()); player.sendMessage("§cFehler beim Setzen"); }
-                try { guiManager.getClass().getMethod("openAdminConfigKeyEditor", Player.class, String.class).invoke(guiManager, player, fullPath); } catch (Throwable ignored) {}
+                try { guiManager.openAdminConfigKeyEditor(player, fullPath); } catch (Throwable ignored) {}
             }
         }
     }

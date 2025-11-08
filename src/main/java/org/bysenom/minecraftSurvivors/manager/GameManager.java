@@ -107,7 +107,21 @@ public class GameManager {
     /** Markiert einen Spieler als im Survivors-Kontext (zeigt HUD/Scoreboard schon in der Lobby-Phase an). */
     public void enterSurvivorsContext(java.util.UUID uuid) {
         if (uuid == null) return;
+        // eigenen Spieler setzen
         survivorsContext.add(uuid);
+        // Party-Mitglieder automatisch in den Kontext nehmen (falls vorhanden)
+        try {
+            org.bysenom.minecraftSurvivors.manager.PartyManager pm = plugin.getPartyManager();
+            if (pm != null) {
+                org.bysenom.minecraftSurvivors.manager.PartyManager.Party party = pm.getPartyOf(uuid);
+                if (party != null) {
+                    for (java.util.UUID u : party.getMembers()) {
+                        if (u != null) survivorsContext.add(u);
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
+        // Scoreboard aktualisieren (alle, da Party-Mitglieder mit aufgenommen sein können)
         try { plugin.getScoreboardManager().forceUpdateAll(); } catch (Throwable ignored) {}
     }
 

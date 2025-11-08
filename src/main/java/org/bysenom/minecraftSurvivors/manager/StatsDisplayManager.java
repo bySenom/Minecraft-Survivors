@@ -82,14 +82,29 @@ public class StatsDisplayManager {
                 case ACTIONBAR:
                     // Zeige ActionBar auch vor Spielstart, wenn Spieler im Survivors-Kontext ist (z. B. Klassenwahl)
                     if (!running && !inCtx) continue;
-                    org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = plugin.getPlayerManager().get(p.getUniqueId());
-                    int currentXp = sp != null ? sp.getXp() : 0;
-                    int xpToNext = sp != null ? sp.getXpToNext() : 1;
-                    int lvl = sp != null ? sp.getClassLevel() : 1;
+                    org.bysenom.minecraftSurvivors.model.SurvivorPlayer spAct = plugin.getPlayerManager().get(p.getUniqueId());
+                    int currentXp = spAct != null ? spAct.getXp() : 0;
+                    int xpToNext = spAct != null ? spAct.getXpToNext() : 1;
+                    int lvl = spAct != null ? spAct.getClassLevel() : 1;
                     p.sendActionBar(Component.text(String.format("XP %d/%d • Lvl %d • DPS %.1f • HPS %.1f", currentXp, xpToNext, lvl, dps, hps)));
                     break;
                 case BOSSBAR:
-                    // Bossbars nur bei laufendem Spiel UND Kontext
+                    // Bossbars bei laufendem Spiel oder im Survivors-Lobby-Kontext anzeigen
+                    if (!running && inCtx) {
+                        // Lobby-Kontext: einfache Hinweis-BossBar falls noch keine Klasse gewählt
+                        try {
+                            org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = plugin.getPlayerManager().get(p.getUniqueId());
+                            if (sp != null && sp.getSelectedClass() == null) {
+                                BossBar hint = bossbarsEnemy.computeIfAbsent(p.getUniqueId(), id -> BossBar.bossBar(Component.text("Wähle eine Klasse im Menü"), 0.0f, BossBar.Color.PURPLE, BossBar.Overlay.PROGRESS));
+                                hint.name(Component.text("Klassenwahl offen"));
+                                hint.progress(0f);
+                                p.showBossBar(hint);
+                            } else {
+                                clearBossbarsFor(p); // keine generischen Bossbars wenn Klasse schon gewählt aber Spiel noch nicht läuft
+                            }
+                        } catch (Throwable ignored) {}
+                        break;
+                    }
                     if (!running || !inCtx) { clearBossbarsFor(p); continue; }
                     updateBossbars(p, dps, hps);
                     updateEnemyBossbar(p);

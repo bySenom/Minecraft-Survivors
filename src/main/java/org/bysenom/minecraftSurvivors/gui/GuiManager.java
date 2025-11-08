@@ -37,12 +37,9 @@ public class GuiManager {
      */
     public void openMainMenu(Player p) {
         if (p == null) return;
-        // use a larger inventory for nicer layout
         Inventory inv = Bukkit.createInventory(null, 54, GuiTheme.styledTitle("MinecraftSurvivors", "Hauptmenü"));
-        // border
         fillBorder(inv, Material.BLACK_STAINED_GLASS_PANE);
 
-        // player card (center-left)
         org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = plugin.getPlayerManager().get(p.getUniqueId());
         int coins = sp != null ? sp.getCoins() : 0;
         int lvl = sp != null ? sp.getClassLevel() : 1;
@@ -54,11 +51,10 @@ public class GuiManager {
         cardLore.add(Component.text("Klicke hier, um Profil zu öffnen").color(NamedTextColor.GRAY));
         inv.setItem(13, GuiTheme.createAction(plugin, Material.PLAYER_HEAD, Component.text("Profil").color(NamedTextColor.GOLD), cardLore, "open_profile", true));
 
-        // Big Start Button
-        inv.setItem(22, GuiTheme.createAction(plugin, Material.GREEN_STAINED_GLASS, Component.text("Spiel starten").color(NamedTextColor.GREEN), java.util.List.of(Component.text("Wähle eine Klasse & starte die Session").color(NamedTextColor.GRAY)), "start_wizard", true));
+        // Start Button (enthält Klassenwahl)
+        inv.setItem(22, GuiTheme.createAction(plugin, Material.GREEN_STAINED_GLASS, Component.text("Spiel starten").color(NamedTextColor.GREEN), java.util.List.of(Component.text("Klasse wählen & Session starten").color(NamedTextColor.GRAY)), "start_wizard", true));
 
-        // Quick actions fixed slots (classes / party / shop / stats / meta / info)
-        inv.setItem(20, GuiTheme.createAction(plugin, Material.ENCHANTED_BOOK, Component.text("Klassen wählen").color(NamedTextColor.LIGHT_PURPLE), java.util.List.of(Component.text("Wähle deine Klasse").color(NamedTextColor.GRAY)), "open_class_select", false));
+        // Party, Shop, Stats, Meta, Info (Klassen wählen entfernt)
         inv.setItem(24, GuiTheme.createAction(plugin, Material.PLAYER_HEAD, Component.text("Party").color(NamedTextColor.GOLD), java.util.List.of(Component.text("Erstelle/Verwalte deine Party").color(NamedTextColor.GRAY)), "party", false));
         inv.setItem(30, GuiTheme.createAction(plugin, Material.NETHER_STAR, Component.text("Powerups / Items").color(NamedTextColor.LIGHT_PURPLE), java.util.List.of(Component.text("Shop & Powerups").color(NamedTextColor.GRAY)), "powerup", false));
         inv.setItem(32, GuiTheme.createAction(plugin, Material.CLOCK, Component.text("Stats Anzeige").color(NamedTextColor.YELLOW), java.util.List.of(Component.text("DPS/HPS Anzeige-Modus").color(NamedTextColor.GRAY)), "stats", false));
@@ -852,8 +848,8 @@ public class GuiManager {
 
     @SuppressWarnings("unused")
     private String lastPathSegment(String path) {
-        if (path == null) return null;
-        int idx = path.lastIndexOf('.');
-        return idx >= 0 ? path.substring(idx+1) : path;
+        if (path == null || path.isEmpty()) return path;
+        int idx = path.lastIndexOf('.') ;
+        return idx < 0 ? path : path.substring(idx+1);
     }
 }
