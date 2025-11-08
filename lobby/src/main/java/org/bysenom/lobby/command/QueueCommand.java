@@ -3,18 +3,19 @@ package org.bysenom.lobby.command;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bysenom.lobby.LobbySystem;
 import org.bysenom.lobby.QueueManager;
+import org.jetbrains.annotations.NotNull;
 
-public class QueueCommand implements CommandExecutor {
+public class QueueCommand implements CommandExecutor, TabCompleter {
     private final QueueManager qm;
     public QueueCommand(QueueManager qm) { this.qm = qm; }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player)) { sender.sendMessage("Nur ingame."); return true; }
-        Player p = (Player) sender;
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        if (!(sender instanceof Player p)) { sender.sendMessage("Nur ingame."); return true; }
         if (args.length == 0) {
             sender.sendMessage("Usage: /queue join|leave|status|next");
             return true;
@@ -43,5 +44,13 @@ public class QueueCommand implements CommandExecutor {
                 sender.sendMessage("Usage: /queue join|leave|status|next");
                 return true;
         }
+    }
+
+    @Override
+    public java.util.List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        if (args.length == 1) {
+            return java.util.Arrays.asList("join", "leave", "status", "next");
+        }
+        return java.util.Collections.emptyList();
     }
 }

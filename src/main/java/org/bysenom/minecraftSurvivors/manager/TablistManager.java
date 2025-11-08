@@ -144,7 +144,10 @@ public class TablistManager {
                     }
                 }
             }
-            p.playerListName(Component.text(String.format("%s %s §7(Lv %d)", icon, p.getName(), lvl)));
+            // Baue den Namen ohne Legacy-Formatcodes
+            Component left = Component.text((icon.isEmpty() ? "" : icon + " ") + p.getName() + " ", NamedTextColor.WHITE);
+            Component level = Component.text("(Lv " + lvl + ")", NamedTextColor.GRAY);
+            p.playerListName(left.append(level));
         } catch (Throwable ignored) {}
     }
 

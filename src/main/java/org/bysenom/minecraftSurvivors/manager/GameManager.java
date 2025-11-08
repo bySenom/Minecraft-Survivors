@@ -65,6 +65,9 @@ public class GameManager {
 
     private final BossManager bossManager; // neu
 
+    // Neu: Spieler, die sich im Survivors-Kontext befinden (Klassenwahl/Startphase od. Spiel)
+    private final java.util.Set<java.util.UUID> survivorsContext = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+
     public GameManager(MinecraftSurvivors plugin, PlayerManager playerManager) {
         this.plugin = plugin;
         this.playerManager = playerManager;
@@ -101,18 +104,40 @@ public class GameManager {
 
     public BossManager getBossManager() { return bossManager; }
 
+    /**
+     * Markiert einen Spieler als im Survivors-Kontext (zeigt HUD/Scoreboard schon in der Lobby-Phase an).
+     */
+    public void enterSurvivorsContext(java.util.UUID uuid) {
+        if (uuid == null) return;
+        survivorsContext.add(uuid);
+        try { plugin.getScoreboardManager().forceUpdateAll(); } catch (Throwable ignored) {}
+    }
+
+    /** Entfernt den Survivors-Kontext für den Spieler (HUD/Scoreboard werden bei Bedarf ausgeblendet). */
+    public void leaveSurvivorsContext(java.util.UUID uuid) {
+        if (uuid == null) return;
+        survivorsContext.remove(uuid);
+        try { plugin.getStatsDisplayManager().clearAllBossbarsNow(); } catch (Throwable ignored) {}
+        try { org.bukkit.entity.Player p = org.bukkit.Bukkit.getPlayer(uuid); if (p != null) p.setScoreboard(org.bukkit.Bukkit.getScoreboardManager().getMainScoreboard()); } catch (Throwable ignored) {}
+    }
+
+    /** Prüft, ob ein Spieler sich im Survivors-Kontext befindet. */
+    public boolean isInSurvivorsContext(java.util.UUID uuid) {
+        return uuid != null && survivorsContext.contains(uuid);
+    }
+
     public synchronized void startGame() {
         if (state == GameState.RUNNING) return;
         if (countdownTask != null) { countdownTask.cancel(); countdownTask = null; }
         starting = false;
         state = GameState.RUNNING;
-        // preserve skills/slots across start
         playerManager.resetAllPreserveSkills();
-        // Apply meta progression bonuses per player now
         for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
             try {
                 org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = playerManager.get(p.getUniqueId());
                 plugin.getMetaManager().applyMetaOnRunStart(p, sp);
+                // Beim Start sicherstellen, dass alle aktiven Spieler im Kontext sind
+                enterSurvivorsContext(p.getUniqueId());
             } catch (Throwable ignored) {}
         }
         this.currentWaveNumber = 1;
@@ -124,9 +149,10 @@ public class GameManager {
         }
         abilityManager.start();
         startHudTask();
-        // Spawn Shop-NPC using configured spawn location
         try { plugin.getShopNpcManager().spawnConfigured(); } catch (Throwable ignored) {}
-        Bukkit.getLogger().info("Game started");
+        // Survivors-HUD einschalten: Scoreboard-Update triggern, Bossbars werden im StatsDisplayManager-Tick nur bei RUNNING gezeigt
+        try { plugin.getScoreboardManager().forceUpdateAll(); } catch (Throwable ignored) {}
+        org.bukkit.Bukkit.getLogger().info("Game started");
     }
 
     public synchronized void stopGame() {
@@ -139,6 +165,14 @@ public class GameManager {
         abilityManager.stop();
         if (xpHudTask != null) xpHudTask.cancel();
         try { plugin.getShopNpcManager().despawnAll(); } catch (Throwable ignored) {}
+        // Survivors-HUD vollständig zurücksetzen: Scoreboards auf Main + Bossbars verstecken
+        try { plugin.getScoreboardManager().stop(); } catch (Throwable ignored) {}
+        try { plugin.getStatsDisplayManager().clearAllBossbarsNow(); } catch (Throwable ignored) {}
+        survivorsContext.clear();
+        // Spieler auf Main Scoreboard zurücksetzen
+        for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
+            try { p.setScoreboard(org.bukkit.Bukkit.getScoreboardManager().getMainScoreboard()); } catch (Throwable ignored) {}
+        }
         Bukkit.getLogger().info("Game stopped");
     }
 
@@ -391,11 +425,12 @@ public class GameManager {
         }, 0L, 20L);
     }
 
-    // Utility: nach kurzer Verzögerung das nächste aus der Queue öffnen
+    /**
+     * Öffnet das nächste wartende GUI (LevelUp / LootChest) mit 1 Tick Verzögerung.
+     * Öffentlich gemacht für GuiManager, um nach Resume/Schließen weitere Warteschlangen-Elemente anzuzeigen.
+     * Falls der Spieler offline ist oder die Queue leer bleibt ein No-Op.
+     */
     public void tryOpenNextQueuedDelayed(java.util.UUID uuid) {
-        if (uuid == null) return;
-        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            try { tryOpenNextQueued(uuid); } catch (Throwable ignored) {}
-        }, 2L);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> tryOpenNextQueued(uuid), 1L);
     }
 }

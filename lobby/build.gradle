@@ -13,10 +13,16 @@ repositories {
         name = "papermc-repo"
         url = "https://repo.papermc.io/repository/maven-public/"
     }
+    maven {
+        name = "dmulloy2-repo"
+        url = "https://repo.dmulloy2.net/repository/public/"
+    }
 }
 
 dependencies {
     compileOnly libs.paper.api
+    compileOnly 'io.netty:netty-all:4.1.112.Final'
+    compileOnly 'com.comphenix.protocol:ProtocolLib:5.3.0'
     testImplementation libs.junit.jupiter
 }
 
@@ -66,3 +72,6 @@ runServer {
     def mcVer = libs.versions.paper.get().split('-')[0]
     minecraftVersion(mcVer)
 }
+
+// Verhindere parallelen Serverstart aus dem Subprojekt bei Root-Aufruf
+tasks.named('runServer') { enabled = false }

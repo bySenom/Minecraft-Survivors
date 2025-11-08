@@ -97,6 +97,10 @@ public class GuiManager {
         p.openInventory(inv);
     }
 
+    /**
+     * Meta-Menu (vorerst optional) – als API belassen.
+     */
+    @SuppressWarnings("unused")
     public void openMetaMenu(Player p) {
         if (p == null) return;
         org.bukkit.inventory.Inventory inv = org.bukkit.Bukkit.createInventory(null, 27, Component.text("Meta-Progression").color(NamedTextColor.LIGHT_PURPLE));
@@ -159,6 +163,7 @@ public class GuiManager {
         p.openInventory(inv);
     }
 
+    @SuppressWarnings("unused")
     public void openInfoMenu(Player p) {
         if (p == null) return;
         Inventory inv = Bukkit.createInventory(null, 9, Component.text("MinecraftSurvivors - Info").color(NamedTextColor.YELLOW));
@@ -278,6 +283,7 @@ public class GuiManager {
         p.openInventory(inv);
     }
 
+    @SuppressWarnings("unused")
     public void applyPreset(String name) {
         if (name == null) return;
         switch (name.toLowerCase()) {
@@ -316,19 +322,15 @@ public class GuiManager {
         };
     }
 
+    @SuppressWarnings("unused")
     public void applyShopPurchase(Player p, String key) {
          if (p == null || key == null) return;
          org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = plugin.getPlayerManager().get(p.getUniqueId());
          org.bukkit.configuration.file.FileConfiguration cfg = plugin.getConfigUtil().getConfig();
-        // key patterns (handled):
-        // cosmetic:<key>
-        // meta:<key>
-        // legacy/disabled: gear:<index>, ability:<key>, glyph:<key> are rejected
          String[] parts = key.split(":", 2);
          if (parts.length != 2) return;
          String cat = parts[0];
-         String payload = parts[1];
-         // Block any gear/ability/glyph purchases — these are intentionally disabled
+         // Block disabled categories
          if (cat.equalsIgnoreCase("gear") || cat.equalsIgnoreCase("ability") || cat.equalsIgnoreCase("glyph")) {
              org.bysenom.minecraftSurvivors.util.Msg.err(p, "Dieser Kauf-Typ ist derzeit deaktiviert.");
              try { p.playSound(p.getLocation(), org.bukkit.Sound.ENTITY_VILLAGER_NO, 0.8f, 0.9f); } catch (Throwable ignored) {}
@@ -340,14 +342,11 @@ public class GuiManager {
          int maxPerDay = cfg.getInt("shop.limits.max-per-day", 999);
          if (sp.getShopPurchasesRun() >= maxPerRun) { org.bysenom.minecraftSurvivors.util.Msg.err(p, "Lauflimit erreicht (max "+maxPerRun+")."); return; }
          if (sp.getShopPurchasesToday() >= maxPerDay) { org.bysenom.minecraftSurvivors.util.Msg.err(p, "Tageslimit erreicht (max "+maxPerDay+")."); return; }
-        if (cat.equalsIgnoreCase("cosmetic")) {
-            // Cosmetics are placeholder for now — just notify (no persistent handling yet)
-            org.bysenom.minecraftSurvivors.util.Msg.info(p, "Kosmetik-Käufe sind experimentell — noch nicht implementiert.");
-            try { p.playSound(p.getLocation(), org.bukkit.Sound.UI_TOAST_IN, 0.8f, 1.2f); } catch (Throwable ignored) {}
-            return;
-        }
-
-        // Meta purchases handled by existing code path using 'meta_buy:' actions (handled elsewhere)
+         if (cat.equalsIgnoreCase("cosmetic")) {
+             org.bysenom.minecraftSurvivors.util.Msg.info(p, "Kosmetik-Käufe sind experimentell – noch nicht implementiert.");
+             try { p.playSound(p.getLocation(), org.bukkit.Sound.UI_TOAST_IN, 0.8f, 1.2f); } catch (Throwable ignored) {}
+         }
+         // meta wird über separaten Action-Handler verarbeitet
      }
 
     public void openAdminPanel(Player p) {
@@ -373,90 +372,131 @@ public class GuiManager {
          if (!p.hasPermission("minecraftsurvivors.admin")) { org.bysenom.minecraftSurvivors.util.Msg.err(p, "Keine Rechte."); return; }
          org.bukkit.configuration.file.FileConfiguration cfg = plugin.getConfigUtil().getConfig();
          java.util.Set<String> keys = cfg.getKeys(false);
-         plugin.getLogger().info("openAdminConfigEditor invoked by " + p.getName() + " - runtime config top keys count=" + (keys==null?0:keys.size()));
-         // Fallback: wenn keine keys gefunden werden, versuche die eingebettete resource config.yml zu parsen
-         String cfgSource = "runtime";
-         if (keys == null || keys.isEmpty()) {
-            try {
-                java.io.InputStream is = plugin.getResource("config.yml");
-                plugin.getLogger().info("AdminConfigEditor: runtime keys empty, plugin.getResource(config.yml)=" + (is != null));
+         plugin.getLogger().info("openAdminConfigEditor invoked by " + p.getName() + " - runtime config top keys count=" + keys.size());
+         if (keys.isEmpty()) {
+            // Fallback: versuche embedded resource
+            try (java.io.InputStream is = plugin.getResource("config.yml")) {
                 if (is != null) {
                     java.io.InputStreamReader r = new java.io.InputStreamReader(is, java.nio.charset.StandardCharsets.UTF_8);
                     org.bukkit.configuration.file.FileConfiguration rc = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(r);
                     java.util.Set<String> rkeys = rc.getKeys(false);
-                    if (rkeys != null && !rkeys.isEmpty()) {
-                        keys = rkeys;
-                        cfg = rc; // use resource-backed config for display
-                        cfgSource = "embedded-resource";
-                        plugin.getLogger().info("AdminConfigEditor: using embedded resource config (fallback), firstKeys=" + firstN(rkeys,5));
-                    } else {
-                        plugin.getLogger().warning("AdminConfigEditor: embedded config.yml parsed but no top-level keys found");
+                    if (!rkeys.isEmpty()) {
+                        keys = rkeys; cfg = rc;
+                        plugin.getLogger().info("AdminConfigEditor: fallback embedded config.yml genutzt, firstKeys=" + firstN(rkeys,5));
                     }
-                } else {
-                    plugin.getLogger().warning("AdminConfigEditor: runtime config has no keys and embedded resource config.yml not found");
                 }
             } catch (Throwable t) {
-                plugin.getLogger().warning("AdminConfigEditor: failed to load embedded config.yml: " + t.getMessage());
+                plugin.getLogger().warning("AdminConfigEditor: Fallback config.yml Fehler: " + t.getMessage());
             }
-        }
-        if (keys == null) keys = java.util.Collections.emptySet();
-        // Compute rows so interior capacity ((rows-2)*7) can hold all keys.
-        // interiorPerRow = 7 (cols 1..7). rowsNeeded = ceil(keys/7) + 2 (for border rows). Clamp to [3..6].
-        int keyCount = keys.size();
-        int neededInnerRows = (int) Math.ceil((double) keyCount / 7.0);
-        int rowsNeeded = Math.max(3, Math.min(6, neededInnerRows + 2));
-        int size = rowsNeeded * 9;
-        // Debug: send a quick chat message to the admin showing first keys
-        try {
-            String ks = firstN(keys, 12);
-            p.sendMessage("§6AdminConfig: found top-level keys: §f" + ks);
-        } catch (Throwable ignored) {}
-        Inventory inv = Bukkit.createInventory(null, size, Component.text("Admin Config - Kategorien").color(NamedTextColor.YELLOW));
-        fillBorder(inv, Material.GRAY_STAINED_GLASS_PANE);
-        int rows = size / 9;
-        // compute interior slots: rows 1..rows-2, cols 1..7
-        java.util.List<Integer> interiorSlots = new java.util.ArrayList<>();
-        for (int r = 1; r <= rows - 2; r++) {
-            for (int c = 1; c <= 7; c++) {
-                interiorSlots.add(r * 9 + c);
-            }
-        }
-        plugin.getLogger().info("AdminConfigEditor: inventory size=" + size + " rows=" + rows + " interiorSlots=" + interiorSlots.size());
-        // place items into interiorSlots
-        int placed = 0;
-        if (keys == null || keys.isEmpty()) {
-             // show placeholder so admin sees there's no categories and a hint in the UI
+         }
+         // Compute dynamic inventory size
+         int keyCount = keys.size();
+         int neededInnerRows = (int) Math.ceil(keyCount / 7.0);
+         int rowsNeeded = Math.max(3, Math.min(6, neededInnerRows + 2));
+         int size = rowsNeeded * 9;
+         try { p.sendMessage("§6AdminConfig: found top-level keys: §f" + firstN(keys, 12)); } catch (Throwable ignored) {}
+         Inventory inv = Bukkit.createInventory(null, size, Component.text("Admin Config - Kategorien").color(NamedTextColor.YELLOW));
+         fillBorder(inv, Material.GRAY_STAINED_GLASS_PANE);
+         int rows = size / 9;
+         java.util.List<Integer> interiorSlots = new java.util.ArrayList<>();
+         for (int r = 1; r <= rows - 2; r++) for (int c = 1; c <= 7; c++) interiorSlots.add(r * 9 + c);
+         plugin.getLogger().info("AdminConfigEditor: inventory size=" + size + " rows=" + rows + " interiorSlots=" + interiorSlots.size());
+         int placed = 0;
+         if (keys.isEmpty()) {
              java.util.List<Component> lore = new java.util.ArrayList<>();
              lore.add(Component.text("Keine Kategorien gefunden").color(NamedTextColor.GRAY));
              lore.add(Component.text("Siehe Server-Log (plugin) für Details").color(NamedTextColor.DARK_GRAY));
-             lore.add(Component.text("Konfig geladen: " + (cfg == null ? "null" : (cfg.getName()==null?"resource/config":cfg.getName()))).color(NamedTextColor.DARK_GRAY));
+             lore.add(Component.text("Konfig geladen: " + (cfg.getName()==null?"resource/config":cfg.getName())).color(NamedTextColor.DARK_GRAY));
              inv.setItem(13, createGuiItem(Material.PAPER, Component.text("Keine Kategorien").color(NamedTextColor.RED), lore, "noop"));
-        } else {
-            java.util.Iterator<String> it = keys.iterator();
-            for (int slotIndex = 0; slotIndex < interiorSlots.size() && it.hasNext(); slotIndex++) {
-                String k = it.next();
-                java.util.List<Component> lore = new java.util.ArrayList<>();
-                Object val = cfg.get(k);
-                lore.add(Component.text("Typ: "+(val==null?"null":val.getClass().getSimpleName())).color(NamedTextColor.GRAY));
-                lore.add(Component.text("Pfad: "+k).color(NamedTextColor.DARK_GRAY));
-                Component name = Component.text(k).color(NamedTextColor.AQUA);
-                ItemStack itStack = GuiTheme.createAction(plugin, Material.PAPER, name, lore, "admin_cfg_cat:"+k, false);
-                int placeSlot = interiorSlots.get(slotIndex);
-                inv.setItem(placeSlot, itStack);
-                try { plugin.getLogger().info("AdminConfigEditor: placed category='"+k+"' slot="+placeSlot+" action=admin_cfg_cat:"+k); } catch (Throwable ignored) {}
-                placed++;
-            }
-            if (placed < keys.size()) {
-                plugin.getLogger().info("AdminConfigEditor: displayed " + placed + " of " + keys.size() + " keys (inventory too small)");
-            } else {
-                plugin.getLogger().info("AdminConfigEditor: displayed all " + placed + " keys");
-            }
-            try { p.sendMessage("§6AdminConfig: showing " + placed + " of " + keys.size() + " categories"); } catch (Throwable ignored) {}
+         } else {
+             java.util.Iterator<String> it = keys.iterator();
+             for (int slotIndex = 0; slotIndex < interiorSlots.size() && it.hasNext(); slotIndex++) {
+                 String k = it.next();
+                 java.util.List<Component> lore = new java.util.ArrayList<>();
+                 Object val = cfg.get(k);
+                 lore.add(Component.text("Typ: "+(val==null?"null":val.getClass().getSimpleName())).color(NamedTextColor.GRAY));
+                 lore.add(Component.text("Pfad: "+k).color(NamedTextColor.DARK_GRAY));
+                 ItemStack itStack = GuiTheme.createAction(plugin, Material.PAPER, Component.text(k).color(NamedTextColor.AQUA), lore, "admin_cfg_cat:"+k, false);
+                 int placeSlot = interiorSlots.get(slotIndex);
+                 inv.setItem(placeSlot, itStack);
+                 plugin.getLogger().info("AdminConfigEditor: placed category='"+k+"' slot="+placeSlot+" action=admin_cfg_cat:"+k);
+                 placed++;
+             }
+             if (placed < keys.size()) plugin.getLogger().info("AdminConfigEditor: displayed " + placed + " of " + keys.size() + " keys (inventory too small)");
+             else plugin.getLogger().info("AdminConfigEditor: displayed all " + placed + " keys");
+             try { p.sendMessage("§6AdminConfig: showing " + placed + " of " + keys.size() + " categories"); } catch (Throwable ignored) {}
          }
          inv.setItem(inv.getSize()-5, createGuiItem(Material.GLOWSTONE_DUST, Component.text("Reload All").color(NamedTextColor.GOLD), java.util.List.of(Component.text("Reload config & apply")), "config_reload"));
          inv.setItem(inv.getSize()-4, createGuiItem(Material.ARROW, Component.text("Zurück").color(NamedTextColor.RED), java.util.List.of(Component.text("Zurück zum Admin-Panel")), "admin"));
          p.openInventory(inv);
      }
+
+    public void openAdminCategoryEditor(Player p, String category, int page) {
+        if (p == null || category == null) return;
+        if (!p.hasPermission("minecraftsurvivors.admin")) { org.bysenom.minecraftSurvivors.util.Msg.err(p, "Keine Rechte."); return; }
+        org.bukkit.configuration.file.FileConfiguration cfg = plugin.getConfigUtil().getConfig();
+        boolean secExists = cfg.isConfigurationSection(category);
+        java.util.List<String> childSections = new java.util.ArrayList<>();
+        java.util.List<String> leafKeys = new java.util.ArrayList<>();
+        if (secExists) {
+            org.bukkit.configuration.ConfigurationSection cs = cfg.getConfigurationSection(category);
+            if (cs != null) {
+                for (String k : cs.getKeys(false)) {
+                    String full = category + "." + k;
+                    if (cfg.isConfigurationSection(full)) childSections.add(full); else leafKeys.add(full);
+                }
+            }
+        } else {
+            // treat as leaf-only pseudo section
+            Object v = cfg.get(category);
+            if (v != null) leafKeys.add(category);
+        }
+        plugin.getLogger().info("openAdminCategoryEditor: requested category='"+category+"' secExists="+secExists);
+        plugin.getLogger().info("openAdminCategoryEditor: childSections="+childSections.size()+" leafKeys="+leafKeys.size()+" for category='"+category+"'");
+        int totalEntries = childSections.size() + leafKeys.size();
+        int perPage = 7 * 3; // 3 Innen-Reihen à 7 Slots (bei 6 Zeilen Gesamt)
+        int maxPage = Math.max(0, (totalEntries - 1) / perPage);
+        page = Math.max(0, Math.min(page, maxPage));
+        int rowsNeeded = 6; // fest auf 6 für Paging (54 Slots)
+        Inventory inv = Bukkit.createInventory(null, rowsNeeded * 9, Component.text("Config: " + category).color(NamedTextColor.YELLOW));
+        fillBorder(inv, Material.GRAY_STAINED_GLASS_PANE);
+        // Innen-Slots sammeln
+        java.util.List<Integer> interiorSlots = new java.util.ArrayList<>();
+        for (int r = 1; r <= rowsNeeded - 2; r++) {
+            for (int c = 1; c <= 7; c++) interiorSlots.add(r * 9 + c);
+        }
+        // Einträge flatten
+        java.util.List<String> flat = new java.util.ArrayList<>();
+        flat.addAll(childSections);
+        flat.addAll(leafKeys);
+        int start = page * perPage;
+        int end = Math.min(flat.size(), start + perPage);
+        int slotIdx = 0;
+        for (int i = start; i < end && slotIdx < interiorSlots.size(); i++) {
+            String path = flat.get(i);
+            Object val = cfg.get(path);
+            java.util.List<Component> lore = new java.util.ArrayList<>();
+            if (cfg.isConfigurationSection(path)) {
+                lore.add(Component.text("Sektion").color(NamedTextColor.GOLD));
+                int cCount = 0; try { org.bukkit.configuration.ConfigurationSection sc = cfg.getConfigurationSection(path); if (sc != null) cCount = sc.getKeys(false).size(); } catch (Throwable ignored) {}
+                lore.add(Component.text("Keys: " + cCount).color(NamedTextColor.GRAY));
+                lore.add(Component.text(path).color(NamedTextColor.DARK_GRAY));
+                inv.setItem(interiorSlots.get(slotIdx), GuiTheme.createAction(plugin, Material.BOOK, Component.text(lastPathSegment(path)).color(NamedTextColor.AQUA), lore, "admin_cfg_cat:"+path+":"+0, false));
+            } else {
+                lore.add(Component.text("Typ: " + (val == null ? "null" : val.getClass().getSimpleName())).color(NamedTextColor.GRAY));
+                lore.add(Component.text(String.valueOf(val)).color(NamedTextColor.WHITE));
+                lore.add(Component.text(path).color(NamedTextColor.DARK_GRAY));
+                inv.setItem(interiorSlots.get(slotIdx), GuiTheme.createAction(plugin, Material.PAPER, Component.text(lastPathSegment(path)).color(NamedTextColor.GREEN), lore, "cfg_edit:"+path, false));
+            }
+            slotIdx++;
+        }
+        // Paging Buttons
+        if (page > 0) inv.setItem(inv.getSize()-7, GuiTheme.createAction(plugin, Material.ARROW, Component.text("« Zurück").color(NamedTextColor.RED), java.util.List.of(Component.text("Seite " + page + " von " + maxPage)), "admin_cfg_cat:"+category+":"+(page-1), false));
+        if (page < maxPage) inv.setItem(inv.getSize()-3, GuiTheme.createAction(plugin, Material.ARROW, Component.text("Weiter »").color(NamedTextColor.GREEN), java.util.List.of(Component.text("Seite " + (page+1) + " von " + maxPage)), "admin_cfg_cat:"+category+":"+(page+1), false));
+        // Back
+        inv.setItem(inv.getSize()-5, GuiTheme.createAction(plugin, Material.ARROW, Component.text("Zurück").color(NamedTextColor.RED), java.util.List.of(Component.text("Zurück zu Kategorien")), "admin_config", false));
+        p.openInventory(inv);
+    }
 
     public void openAdminConfigKeyEditor(Player p, String fullPath) {
         if (p == null || fullPath == null) return;
@@ -810,6 +850,7 @@ public class GuiManager {
         return sb.toString();
     }
 
+    @SuppressWarnings("unused")
     private String lastPathSegment(String path) {
         if (path == null) return null;
         int idx = path.lastIndexOf('.');

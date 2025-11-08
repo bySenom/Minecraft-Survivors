@@ -39,10 +39,13 @@ public class GuiClickListener implements Listener {
 
         // Debug logging: inventory title, slot and display name
         try {
-            String invTitle = "";
-            try { Object t = e.getView().getTitle(); invTitle = t == null ? "" : t.toString(); } catch (Throwable ignored) {}
+            net.kyori.adventure.text.Component comp = e.getView().title();
+            String invTitle = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(comp);
             String display = "";
-            try { if (im.displayName() != null) display = PlainTextComponentSerializer.plainText().serialize(im.displayName()); } catch (Throwable ignored) {}
+            try {
+                net.kyori.adventure.text.Component dn = im.displayName();
+                if (dn != null) display = PlainTextComponentSerializer.plainText().serialize(dn);
+            } catch (Throwable ignored) {}
             plugin.getLogger().info("GuiClickListener: click action='" + action + "' by=" + player.getName() + " invTitle='" + invTitle + "' slot=" + e.getSlot() + " display='" + display + "'");
         } catch (Throwable ignored) {}
 
@@ -57,7 +60,7 @@ public class GuiClickListener implements Listener {
             if (rest.contains(":")) {
                 String[] parts = rest.split(":", 2);
                 cat = parts[0];
-                try { page = Integer.parseInt(parts[1]); } catch (Throwable ignored) { page = 0; }
+                try { page = Integer.parseInt(parts[1]); } catch (Throwable ignored) {}
             }
             plugin.getLogger().info("GuiClickListener: admin category click detected, opening category='" + cat + "' page="+page+" for " + player.getName());
             try {
@@ -102,12 +105,20 @@ public class GuiClickListener implements Listener {
         // Standard actions
         switch (action) {
             case "open_profile":
+                // Spieler bleibt im Survivors-Kontext
+                try { plugin.getGameManager().enterSurvivorsContext(player.getUniqueId()); } catch (Throwable ignored) {}
                 guiManager.openLevelUpMenu(player, Math.max(1, plugin.getPlayerManager().get(player.getUniqueId()).getClassLevel()));
                 return;
+            case "open_class_select":
+                try { plugin.getGameManager().enterSurvivorsContext(player.getUniqueId()); } catch (Throwable ignored) {}
+                guiManager.openClassSelection(player);
+                return;
             case "start_wizard":
+                try { plugin.getGameManager().enterSurvivorsContext(player.getUniqueId()); } catch (Throwable ignored) {}
                 guiManager.openClassSelection(player);
                 return;
             case "start":
+                try { plugin.getGameManager().enterSurvivorsContext(player.getUniqueId()); } catch (Throwable ignored) {}
                 player.sendMessage("§eBitte nutze 'Spiel starten' und wähle eine Klasse.");
                 return;
             case "admin":
@@ -142,6 +153,11 @@ public class GuiClickListener implements Listener {
                 plugin.getGameManager().reloadConfigAndApply();
                 player.sendMessage("§aConfig neu geladen.");
                 return;
+            case "leave_context":
+                try { plugin.getGameManager().leaveSurvivorsContext(player.getUniqueId()); } catch (Throwable ignored) {}
+                try { player.closeInventory(); } catch (Throwable ignored) {}
+                player.sendMessage("§7Survivors-Menü verlassen.");
+                return;
             // admin debug shortcuts
             case "adm_coins":
                 plugin.getPlayerManager().get(player.getUniqueId()).addCoins(100);
@@ -156,6 +172,85 @@ public class GuiClickListener implements Listener {
                 return;
             default:
                 break;
+        }
+
+        // Neue: Klassenwahl (select_<class>_wizard)
+        if (action.startsWith("select_") && action.endsWith("_wizard")) {
+            String mid = action.substring("select_".length(), action.length() - "_wizard".length()).toLowerCase(java.util.Locale.ROOT);
+            org.bysenom.minecraftSurvivors.model.PlayerClass chosen = null;
+            switch (mid) {
+                case "shaman" -> chosen = org.bysenom.minecraftSurvivors.model.PlayerClass.SHAMAN;
+                case "pyromancer" -> chosen = org.bysenom.minecraftSurvivors.model.PlayerClass.PYROMANCER;
+                case "ranger" -> chosen = org.bysenom.minecraftSurvivors.model.PlayerClass.RANGER;
+                case "paladin" -> chosen = org.bysenom.minecraftSurvivors.model.PlayerClass.PALADIN;
+            }
+            if (chosen == null) { player.sendMessage("§cUnbekannte Klasse: " + mid); return; }
+            org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = plugin.getPlayerManager().get(player.getUniqueId());
+            if (sp != null) {
+                sp.setSelectedClass(chosen);
+                // Beim erstmaligen Setzen automatisch Survivors-Kontext betreten
+                try { plugin.getGameManager().enterSurvivorsContext(player.getUniqueId()); } catch (Throwable ignored) {}
+                player.sendMessage("§aKlasse gewählt: §f" + chosen.name());
+                try { player.playSound(player.getLocation(), org.bukkit.Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.3f); } catch (Throwable ignored) {}
+                // Scoreboard/Bossbar Refresh anstoßen
+                try { plugin.getScoreboardManager().forceUpdate(player); } catch (Throwable ignored) {}
+            }
+            // Zurück ins Hauptmenü nach Wahl
+            guiManager.openMainMenu(player);
+            return;
+        }
+
+        // Admin Config Key Editor öffnen
+        if (action.startsWith("cfg_edit:")) {
+            String path = action.substring("cfg_edit:".length());
+            guiManager.openAdminConfigKeyEditor(player, path);
+            return;
+        }
+        if (action.startsWith("cfg_toggle:")) {
+            if (!player.hasPermission("minecraftsurvivors.admin")) return;
+            String path = action.substring("cfg_toggle:".length());
+            try {
+                Object cur = plugin.getConfigUtil().getConfig().get(path);
+                if (cur instanceof Boolean b) {
+                    plugin.getConfigUtil().setValue(path, !b);
+                    player.sendMessage("§e" + path + " §7-> §a" + !b);
+                } else {
+                    player.sendMessage("§cKein Boolean: " + path);
+                }
+            } catch (Throwable t) { player.sendMessage("§cFehler: " + t.getMessage()); }
+            guiManager.openAdminConfigKeyEditor(player, path);
+            return;
+        }
+        if (action.startsWith("cfg_inc:") || action.startsWith("cfg_dec:")) {
+            if (!player.hasPermission("minecraftsurvivors.admin")) return;
+            boolean inc = action.startsWith("cfg_inc:");
+            String rest = action.substring((inc?"cfg_inc:":"cfg_dec:").length());
+            String[] parts = rest.split(":");
+            if (parts.length >= 2) {
+                String path = parts[0];
+                double delta; try { delta = Double.parseDouble(parts[1]); } catch (NumberFormatException ex) { player.sendMessage("§cDelta ungültig: " + parts[1]); return; }
+                if (!inc) delta = -delta;
+                try {
+                    Object cur = plugin.getConfigUtil().getConfig().get(path);
+                    if (cur instanceof Number n) {
+                        double nv = n.doubleValue() + delta;
+                        // Optional clamp
+                        plugin.getConfigUtil().setValue(path, nv);
+                        player.sendMessage("§e" + path + " §7-> §a" + nv + " (§7Δ=" + (inc?"+":"") + delta + ")");
+                    } else {
+                        player.sendMessage("§cNicht numerisch: " + path);
+                    }
+                } catch (Throwable t) { player.sendMessage("§cFehler: " + t.getMessage()); }
+                guiManager.openAdminConfigKeyEditor(player, path);
+            }
+            return;
+        }
+        if (action.startsWith("cfg_chat:")) {
+            if (!player.hasPermission("minecraftsurvivors.admin")) return;
+            String path = action.substring("cfg_chat:".length());
+            player.closeInventory();
+            player.sendMessage("§7Gib im Chat ein: §e/MSCONFIG set " + path + " <wert>");
+            return;
         }
 
         // Post-switch handlers (prefixes and other actions)
@@ -189,12 +284,70 @@ public class GuiClickListener implements Listener {
             return;
         }
 
+        // Party actions from context menus (Promote/Transfer/Kick/Message)
+        if (action.startsWith("party_promote:") || action.startsWith("party_transfer:")) {
+            try {
+                java.util.UUID target = java.util.UUID.fromString(action.substring(action.indexOf(':')+1));
+                org.bysenom.minecraftSurvivors.manager.PartyManager.Party party = plugin.getPartyManager().getPartyOf(player.getUniqueId());
+                if (party == null || !party.getLeader().equals(player.getUniqueId())) {
+                    org.bysenom.minecraftSurvivors.util.Msg.err(player, "Nur der Leader kann promoten.");
+                    guiManager.openPartyMenu(player);
+                    return;
+                }
+                boolean ok = plugin.getPartyManager().transferLeadership(player.getUniqueId(), target);
+                if (ok) {
+                    org.bysenom.minecraftSurvivors.util.Msg.ok(player, "Leadership übertragen an " + (org.bukkit.Bukkit.getOfflinePlayer(target).getName()));
+                    try { player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_VILLAGER_YES, 0.8f, 1.2f); } catch (Throwable ignored) {}
+                } else {
+                    org.bysenom.minecraftSurvivors.util.Msg.err(player, "Leadership-Transfer fehlgeschlagen.");
+                }
+            } catch (Throwable t) { org.bysenom.minecraftSurvivors.util.Msg.err(player, "Ungültiges Ziel: " + t.getMessage()); }
+            guiManager.openPartyMenu(player);
+            return;
+        }
+        if (action.startsWith("party_kick:")) {
+            try {
+                java.util.UUID target = java.util.UUID.fromString(action.substring("party_kick:".length()));
+                org.bysenom.minecraftSurvivors.manager.PartyManager.Party party = plugin.getPartyManager().getPartyOf(player.getUniqueId());
+                if (party == null || !party.getLeader().equals(player.getUniqueId())) {
+                    org.bysenom.minecraftSurvivors.util.Msg.err(player, "Nur der Leader kann kicken.");
+                    guiManager.openPartyMenu(player);
+                    return;
+                }
+                boolean ok = plugin.getPartyManager().kickMember(player.getUniqueId(), target);
+                if (ok) {
+                    org.bysenom.minecraftSurvivors.util.Msg.ok(player, "Spieler entfernt.");
+                    try { player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_VILLAGER_NO, 0.7f, 0.8f); } catch (Throwable ignored) {}
+                } else {
+                    org.bysenom.minecraftSurvivors.util.Msg.err(player, "Kick fehlgeschlagen.");
+                }
+            } catch (Throwable t) { org.bysenom.minecraftSurvivors.util.Msg.err(player, "Ungültiges Ziel: " + t.getMessage()); }
+            guiManager.openPartyMenu(player);
+            return;
+        }
+        if (action.startsWith("party_msg:")) {
+            try {
+                java.util.UUID target = java.util.UUID.fromString(action.substring("party_msg:".length()));
+                String name = org.bukkit.Bukkit.getOfflinePlayer(target).getName();
+                try { player.closeInventory(); } catch (Throwable ignored) {}
+                if (name != null) {
+                    player.sendMessage("§7Nachricht an §b" + name + "§7: Nutze §e/msg " + name + " <Text>");
+                } else {
+                    player.sendMessage("§7Spieler ist offline. Nutze §e/msg <Name> <Text>");
+                }
+                try { player.playSound(player.getLocation(), org.bukkit.Sound.BLOCK_NOTE_BLOCK_PLING, 0.8f, 1.4f); } catch (Throwable ignored) {}
+            } catch (Throwable ignored) {}
+            return;
+        }
+
         // Glyph interactions
         if (action.startsWith("glyph_socket:")) {
             try {
                 String[] parts = action.split(":", 3);
                 if (parts.length < 3) return;
                 String abilityKey = parts[1]; int slot = Integer.parseInt(parts[2]);
+                // Spiel pausieren, solange die Auswahl offen ist
+                try { plugin.getGameManager().pauseForPlayer(player.getUniqueId()); } catch (Throwable ignored) {}
                 java.util.List<org.bysenom.minecraftSurvivors.glyph.GlyphCatalog.Def> choices = org.bysenom.minecraftSurvivors.glyph.GlyphCatalog.forAbility(abilityKey);
                 org.bukkit.inventory.Inventory sel = org.bukkit.Bukkit.createInventory(null, 9, net.kyori.adventure.text.Component.text("Wähle Glyph").color(net.kyori.adventure.text.format.NamedTextColor.LIGHT_PURPLE));
                 int si = 0;
@@ -219,9 +372,9 @@ public class GuiClickListener implements Listener {
                 String abilityKey = parts[1]; int slot = Integer.parseInt(parts[2]); String glyphKey = parts[3];
                 org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = plugin.getPlayerManager().get(player.getUniqueId()); if (sp == null) return;
                 String pending = org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.getPendingGlyph(player.getUniqueId());
-                String pendingNorm = pending != null ? pending.trim().toLowerCase(java.util.Locale.ROOT) : null;
-                String clickedNorm = glyphKey != null ? glyphKey.trim().toLowerCase(java.util.Locale.ROOT) : null;
-                if (clickedNorm != null && pendingNorm != null && pendingNorm.equals(clickedNorm)) {
+                String pendingNorm = pending == null ? null : pending.trim().toLowerCase(java.util.Locale.ROOT);
+                String clickedNorm = glyphKey == null ? null : glyphKey.trim().toLowerCase(java.util.Locale.ROOT);
+                if (pendingNorm != null && pendingNorm.equals(clickedNorm)) {
                     org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.consumePendingGlyph(player.getUniqueId());
                     boolean ok = sp.replaceGlyph(abilityKey, slot, glyphKey);
                     if (ok) {
@@ -276,9 +429,7 @@ public class GuiClickListener implements Listener {
             String fullPath = action.substring("cfg_chat:".length());
             plugin.getLogger().info("GuiClickListener: start chat-edit for='" + fullPath + "' by=" + player.getName());
             try {
-                // start a chat session for this admin
-                org.bysenom.minecraftSurvivors.manager.ConfigEditSessionManager.Session s = plugin.getConfigEditSessionManager().startChatSession(player.getUniqueId(), fullPath);
-                // close inventory and pause player locally so game isn't progressing for them
+                plugin.getConfigEditSessionManager().startChatSession(player.getUniqueId(), fullPath);
                 try { player.closeInventory(); } catch (Throwable ignored) {}
                 try { plugin.getGameManager().pauseForPlayer(player.getUniqueId()); } catch (Throwable ignored) {}
                 player.sendMessage("§aBearbeite Config: " + fullPath + " — Gib nun den neuen Wert im Chat ein (60s). Verwende /msconfig confirm oder /msconfig cancel.");

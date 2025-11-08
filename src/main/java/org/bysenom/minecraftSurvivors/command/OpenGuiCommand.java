@@ -23,10 +23,8 @@ public class OpenGuiCommand implements CommandExecutor {
             return true;
         }
         Player p = (Player) sender;
-        if (!p.hasPermission("minecraftsurvivors.admin")) {
-            p.sendMessage("§cKeine Berechtigung.");
-            return true;
-        }
+        // Spieler betritt Survivors-Kontext: HUD/Scoreboard aktivieren
+        try { org.bysenom.minecraftSurvivors.MinecraftSurvivors.getInstance().getGameManager().enterSurvivorsContext(p.getUniqueId()); } catch (Throwable ignored) {}
         guiManager.openMainMenu(p);
         return true;
     }

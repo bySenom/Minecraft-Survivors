@@ -12,7 +12,19 @@ public final class LobbySystem extends JavaPlugin {
     private UiManager uiManager;
     private org.bukkit.boss.BossBar bossBar;
     private org.bukkit.scheduler.BukkitTask autoStartTask;
+    private org.bysenom.lobby.npc.PlayerNpcRegistry npcRegistry;
+    private org.bysenom.lobby.net.PacketInterceptor packetInterceptor;
+    private NavigatorManager navigatorManager; // Neuer Manager
     private int countdownValue = -1;
+
+    // Neu: Bridges/Manager
+    private org.bysenom.lobby.bridge.PartyBridge partyBridge;
+    private org.bysenom.lobby.friend.FriendManager friendManager;
+    private org.bysenom.lobby.cosmetic.CosmeticManager cosmeticManager;
+
+    // Performance: Cache letzter BossBar-Status
+    private String lastBossTitle = null;
+    private double lastBossProgress = -1.0;
 
     @Override
     public void onLoad() { instance = this; }
@@ -22,22 +34,71 @@ public final class LobbySystem extends JavaPlugin {
         saveDefaultConfig();
         this.queueManager = new QueueManager(this);
         this.uiManager = new UiManager(this, queueManager);
+        this.npcRegistry = new org.bysenom.lobby.npc.PlayerNpcRegistry(this);
+        this.packetInterceptor = new org.bysenom.lobby.net.PacketInterceptor(this, npcRegistry);
+        this.navigatorManager = new NavigatorManager(this);
+        // Neu: Initialisieren
+        this.partyBridge = new org.bysenom.lobby.bridge.PartyBridge();
+        this.friendManager = new org.bysenom.lobby.friend.FriendManager(this);
+        this.cosmeticManager = new org.bysenom.lobby.cosmetic.CosmeticManager(this);
+        npcRegistry.loadFromConfig();
+        // Verzögerten NPC-Spawn planen, um FancyNpcs zuerst eine Chance zu geben
+        Bukkit.getScheduler().runTaskLater(this, () -> {
+            try { npcRegistry.spawnAllForOnlineViewers(); } catch (Throwable t) { getLogger().warning("NPC initial spawn error: " + t.getMessage()); }
+        }, 40L);
+        // Event-Listener für ggf. später aktiv werdendes FancyNpcs
+        Bukkit.getPluginManager().registerEvents(new org.bukkit.event.Listener() {
+            @org.bukkit.event.EventHandler
+            public void onPluginEnable(org.bukkit.event.server.PluginEnableEvent e) {
+                if (e.getPlugin().getName().equalsIgnoreCase("FancyNpcs")) {
+                    getLogger().info("FancyNpcs wurde nachträglich geladen – versuche NPC-Reinitialisierung.");
+                    Bukkit.getScheduler().runTaskLater(LobbySystem.this, () -> {
+                        try {
+                            npcRegistry.hideAll();
+                            npcRegistry.loadFromConfig();
+                            npcRegistry.spawnAllForOnlineViewers();
+                        } catch (Throwable ex) { getLogger().warning("Reinit nach FancyNpcs Enable fehlgeschlagen: " + ex.getMessage()); }
+                    }, 20L);
+                }
+            }
+        }, this);
 
         PluginCommand cmd = getCommand("lobby");
         if (cmd != null) cmd.setExecutor(new org.bysenom.lobby.command.LobbyCommand(uiManager));
         cmd = getCommand("queue");
-        if (cmd != null) cmd.setExecutor(new org.bysenom.lobby.command.QueueCommand(queueManager));
+        if (cmd != null) {
+            org.bysenom.lobby.command.QueueCommand qc = new org.bysenom.lobby.command.QueueCommand(queueManager);
+            cmd.setExecutor(qc);
+            cmd.setTabCompleter(qc);
+        }
         cmd = getCommand("startsurvivors");
         if (cmd != null) cmd.setExecutor(new org.bysenom.lobby.command.StartSurvivorsCommand(this, queueManager));
         cmd = getCommand("lobbyreload");
         if (cmd != null) cmd.setExecutor(new org.bysenom.lobby.command.LobbyReloadCommand(this));
+        cmd = getCommand("lobbynpc");
+        if (cmd != null) cmd.setExecutor(new org.bysenom.lobby.command.LobbyNpcCommand(this, npcRegistry));
+        PluginCommand cmdNav = getCommand("navigator");
+        if (cmdNav != null) cmdNav.setExecutor(new org.bysenom.lobby.command.NavigatorCommand());
+        PluginCommand cmdFriends = getCommand("friends");
+        if (cmdFriends != null) { cmdFriends.setExecutor(new org.bysenom.lobby.command.FriendsCommand()); cmdFriends.setTabCompleter(new org.bysenom.lobby.command.FriendsCommand()); }
+        PluginCommand cmdCos = getCommand("cosmetics");
+        if (cmdCos != null) {
+            org.bysenom.lobby.command.CosmeticsCommand cc = new org.bysenom.lobby.command.CosmeticsCommand();
+            cmdCos.setExecutor(cc);
+            cmdCos.setTabCompleter(cc);
+        }
 
         Bukkit.getPluginManager().registerEvents(new org.bysenom.lobby.listener.JoinQuitListener(queueManager), this);
         Bukkit.getPluginManager().registerEvents(new org.bysenom.lobby.listener.UiClickListener(uiManager), this);
+        Bukkit.getPluginManager().registerEvents(new org.bysenom.lobby.listener.NpcClickListener(npcRegistry), this);
+        Bukkit.getPluginManager().registerEvents(new org.bysenom.lobby.listener.CompassListener(), this);
+        // Neu: Reaktive Cosmetics (Trails/Emotes)
+        Bukkit.getPluginManager().registerEvents(new org.bysenom.lobby.listener.CosmeticListener(), this);
 
         setupBossBar();
         setupAutoOpenOnJoin();
         setupAutoStartLoop();
+        // Entfernt: sofortiger spawnAllForOnlineViewers(); (nun verzögert oben)
         getLogger().info("LobbySystem enabled.");
     }
 
@@ -47,6 +108,11 @@ public final class LobbySystem extends JavaPlugin {
             for (org.bukkit.entity.Player p : Bukkit.getOnlinePlayers()) bossBar.removePlayer(p);
         }
         if (autoStartTask != null) autoStartTask.cancel();
+        try { npcRegistry.hideAll(); } catch (Throwable ignored) {}
+        for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
+            try { packetInterceptor.uninject(p); } catch (Throwable ignored) {}
+        }
+        try { if (cosmeticManager != null) cosmeticManager.shutdown(); } catch (Throwable ignored) {}
         getLogger().info("LobbySystem disabled.");
     }
 
@@ -56,6 +122,8 @@ public final class LobbySystem extends JavaPlugin {
         org.bukkit.boss.BarStyle style = parseStyle(getConfig().getString("bossbar-overlay", "PROGRESS"));
         bossBar = Bukkit.createBossBar("Lobby • Warten auf Spieler…", color, style);
         bossBar.setProgress(0.0);
+        lastBossTitle = bossBar.getTitle();
+        lastBossProgress = 0.0;
         // Nur Quit-Handling: aus BossBar entfernen
         Bukkit.getPluginManager().registerEvents(new org.bukkit.event.Listener() {
             @org.bukkit.event.EventHandler
@@ -79,6 +147,14 @@ public final class LobbySystem extends JavaPlugin {
                 if (p != null && p.isOnline()) addToBossBar(p);
             }
         } catch (Throwable ignored) {}
+    }
+
+    private void updateBossBar(String title, double progress) {
+        if (bossBar == null) return;
+        String t = title == null ? lastBossTitle : title;
+        double p = Math.max(0.0, Math.min(1.0, progress));
+        if (t != null && !t.equals(lastBossTitle)) { bossBar.setTitle(t); lastBossTitle = t; }
+        if (Math.abs(p - lastBossProgress) > 0.0001) { bossBar.setProgress(p); lastBossProgress = p; }
     }
 
     public void addToBossBar(Player p) {
@@ -121,7 +197,19 @@ public final class LobbySystem extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new org.bukkit.event.Listener() {
             @org.bukkit.event.EventHandler
             public void onJoin(org.bukkit.event.player.PlayerJoinEvent e) {
-                Bukkit.getScheduler().runTask(LobbySystem.this, () -> uiManager.openLobbyMenu(e.getPlayer()));
+                Bukkit.getScheduler().runTask(LobbySystem.this, () -> {
+                    try { navigatorManager.giveCompass(e.getPlayer()); } catch (Throwable ignored) {}
+                    try {
+                        if (queueManager != null && queueManager.isInQueue(e.getPlayer().getUniqueId())) addToBossBar(e.getPlayer());
+                    } catch (Throwable ignored) {}
+                    try { packetInterceptor.inject(e.getPlayer()); } catch (Throwable ignored) {}
+                    try { npcRegistry.showAllTo(e.getPlayer()); } catch (Throwable ignored) {}
+                });
+            }
+            @org.bukkit.event.EventHandler
+            public void onQuit(org.bukkit.event.player.PlayerQuitEvent e) {
+                removeFromBossBar(e.getPlayer());
+                packetInterceptor.uninject(e.getPlayer());
             }
         }, this);
     }
@@ -137,6 +225,8 @@ public final class LobbySystem extends JavaPlugin {
             bossBar = null;
         }
         countdownValue = -1;
+        lastBossTitle = null;
+        lastBossProgress = -1.0;
         // Restart features with current config
         setupBossBar();
         setupAutoOpenOnJoin();
@@ -157,9 +247,8 @@ public final class LobbySystem extends JavaPlugin {
             int size = queueManager.size();
             if (bossBar != null) {
                 double prog = Math.min(1.0, size / (double) min);
-                bossBar.setProgress(prog);
                 String title = size >= min ? "Lobby • Start in " + (countdownValue > 0 ? countdownValue + "s" : seconds + "s") : "Lobby • Spieler: " + size + "/" + min;
-                bossBar.setTitle(title);
+                updateBossBar(title, prog);
             }
             if (size >= min) {
                 if (countdownValue < 0) countdownValue = seconds;
@@ -192,10 +281,9 @@ public final class LobbySystem extends JavaPlugin {
             if (bossBar != null) {
                 int etaNext = (countdownValue < 0 ? interval : countdownValue);
                 String title = "Lobby • In Queue: " + queued + " • Zugelassen: " + admitted + " • Next in " + etaNext + "s";
-                bossBar.setTitle(title);
                 double target = Math.max(1.0, (double) (queued + admitted));
                 double prog = Math.min(1.0, admitted / target);
-                bossBar.setProgress(prog);
+                updateBossBar(title, prog);
             }
             // Alle 'interval' Sekunden genau eine Zulassung
             if (countdownValue < 0) countdownValue = interval;
@@ -222,4 +310,17 @@ public final class LobbySystem extends JavaPlugin {
     }
 
     public static LobbySystem get() { return instance; }
+
+    // Getter
+    public NavigatorManager getNavigatorManager() { return navigatorManager; }
+    public org.bysenom.lobby.bridge.PartyBridge getPartyBridge() { return partyBridge; }
+    public org.bysenom.lobby.friend.FriendManager getFriendManager() { return friendManager; }
+    public org.bysenom.lobby.cosmetic.CosmeticManager getCosmeticManager() { return cosmeticManager; }
+    // Platzhalter-Hooks für UI-Integration
+    public void openFriendsGui(org.bukkit.entity.Player p) {
+        try { uiManager.openFriendsMenu(p); } catch (Throwable t) { p.sendMessage("§cFriends-GUI aktuell nicht verfügbar."); }
+    }
+    public void openCosmeticsGui(org.bukkit.entity.Player p) {
+        try { uiManager.openCosmeticsMenu(p); } catch (Throwable t) { p.sendMessage("§cCosmetics-GUI aktuell nicht verfügbar."); }
+    }
 }

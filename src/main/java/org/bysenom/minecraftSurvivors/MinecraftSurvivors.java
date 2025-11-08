@@ -1,7 +1,13 @@
 package org.bysenom.minecraftSurvivors;
 
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bysenom.minecraftSurvivors.command.MsConfigCommand;
+import org.bysenom.minecraftSurvivors.command.MsConfigTabCompleter;
+import org.bysenom.minecraftSurvivors.command.MsStatsCommand;
+import org.bysenom.minecraftSurvivors.command.MsStatsTabCompleter;
 import org.bysenom.minecraftSurvivors.command.OpenGuiCommand;
+import org.bysenom.minecraftSurvivors.command.PartyTabCompleter;
+import org.bysenom.minecraftSurvivors.command.SpawnGlyphTabCompleter;
 import org.bysenom.minecraftSurvivors.command.StartCommand;
 import org.bysenom.minecraftSurvivors.gui.GuiClickListener;
 import org.bysenom.minecraftSurvivors.gui.GuiManager;
@@ -72,13 +78,13 @@ public final class MinecraftSurvivors extends JavaPlugin {
             if (cmd != null) cmd.setExecutor(new OpenGuiCommand(guiManager));
 
             cmd = getCommand("msconfig");
-            if (cmd != null) cmd.setExecutor(new org.bysenom.minecraftSurvivors.command.MsConfigCommand(gameManager));
+            if (cmd != null) { cmd.setExecutor(new MsConfigCommand(gameManager)); cmd.setTabCompleter(new MsConfigTabCompleter()); }
 
             cmd = getCommand("msstats");
-            if (cmd != null) cmd.setExecutor(new org.bysenom.minecraftSurvivors.command.MsStatsCommand(this));
+            if (cmd != null) { cmd.setExecutor(new MsStatsCommand(this)); cmd.setTabCompleter(new MsStatsTabCompleter()); }
 
             cmd = getCommand("party");
-            if (cmd != null) cmd.setExecutor(new org.bysenom.minecraftSurvivors.command.PartyCommand(this));
+            if (cmd != null) { cmd.setExecutor(new org.bysenom.minecraftSurvivors.command.PartyCommand(this)); cmd.setTabCompleter(new PartyTabCompleter()); }
 
             cmd = getCommand("msversion");
             if (cmd != null) cmd.setExecutor(new org.bysenom.minecraftSurvivors.command.VersionCommand());
@@ -88,7 +94,7 @@ public final class MinecraftSurvivors extends JavaPlugin {
 
             // dev command to spawn glyphs for testing
             cmd = getCommand("spawnglyph");
-            if (cmd != null) cmd.setExecutor(new org.bysenom.minecraftSurvivors.command.SpawnGlyphCommand());
+            if (cmd != null) { cmd.setExecutor(new org.bysenom.minecraftSurvivors.command.SpawnGlyphCommand()); cmd.setTabCompleter(new SpawnGlyphTabCompleter()); }
 
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.EntityDeathListener(playerManager, guiManager, this.configUtil), this);
             getServer().getPluginManager().registerEvents(new PlayerDeathListener(gameManager, playerManager, this.playerDataManager), this);
@@ -166,9 +172,13 @@ public final class MinecraftSurvivors extends JavaPlugin {
     public org.bysenom.minecraftSurvivors.manager.MetaProgressionManager getMetaManager() { return metaManager; }
     public GuiManager getGuiManager() { return guiManager; }
     public org.bysenom.minecraftSurvivors.manager.ShopNpcManager getShopNpcManager() { return shopNpcManager; }
+    @SuppressWarnings("unused")
     public org.bysenom.minecraftSurvivors.manager.SkillManager getSkillManager() { return skillManager; }
+    @SuppressWarnings("unused")
     public org.bysenom.minecraftSurvivors.manager.HoloHpManager getHoloHpManager() { return holoHpManager; }
+    @SuppressWarnings("unused")
     public org.bysenom.minecraftSurvivors.manager.TablistManager getTablistManager() { return tablistManager; }
     public org.bysenom.minecraftSurvivors.util.PlayerDataManager getPlayerDataManager() { return playerDataManager; }
     public org.bysenom.minecraftSurvivors.manager.ConfigEditSessionManager getConfigEditSessionManager() { return this.configEditSessionManager; }
+    public org.bysenom.minecraftSurvivors.manager.ScoreboardManager getScoreboardManager() { return scoreboardManager; }
 }

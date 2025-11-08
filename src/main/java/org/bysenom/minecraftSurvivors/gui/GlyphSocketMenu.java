@@ -103,7 +103,7 @@ public class GlyphSocketMenu {
                 if (top == null) return;
                 // If the closed inventory is the glyph selection UI, reopen the socket menu and keep paused
                 String title = "";
-                try { java.lang.Object t = e.getView().getTitle(); if (t != null) title = t.toString(); } catch (Throwable ignored) {}
+                try { net.kyori.adventure.text.Component comp = e.getView().title(); if (comp != null) title = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(comp); } catch (Throwable ignored) {}
                 if (title.contains("Wähle Glyph") || title.contains("Wähle Glyphe")) {
                     try {
                         // mark selection as closed

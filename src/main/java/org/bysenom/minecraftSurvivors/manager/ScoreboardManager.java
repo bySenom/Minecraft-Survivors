@@ -48,6 +48,10 @@ public class ScoreboardManager {
         }
     }
 
+    public void forceUpdateAll() {
+        try { updateAll(); } catch (Throwable ignored) {}
+    }
+
     private void updateAll() {
         for (Player p : Bukkit.getOnlinePlayers()) {
             try { updateFor(p); } catch (Throwable ignored) {}
@@ -56,8 +60,10 @@ public class ScoreboardManager {
 
     private void updateFor(Player p) {
         if (p == null || !p.isOnline()) return;
-        // Zeige Scoreboard nur wenn Spiel läuft
-        if (gameManager.getState() != org.bysenom.minecraftSurvivors.model.GameState.RUNNING) {
+        boolean running = gameManager.getState() == org.bysenom.minecraftSurvivors.model.GameState.RUNNING;
+        boolean inCtx = gameManager.isInSurvivorsContext(p.getUniqueId());
+        // Zeige Scoreboard wenn Spiel läuft ODER Spieler im Survivors-Kontext ist (z. B. Klassenwahl)
+        if (!running && !inCtx) {
             try { p.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard()); } catch (Throwable ignored) {}
             return;
         }
@@ -113,7 +119,7 @@ public class ScoreboardManager {
 
         // Einträge (von oben nach unten absteigend)
         int line = 15;
-        addLine(obj, "§8" + (fancy?"──────────────":""), line--);
+        addLine(obj, "§8" + (fancy?"──────────────────────":""), line--);
         addLine(obj, "§fStatus " + statusColor + statusIcon + " §7• " + statusColor + state, line--);
         addLine(obj, "§8", line--);
         addLine(obj, "§fKlasse §a" + clazzDisplay, line--);
@@ -126,7 +132,7 @@ public class ScoreboardManager {
         addLine(obj, "§f👥 Online §b" + online, line--);
         addLine(obj, "§fParty §b" + partyLine, line--);
         addLine(obj, "§fStats §b" + mode, line--);
-        addLine(obj, "§8" + (fancy?"───────────────":""), line--);
+        addLine(obj, "§8" + (fancy?"──────────────────────":""), line--);
 
         p.setScoreboard(sb);
     }
@@ -141,8 +147,9 @@ public class ScoreboardManager {
             } catch (Throwable ignored) {}
             for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
                 try {
+                    boolean inCtx = gameManager.isInSurvivorsContext(p.getUniqueId());
+                    if (!inCtx && gameManager.getState() != org.bysenom.minecraftSurvivors.model.GameState.RUNNING) continue;
                     if (gameManager != null && gameManager.isPlayerPaused(p.getUniqueId())) continue;
-                    if (gameManager.getState() != org.bysenom.minecraftSurvivors.model.GameState.RUNNING) continue; // keine HUD vor Spielstart
                     org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = playerManager.get(p.getUniqueId());
                     if (sp == null) continue;
                     int currentXp = sp.getXp();

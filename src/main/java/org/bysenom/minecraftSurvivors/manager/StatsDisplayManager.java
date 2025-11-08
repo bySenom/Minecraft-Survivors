@@ -75,11 +75,13 @@ public class StatsDisplayManager {
         org.bysenom.minecraftSurvivors.model.GameState gState = plugin.getGameManager().getState();
         boolean running = gState == org.bysenom.minecraftSurvivors.model.GameState.RUNNING;
         for (Player p : Bukkit.getOnlinePlayers()) {
+            boolean inCtx = plugin.getGameManager().isInSurvivorsContext(p.getUniqueId());
             double dps = meter.getDps(p.getUniqueId());
             double hps = meter.getHps(p.getUniqueId());
             switch (mode) {
                 case ACTIONBAR:
-                    if (!running) continue; // keine Survivors-HUD wenn Lobby
+                    // Zeige ActionBar auch vor Spielstart, wenn Spieler im Survivors-Kontext ist (z. B. Klassenwahl)
+                    if (!running && !inCtx) continue;
                     org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = plugin.getPlayerManager().get(p.getUniqueId());
                     int currentXp = sp != null ? sp.getXp() : 0;
                     int xpToNext = sp != null ? sp.getXpToNext() : 1;
@@ -87,7 +89,8 @@ public class StatsDisplayManager {
                     p.sendActionBar(Component.text(String.format("XP %d/%d • Lvl %d • DPS %.1f • HPS %.1f", currentXp, xpToNext, lvl, dps, hps)));
                     break;
                 case BOSSBAR:
-                    if (!running) { clearBossbarsFor(p); continue; }
+                    // Bossbars nur bei laufendem Spiel UND Kontext
+                    if (!running || !inCtx) { clearBossbarsFor(p); continue; }
                     updateBossbars(p, dps, hps);
                     updateEnemyBossbar(p);
                     break;
@@ -99,7 +102,6 @@ public class StatsDisplayManager {
     }
 
     private void broadcastTop() {
-        // top DPS and HPS snapshot
         java.util.List<Player> players = Bukkit.getOnlinePlayers().stream().collect(Collectors.toList());
         if (players.isEmpty()) return;
         class Pair { final String n; final double v; Pair(String n,double v){this.n=n;this.v=v;} }
@@ -152,9 +154,7 @@ public class StatsDisplayManager {
             double power = sm.getEnemyPowerIndex();
             double enrage = sm.getEnrageProgress();
             BossBar e = bossbarsEnemy.computeIfAbsent(p.getUniqueId(), id -> BossBar.bossBar(Component.text("Enemy Power"), 0.0f, BossBar.Color.PURPLE, BossBar.Overlay.PROGRESS));
-            // Zeige Power mit 2 Nachkommastellen und dynamischem Cap durch log-Skalierung
             e.name(Component.text(String.format("Enemy %.2fx • %dm %02ds • Enrage %d%%", power, (int)minutes, (int)((minutes*60)%60), (int)Math.round(enrage*100)), NamedTextColor.LIGHT_PURPLE));
-            // Progress: log-sigmoid, damit hohe Werte nicht sofort 100% clampen
             double prog = Math.tanh(Math.log10(Math.max(1.0, power)));
             e.progress((float) Math.max(0.0, Math.min(1.0, prog)));
             BossBar.Color col = enrage >= 1.0 ? BossBar.Color.RED : (enrage > 0.0 ? BossBar.Color.PINK : BossBar.Color.PURPLE);
@@ -166,7 +166,6 @@ public class StatsDisplayManager {
     private double smoothSticky(java.util.Map<java.util.UUID, Double> map, java.util.UUID id, double target, double alpha) {
         Double prev = map.get(id);
         double out = (prev == null) ? target : (prev * (1.0 - alpha) + target * alpha);
-        // never drop too fast: stick to max of previous and new smoothed value
         if (prev != null && out < prev * 0.85) out = prev * 0.85; // 15% max drop per tick
         map.put(id, out);
         return Math.max(1.0, out);
@@ -191,6 +190,9 @@ public class StatsDisplayManager {
         try { if (h != null) p.hideBossBar(h); } catch (Throwable ignored) {}
         try { if (e != null) p.hideBossBar(e); } catch (Throwable ignored) {}
     }
+
+    // Neu: sofortiges Leeren auf Anforderung (z.B. beim Moduswechsel)
+    public void clearAllBossbarsNow() { clearBossbars(); }
 
     private Mode parseMode(String s) {
         if (s == null) return Mode.ACTIONBAR;

@@ -67,11 +67,78 @@ test {
     useJUnitPlatform()
 }
 
+// Stellt sicher, dass die EULA akzeptiert ist bevor der Server startet
+tasks.register('ensureEula') {
+    doLast {
+        def eulaFile = file('run/eula.txt')
+        if (!eulaFile.exists()) {
+            eulaFile.parentFile.mkdirs()
+            eulaFile.text = 'eula=true\n'
+            println '[ensureEula] eula.txt erzeugt (true)'
+        } else if (!eulaFile.text.contains('eula=true')) {
+            eulaFile.text = eulaFile.text.replaceAll(/eula=false/, 'eula=true')
+            if (!eulaFile.text.contains('eula=true')) {
+                eulaFile.append('\neula=true\n')
+            }
+            println '[ensureEula] eula.txt auf true gesetzt'
+        } else {
+            println '[ensureEula] EULA bereits akzeptiert.'
+        }
+    }
+}
+
+// Bereinigt blockierende Dateien im run/-Ordner (Session-Locks etc.)
+tasks.register('unlockRunDir') {
+    doLast {
+        def lockFiles = [
+                'run/world/session.lock',
+                'run/world_nether/session.lock',
+                'run/world_the_end/session.lock'
+        ]
+        lockFiles.each { p ->
+            def f = file(p)
+            if (f.exists()) {
+                try {
+                    if (f.delete()) {
+                        println "[unlockRunDir] Gelöscht: ${p}"
+                    } else {
+                        println "[unlockRunDir] Konnte nicht löschen (evtl. gesperrt): ${p}"
+                    }
+                } catch (Exception e) {
+                    println "[unlockRunDir] Fehler beim Löschen ${p}: ${e.message}"
+                }
+            }
+        }
+        // Optional: versuche latest.log zu rotieren, falls nicht gesperrt
+        def latest = file('run/logs/latest.log')
+        if (latest.exists()) {
+            try {
+                def backup = file("run/logs/latest-${System.currentTimeMillis()}.log")
+                latest.renameTo(backup)
+                println "[unlockRunDir] latest.log -> ${backup.name}"
+            } catch (Exception ignored) {
+                // wenn gesperrt, ignorieren – Paper kommt damit klar
+            }
+        }
+    }
+}
+
 // Run-Paper mit Version aus Catalog ableiten
 runServer {
     // libs.versions.paper ist ein String; extrahiere die MC-Version vor dem ersten '-'
     def mcVer = libs.versions.paper.get().split('-')[0]
     minecraftVersion(mcVer)
+    runDirectory.set(file("run"))
+    pluginJars.from(tasks.named('jar'))
+    pluginJars.from(project(":lobby").layout.buildDirectory.file("libs/lobby-1.0-SNAPSHOT.jar"))
+    dependsOn(tasks.named('ensureEula'))
+    dependsOn(tasks.named('unlockRunDir'))
+}
+
+// ensure jars are built before runServer
+tasks.named('runServer') {
+    dependsOn(tasks.named('jar'))
+    dependsOn(":lobby:build")
 }
 
 spotless {

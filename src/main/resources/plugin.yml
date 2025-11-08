@@ -8,59 +8,87 @@ authors:
   - bySenom
 commands:
   msmenu:
-    description: "Öffnet das MinecraftSurvivors Menü (Admin)."
-    usage: "/msmenu"
-    permission: minecraftsurvivors.admin
-    permission-message: "§cKeine Berechtigung."
-
+    description: "Öffnet das Hauptmenü / Admin GUI. Subcommands: (keine)"
+    usage: |-
+      /msmenu
   msstart:
-    description: "Startet das Spiel (Admin/Op)."
-    usage: "/msstart"
-    permission: minecraftsurvivors.admin
-    permission-message: "§cKeine Berechtigung."
-
+    description: "Startet direkt eine Survivors-Runde (Admin/Op)."
+    usage: |-
+      /msstart
   msconfig:
-    description: "Verwaltet MinecraftSurvivors Konfiguration (reload)."
-    usage: "/msconfig reload"
+    description: |-
+      MinecraftSurvivors Konfiguration verwalten.
+      Subcommands:
+        reload                      - Lädt config neu von Disk
+        preset <name>               - Aktiviert Preset
+        preset list                 - Listet verfügbare Presets
+        preset show <name>          - Zeigt Werte eines Presets
+        set <path> <value>          - Setzt einen Wert (wartet auf confirm)
+        confirm / cancel            - Bestätigt oder verwirft letzten set-Vorschlag
+        show                        - Zeigt Root-Konfigurationspfade
+    usage: |-
+      /msconfig reload
+      /msconfig preset <name>
+      /msconfig preset list
+      /msconfig preset show <name>
+      /msconfig set <path> <value>
+      /msconfig confirm
+      /msconfig cancel
+      /msconfig show
     permission: minecraftsurvivors.admin
     permission-message: "§cKeine Berechtigung."
-
   msstats:
-    description: "DPS/HPS Anzeige: /msstats mode <actionbar|bossbar|scoreboard|off> | toggle | top [dps|hps] [n] | show"
-    usage: "/msstats <sub>"
+    description: |-
+      Statistiken & Darstellung (DPS/HPS). Subcommands:
+        mode <actionbar|bossbar|scoreboard|off>  - Anzeige-Modus setzen
+        toggle                                   - Ein/Aus schalten
+        top <dps|hps> [n]                        - Top-Liste anzeigen (Standard n=5)
+        show                                     - Eigene aktuellen Werte anzeigen
+        reset                                    - Persönliche Messung zurücksetzen
+    usage: |-
+      /msstats mode <actionbar|bossbar|scoreboard|off>
+      /msstats toggle
+      /msstats top <dps|hps> [anzahl]
+      /msstats show
+      /msstats reset
     permission: minecraftsurvivors.admin
     permission-message: "§cKeine Berechtigung."
-
   msversion:
     description: "Zeigt Plugin-Version an."
     usage: "/msversion"
-
   mshealth:
-    description: "Zeigt eine kompakte Statusübersicht (Admin)."
+    description: "Kurze Status-/Health-Übersicht (Admin)."
     usage: "/mshealth"
     permission: minecraftsurvivors.admin
     permission-message: "§cKeine Berechtigung."
-
   spawnglyph:
-    description: "(DEV) Spawnt eine Glyphen-Sockel in deiner Nähe: /spawnglyph <abilityKey|random>"
-    usage: "/spawnglyph <abilityKey|random>"
+    description: |-
+      Entwicklerbefehl zum Spawnen einer Glyphe.
+      Subcommands / Parameter:
+        <abilityKey>  - Spezifische Ability-Glyphe
+        random        - Zufällige Glyphe
+    usage: |-
+      /spawnglyph <abilityKey>
+      /spawnglyph random
     permission: minecraftsurvivors.admin
     permission-message: "§cKeine Berechtigung."
-
   party:
-    description: "Party-System: /party create|invite|join|leave|disband|list"
-    usage: "/party <sub>"
-
-  msversion:
-    description: "Zeigt Plugin-Version an."
-    usage: "/msversion"
-
-  mshealth:
-    description: "Zeigt eine kompakte Statusübersicht (Admin)."
-    usage: "/mshealth"
-    permission: minecraftsurvivors.admin
-    permission-message: "§cKeine Berechtigung."
+    description: |-
+      Party-System. Subcommands:
+        create                    - Neue Party erstellen (wenn du keine hast)
+        invite <Spieler>          - Spieler einladen
+        join <LeaderName>         - Party eines Leaders beitreten (nach Einladung)
+        leave                     - Eigene Party verlassen
+        disband                   - Eigene Party (falls Leader) auflösen
+        list                      - Mitglieder der eigenen Party anzeigen
+    usage: |-
+      /party create
+      /party invite <Spieler>
+      /party join <Leader>
+      /party leave
+      /party disband
+      /party list
 permissions:
   minecraftsurvivors.admin:
-    description: "Erlaubnis zum Starten/Stoppen und Admin-Kommandos"
+    description: "Erlaubnis für Admin-/Management-Kommandos"
     default: op
