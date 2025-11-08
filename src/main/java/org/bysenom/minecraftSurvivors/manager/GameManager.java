@@ -3,6 +3,9 @@ package org.bysenom.minecraftSurvivors.manager;
 
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
@@ -54,12 +57,12 @@ public class GameManager {
         GuiRequest req = q.pollFirst();
         if (req == null) return;
         switch (req.type) {
-            case LEVEL_UP:
+            case LEVEL_UP -> {
                 try { if (plugin.getGuiManager() != null) plugin.getGuiManager().openLevelUpMenu(p, Math.max(1, req.level)); } catch (Throwable ignored) {}
-                break;
-            case LOOT_CHEST:
+            }
+            case LOOT_CHEST -> {
                 try { LootchestListener.openQueued(p); } catch (Throwable ignored) {}
-                break;
+            }
         }
     }
 
@@ -75,6 +78,29 @@ public class GameManager {
         this.abilityManager = new AbilityManager(plugin, playerManager, spawnManager, this);
         this.bossManager = new BossManager(plugin, spawnManager);
     }
+
+    public BossManager getBossManager() { return bossManager; }
+    public AbilityManager getAbilityManager() { return abilityManager; }
+
+    // Survivors-Kontext API
+    public void enterSurvivorsContext(java.util.UUID uuid) {
+        if (uuid == null) return;
+        survivorsContext.add(uuid);
+        Player p = Bukkit.getPlayer(uuid);
+        if (p != null && p.isOnline()) {
+            // Scoreboard sichtbar halten
+            try { plugin.getScoreboardManager().forceUpdateAll(); } catch (Throwable ignored) {}
+            // Klassen-Startwaffe vergeben
+            try { giveInitialKit(p); } catch (Throwable ignored) {}
+        }
+    }
+    public void exitSurvivorsContext(java.util.UUID uuid) {
+        if (uuid == null) return;
+        survivorsContext.remove(uuid);
+    }
+    public boolean isInSurvivorsContext(java.util.UUID uuid) { return uuid != null && survivorsContext.contains(uuid); }
+    // Backwards-Compat: alter Methodenname
+    public void leaveSurvivorsContext(java.util.UUID uuid) { exitSurvivorsContext(uuid); }
 
     private void startWaveTask() {
         if (currentWaveTask != null) currentWaveTask.cancel();
@@ -102,42 +128,61 @@ public class GameManager {
         }, 0L, hudIntervalTicks);
     }
 
-    public BossManager getBossManager() { return bossManager; }
-
-    /** Markiert einen Spieler als im Survivors-Kontext (zeigt HUD/Scoreboard schon in der Lobby-Phase an). */
-    public void enterSurvivorsContext(java.util.UUID uuid) {
-        if (uuid == null) return;
-        // eigenen Spieler setzen
-        survivorsContext.add(uuid);
-        // Party-Mitglieder automatisch in den Kontext nehmen (falls vorhanden)
-        try {
-            org.bysenom.minecraftSurvivors.manager.PartyManager pm = plugin.getPartyManager();
-            if (pm != null) {
-                org.bysenom.minecraftSurvivors.manager.PartyManager.Party party = pm.getPartyOf(uuid);
-                if (party != null) {
-                    for (java.util.UUID u : party.getMembers()) {
-                        if (u != null) survivorsContext.add(u);
-                    }
+    /**
+     * Vergibt Anfangs-Klassen-Ausrüstung (Hotbar Item), falls noch nicht vorhanden.
+     */
+    public void giveInitialKit(org.bukkit.entity.Player p) {
+        if (p == null) return;
+        var sp = playerManager.get(p.getUniqueId());
+        if (sp == null) return;
+        var pc = sp.getSelectedClass();
+        if (pc == null) return;
+        org.bukkit.inventory.PlayerInventory inv = p.getInventory();
+        // Falls bereits ein Klassen-Item existiert (Meta check via display name), nichts tun
+        for (org.bukkit.inventory.ItemStack is : inv.getContents()) {
+            if (is == null) continue;
+            try {
+                var meta = is.getItemMeta();
+                if (meta != null && meta.hasDisplayName()) {
+                    var dn = meta.displayName();
+                    String plain = dn == null ? "" : net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(dn);
+                    if (plain.contains(pc.name())) { return; }
                 }
+            } catch (Throwable ignored) {}
+        }
+        org.bukkit.Material mat;
+        String name;
+        switch (pc) {
+            case PYROMANCER -> { mat = org.bukkit.Material.BLAZE_ROD; name = "§cPyromant Fokus"; }
+            case SHAMAN -> { mat = org.bukkit.Material.STICK; name = "§2Schamanenstab"; }
+            case RANGER -> { mat = org.bukkit.Material.BOW; name = "§aRanger Bogen"; }
+            case PALADIN -> { mat = org.bukkit.Material.IRON_SWORD; name = "§fPaladin Klinge"; }
+            default -> { mat = org.bukkit.Material.WOODEN_SWORD; name = "§7Starter"; }
+        }
+        org.bukkit.inventory.ItemStack item = new org.bukkit.inventory.ItemStack(mat);
+        try {
+            var meta = item.getItemMeta();
+            if (meta != null) {
+                meta.displayName(net.kyori.adventure.text.Component.text(name));
+                // Verwendung der neuen Registry API mit Fallback
+                if (mat == org.bukkit.Material.BOW) {
+                    Enchantment infinity = byKey("infinity");
+                    if (infinity == null) infinity = byKey("infinity_arrow");
+                    if (infinity != null) meta.addEnchant(infinity, 1, true);
+                }
+                if (mat == org.bukkit.Material.IRON_SWORD) {
+                    Enchantment unbreaking = byKey("unbreaking");
+                    if (unbreaking != null) meta.addEnchant(unbreaking, 2, true);
+                }
+                item.setItemMeta(meta);
+            }
+            // Bogen braucht 1 Pfeil für Infinity Mechanik
+            if (mat == org.bukkit.Material.BOW && !inv.contains(org.bukkit.Material.ARROW)) {
+                inv.addItem(new org.bukkit.inventory.ItemStack(org.bukkit.Material.ARROW, 1));
             }
         } catch (Throwable ignored) {}
-        // Scoreboard aktualisieren (alle, da Party-Mitglieder mit aufgenommen sein können)
-        try { plugin.getScoreboardManager().forceUpdateAll(); } catch (Throwable ignored) {}
-    }
-
-    /** Entfernt den Survivors-Kontext für den Spieler (HUD/Scoreboard werden bei Bedarf ausgeblendet). */
-    @SuppressWarnings("unused")
-    public void leaveSurvivorsContext(java.util.UUID uuid) {
-        if (uuid == null) return;
-        survivorsContext.remove(uuid);
-        try { plugin.getStatsDisplayManager().clearAllBossbarsNow(); } catch (Throwable ignored) {}
-        try { org.bukkit.entity.Player p = org.bukkit.Bukkit.getPlayer(uuid); if (p != null) p.setScoreboard(org.bukkit.Bukkit.getScoreboardManager().getMainScoreboard()); } catch (Throwable ignored) {}
-    }
-
-    /** Prüft, ob ein Spieler sich im Survivors-Kontext befindet. */
-    @SuppressWarnings("unused")
-    public boolean isInSurvivorsContext(java.util.UUID uuid) {
-        return uuid != null && survivorsContext.contains(uuid);
+        inv.addItem(item);
+        try { p.updateInventory(); } catch (Throwable ignored) {}
     }
 
     public synchronized void startGame() {
@@ -166,7 +211,7 @@ public class GameManager {
         try { plugin.getShopNpcManager().spawnConfigured(); } catch (Throwable ignored) {}
         // Survivors-HUD einschalten: Scoreboard-Update triggern, Bossbars werden im StatsDisplayManager-Tick nur bei RUNNING gezeigt
         try { plugin.getScoreboardManager().forceUpdateAll(); } catch (Throwable ignored) {}
-        org.bukkit.Bukkit.getLogger().info("Game started");
+        plugin.getLogger().info("Game started");
     }
 
     public synchronized void stopGame() {
@@ -175,19 +220,14 @@ public class GameManager {
         if (currentWaveTask != null) currentWaveTask.cancel();
         spawnManager.stopContinuous();
         spawnManager.clearWaveMobs();
-        // Ability-Task stoppen
         abilityManager.stop();
         if (xpHudTask != null) xpHudTask.cancel();
         try { plugin.getShopNpcManager().despawnAll(); } catch (Throwable ignored) {}
-        // Survivors-HUD vollständig zurücksetzen: Scoreboards auf Main + Bossbars verstecken
-        try { plugin.getScoreboardManager().stop(); } catch (Throwable ignored) {}
+        // Scoreboard soll nach Tod bestehen bleiben -> Tasks beenden aber nicht resetten
+        try { plugin.getScoreboardManager().forceUpdateAll(); } catch (Throwable ignored) {}
         try { plugin.getStatsDisplayManager().clearAllBossbarsNow(); } catch (Throwable ignored) {}
-        survivorsContext.clear();
-        // Spieler auf Main Scoreboard zurücksetzen
-        for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
-            try { p.setScoreboard(org.bukkit.Bukkit.getScoreboardManager().getMainScoreboard()); } catch (Throwable ignored) {}
-        }
-        Bukkit.getLogger().info("Game stopped");
+        // survivorsContext NICHT löschen, damit Scoreboard sichtbar bleibt bis Spieler bewusst zurückkehrt
+        plugin.getLogger().info("Game stopped");
     }
 
     /**
@@ -227,7 +267,6 @@ public class GameManager {
     }
 
     // --- per-player pause (local pause) ---
-    @SuppressWarnings("deprecation")
     public synchronized void pauseForPlayer(java.util.UUID playerUuid) {
         if (playerUuid == null) return;
         pausedPlayers.add(playerUuid);
@@ -276,7 +315,6 @@ public class GameManager {
         }
     }
 
-    @SuppressWarnings("deprecation")
     public synchronized void resumeForPlayer(java.util.UUID playerUuid) {
         if (playerUuid == null) return;
         pausedPlayers.remove(playerUuid);
@@ -446,5 +484,20 @@ public class GameManager {
      */
     public void tryOpenNextQueuedDelayed(java.util.UUID uuid) {
         Bukkit.getScheduler().runTaskLater(plugin, () -> tryOpenNextQueued(uuid), 1L);
+    }
+
+    /**
+     * Holt ein Enchantment über neuen Registry-Mechanismus mit Fallback auf alte API.
+     */
+    @SuppressWarnings("deprecation")
+    private Enchantment byKey(String key) {
+        if (key == null || key.isEmpty()) return null;
+        NamespacedKey nk = NamespacedKey.minecraft(key);
+        Enchantment ench = null;
+        try { ench = Registry.ENCHANTMENT.get(nk); } catch (Throwable ignored) {}
+        if (ench == null) {
+            try { ench = Enchantment.getByKey(nk); } catch (Throwable ignored) {}
+        }
+        return ench;
     }
 }
