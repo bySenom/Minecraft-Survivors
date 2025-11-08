@@ -104,9 +104,7 @@ public class GameManager {
 
     public BossManager getBossManager() { return bossManager; }
 
-    /**
-     * Markiert einen Spieler als im Survivors-Kontext (zeigt HUD/Scoreboard schon in der Lobby-Phase an).
-     */
+    /** Markiert einen Spieler als im Survivors-Kontext (zeigt HUD/Scoreboard schon in der Lobby-Phase an). */
     public void enterSurvivorsContext(java.util.UUID uuid) {
         if (uuid == null) return;
         survivorsContext.add(uuid);
@@ -114,6 +112,7 @@ public class GameManager {
     }
 
     /** Entfernt den Survivors-Kontext für den Spieler (HUD/Scoreboard werden bei Bedarf ausgeblendet). */
+    @SuppressWarnings("unused")
     public void leaveSurvivorsContext(java.util.UUID uuid) {
         if (uuid == null) return;
         survivorsContext.remove(uuid);
@@ -122,6 +121,7 @@ public class GameManager {
     }
 
     /** Prüft, ob ein Spieler sich im Survivors-Kontext befindet. */
+    @SuppressWarnings("unused")
     public boolean isInSurvivorsContext(java.util.UUID uuid) {
         return uuid != null && survivorsContext.contains(uuid);
     }
@@ -180,6 +180,7 @@ public class GameManager {
      * Pause triggered when a GUI (e.g., LevelUpMenu) needs player choice time.
      * Multiple pauses stack and only when all are resumed the game continues.
      */
+    @SuppressWarnings("unused")
     public synchronized void pauseForGui() {
         pauseCounter++;
         if (state == GameState.RUNNING) {
@@ -192,11 +193,11 @@ public class GameManager {
         }
     }
 
+    @SuppressWarnings("unused")
     public synchronized void resumeFromGui() {
         if (pauseCounter > 0) pauseCounter--;
         if (pauseCounter == 0 && state == GameState.PAUSED) {
             state = GameState.RUNNING;
-            // restart ability & HUD & spawns
             abilityManager.start();
             startHudTask();
             boolean continuous = plugin.getConfigUtil().getBoolean("spawn.continuous.enabled", true);
@@ -333,9 +334,7 @@ public class GameManager {
         return currentWaveNumber;
     }
 
-    public synchronized void setCurrentWaveNumber(int n) {
-        this.currentWaveNumber = n;
-    }
+    public synchronized void setCurrentWaveNumber(int n) { this.currentWaveNumber = n; }
 
     /**
      * Abort a running start countdown (if any). Used when players leave or become unready.
@@ -356,6 +355,7 @@ public class GameManager {
         } catch (Throwable ignored) {}
     }
 
+    @SuppressWarnings("unused")
     public synchronized void startGameWithCountdown(int seconds) {
         if (starting || state == GameState.RUNNING) {
             plugin.getLogger().info("Start requested but game already starting/running");
@@ -376,7 +376,7 @@ public class GameManager {
                     if (osp != null && osp.getSelectedClass() != null && osp.isReady() && !isPlayerPaused(op.getUniqueId())) ready.add(op.getUniqueId());
                 }
 
-                boolean allReady = (!online.isEmpty() && ready.size() == online.size()) || (online.isEmpty());
+                boolean allReady = online.isEmpty() || ready.size() == online.size();
 
                 // Visual feedback per-player
                 for (org.bukkit.entity.Player p : online) {
