@@ -52,6 +52,11 @@ public class ScoreboardManager {
         try { updateAll(); } catch (Throwable ignored) {}
     }
 
+    /** Aktualisiert das Scoreboard nur für einen bestimmten Spieler. */
+    public void forceUpdate(org.bukkit.entity.Player p) {
+        try { updateFor(p); } catch (Throwable ignored) {}
+    }
+
     private void updateAll() {
         for (Player p : Bukkit.getOnlinePlayers()) {
             try { updateFor(p); } catch (Throwable ignored) {}
