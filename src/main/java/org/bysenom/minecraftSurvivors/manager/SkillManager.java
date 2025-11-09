@@ -201,11 +201,25 @@ public class SkillManager {
         List<org.bukkit.entity.LivingEntity> mobs = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(p.getLocation(), radius);
         if (mobs.isEmpty()) return;
         org.bukkit.entity.LivingEntity target = mobs.iterator().next();
+        boolean fancyAll = plugin.getConfigUtil().getBoolean("visuals.fancy-enabled", true);
+        boolean fancyLightning = plugin.getConfigUtil().getBoolean("visuals.lightning.fancy", true);
         try {
             target.getWorld().strikeLightningEffect(target.getLocation());
             target.damage(damage * (1.0 + sp.getDamageMult()), p);
             target.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, target.getLocation().add(0,1.0,0), 14, 0.3,0.3,0.3, 0.02);
             p.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.2f, 2.0f);
+            if (fancyAll && fancyLightning) {
+                // Chain beams to a few additional nearby mobs
+                int extraChains = Math.min(plugin.getConfigUtil().getInt("visuals.lightning.chain-count", 3), mobs.size()-1);
+                java.util.Iterator<org.bukkit.entity.LivingEntity> it = mobs.iterator();
+                it.next(); // skip primary target
+                int drawn = 0;
+                while (it.hasNext() && drawn < extraChains) {
+                    org.bukkit.entity.LivingEntity nxt = it.next();
+                    org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnLine(target.getWorld(), target.getLocation().add(0,0.8,0), nxt.getLocation().add(0,0.8,0), 18, Particle.ELECTRIC_SPARK);
+                    drawn++;
+                }
+            }
         } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWLightning primary effect failed for player " + p.getUniqueId() + ": ", t); }
         // Glyph-Trigger
         int hits = sp.incCounter("glc_lightning_hits", 1);
@@ -304,6 +318,8 @@ public class SkillManager {
         double radius = 5.0 + lvl * 0.6 + sp.getRadiusMult() * 2.0;
         double damage = 1.2 + lvl * 0.5 + sp.getFlatDamage() * 0.4;
         org.bukkit.Location loc = p.getLocation();
+        boolean fancyAll = plugin.getConfigUtil().getBoolean("visuals.fancy-enabled", true);
+        boolean fancyHoly = plugin.getConfigUtil().getBoolean("visuals.holy.fancy", true);
         List<org.bukkit.entity.LivingEntity> mobs = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(loc, radius);
         for (org.bukkit.entity.LivingEntity le : mobs) {
             try { le.damage(damage * (1.0 + sp.getDamageMult()), p); } catch (Throwable ignored) {}
@@ -311,6 +327,11 @@ public class SkillManager {
         try {
             p.getWorld().spawnParticle(Particle.END_ROD, loc.add(0,1.0,0), 28, radius/2, 0.3, radius/2, 0.0);
             p.playSound(loc, Sound.BLOCK_BEACON_POWER_SELECT, 0.7f, 1.8f);
+            if (fancyAll && fancyHoly) {
+                int ringPts = plugin.getConfigUtil().getInt("visuals.holy.ring-points", 48);
+                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRing(loc.getWorld(), loc.clone().add(0,0.25,0), Math.max(2.0, radius*0.7), ringPts, Particle.END_ROD);
+                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRing(loc.getWorld(), loc.clone().add(0,0.3,0), Math.max(1.2, radius*0.4), ringPts/2, Particle.CRIT);
+            }
         } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWHoly failed for player " + p.getUniqueId() + ": ", t); }
         // synergy: holy burst on kill handled in EntityDeathListener optional (future)
     }
@@ -556,13 +577,10 @@ public class SkillManager {
         long base = Math.max(600, 2000 - lvl * 130L);
         long cd = (long) Math.max(180.0, base / Math.max(1.0, 1.0 + sp.getAttackSpeedMult()));
         if (onCd(p.getUniqueId(), "ab_venom_spire", cd)) return;
-        // Suche Gegner im Umkreis (Suchradius)
         double searchRadius = 12.0 + lvl * 0.8 + sp.getRadiusMult() * 2.0;
         java.util.List<org.bukkit.entity.LivingEntity> mobs = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(p.getLocation(), searchRadius);
         if (mobs.isEmpty()) return;
-        // Anzahl Spitzen abhängig vom Level (1..5)
         int spireCount = Math.min(5, 1 + (lvl / 2));
-        // Glyphen
         java.util.List<String> glyphs = sp.getGlyphs("ab_venom_spire");
         boolean toxicBloom = glyphs.contains("ab_venom_spire:toxic_bloom");
         boolean neurotoxin = glyphs.contains("ab_venom_spire:neurotoxin");

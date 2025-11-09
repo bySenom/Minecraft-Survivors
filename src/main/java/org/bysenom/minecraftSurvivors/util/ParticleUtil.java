@@ -64,5 +64,22 @@ public final class ParticleUtil {
         }
     }
 
+    public static void spawnLine(World w, Location from, Location to, int steps, Particle p) {
+        if (w == null || from == null || to == null) return;
+        try {
+            int s = Math.max(1, steps);
+            double dx = (to.getX() - from.getX()) / s;
+            double dy = (to.getY() - from.getY()) / s;
+            double dz = (to.getZ() - from.getZ()) / s;
+            Location cur = from.clone();
+            for (int i = 0; i <= s; i++) {
+                spawnSafe(w, p, cur, 1, 0.02, 0.02, 0.02, 0.0);
+                cur.add(dx, dy, dz);
+            }
+        } catch (Throwable t) {
+            LogUtil.logFine("spawnLine failed from " + from + " to " + to + ": ", t);
+        }
+    }
+
     private static double clamp(double v) { return Math.max(0.0, Math.min(1.0, v)); }
 }

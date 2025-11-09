@@ -42,6 +42,43 @@ public class FxTestCommand implements CommandExecutor {
                 MeteorFx.spawnMeteor(plugin, target, height, Math.max(0.05, speed), radius, damage, p);
                 p.sendMessage("§aCustom Meteor gestartet.");
             }
+            case "lightning" -> {
+                // Simpler beam between player and target block
+                Location target = p.getTargetBlockExact(30) != null ? p.getTargetBlockExact(30).getLocation() : p.getLocation();
+                target = target.clone().add(0.5, 0.5, 0.5);
+                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnLine(p.getWorld(), p.getEyeLocation(), target, 24, org.bukkit.Particle.ELECTRIC_SPARK);
+                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnBurst(p.getWorld(), target, org.bukkit.Particle.CRIT, 12, 0.3);
+                p.playSound(p.getLocation(), org.bukkit.Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.4f, 2.0f);
+                p.sendMessage("§aLightning Beam Test.");
+            }
+            case "holy" -> {
+                Location center = p.getLocation();
+                // Golden cascade upward
+                for (int i=0;i<8;i++) {
+                    Location l = center.clone().add(0, 0.3 + i*0.25, 0);
+                    org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnBurst(p.getWorld(), l, org.bukkit.Particle.END_ROD, 6, 0.15);
+                }
+                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRing(p.getWorld(), center.clone().add(0,0.2,0), 2.5, 40, org.bukkit.Particle.END_ROD);
+                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRing(p.getWorld(), center.clone().add(0,0.2,0), 1.2, 28, org.bukkit.Particle.CRIT);
+                p.playSound(center, org.bukkit.Sound.BLOCK_BEACON_POWER_SELECT, 0.8f, 1.8f);
+                p.sendMessage("§aHoly Cascade Test.");
+            }
+            case "venom" -> {
+                Location center = p.getLocation();
+                int fanPts = 24;
+                double maxR = 4.0;
+                for (int i=0;i<fanPts;i++) {
+                    double ang = Math.PI * i / fanPts; // half circle fan
+                    double r = maxR;
+                    Location tip = center.clone().add(Math.cos(ang)*r, 0.2, Math.sin(ang)*r);
+                    org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnLine(p.getWorld(), center.clone().add(0,0.2,0), tip, 12, org.bukkit.Particle.PORTAL);
+                }
+                org.bukkit.Particle slimeParticle;
+                try { slimeParticle = org.bukkit.Particle.valueOf("ITEM_SLIME"); } catch (Throwable ex) { slimeParticle = org.bukkit.Particle.HAPPY_VILLAGER; }
+                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnBurst(p.getWorld(), center.clone().add(0,0.3,0), slimeParticle, 18, 0.4);
+                p.playSound(center, org.bukkit.Sound.BLOCK_SLIME_BLOCK_PLACE, 0.6f, 1.0f);
+                p.sendMessage("§aVenom Spire Fog Test.");
+            }
             default -> p.sendMessage("§cUnbekannter Subcommand. Nutze /fx für Hilfe.");
         }
         return true;
