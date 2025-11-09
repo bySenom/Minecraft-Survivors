@@ -10,8 +10,7 @@ Dies ist die Aufgabenliste für das Kernspiel (Minecraft Survivors). Das LobbySy
 
 ---
 Status-Update (2025-11-09)
-- Erledigt: MAX_HEALTH (Lootchest) wird beim Rundenende zurückgesetzt.
-- Combat-Pipeline: IN ARBEIT/TEILWEISE (einige Stats wirken bereits), zentrale Engine noch OFFEN.
+- Erledigt: MAX_HEALTH (Lootchest) wird beim Rundenende zurückgesetzt; Combat-Pipeline zentralisiert (CombatEngine + delegierender DamageHealListener).
 - Endboss (100% Enrage): GERÜST VORHANDEN, Finalisierung OFFEN.
 - FX-Throttling: TEILWEISE (Spieler-FX Toggle vorhanden), Rate-Limiter noch OFFEN.
 - Persistenz/Reset neuer Stats: TEILWEISE (Speicher vorhanden), Reset-Logik für neue Stats konsolidieren OFFEN.
@@ -19,21 +18,6 @@ Status-Update (2025-11-09)
 - Doku: OFFEN.
 
 ## P1 (Release-kritisch)
-
-### 1. Combat-Pipeline: zentrale Reihenfolge und Implementierung
-Beschreibung: Einheitliche, zentrale Schadens-/Heil-Logik mit neuen Stats.
-Reihenfolge (pro Treffer):
-1) Evasion (Dodge; keine Effekte bei Treffer → Exit)
-2) Crit (Erfolg/Fehlschlag, CritDamage-Multiplikator anwenden)
-3) Armor (flat oder prozentual; HP-Schaden reduzieren)
-4) Shield (zuerst Schild abziehen, Rest auf HP)
-5) Lifesteal (Anteil des verursachten Endschadens heilen)
-6) Thorns (Anteil des eingehenden Schadens zurück an Angreifer)
-7) On-Hit Effekte (z. B. Knockback, Procs)
-8) Post-Hit Regeneration (Shield Regen Delay starten)
-Akzeptanzkriterien:
-- Eine zentrale Klasse (z. B. `CombatEngine`) verarbeitet alle Treffer.
-- Tests: Crit/Evasion/Armor/Shield/Lifesteal/Thorns Kombinationen korrekt.
 
 ### 2. Neue Stats in UI/Progression verfügbar
 Beschreibung: LevelUp/Shop/Loot bieten und zeigen neue Stats (Max Health, HP Regen, Shield, Armor, Evasion, Lifesteal, Thorns, Crit Chance, Crit Damage, Projectile Count, Attack Speed, Projectile Bounce, Size, Duration, Damage vs. Elites/Bosses, Knockback, Jump Height, XP Gain, Elite Spawn Increase, Powerup Multiplier).
@@ -72,7 +56,6 @@ Beschreibung: Installation, Konfiguration, neue Stats, FX-Commands (/fx …) kur
 Akzeptanzkriterien:
 - README Abschnitt „Getting Started“ + „Config cheatsheet“.
 
----
 ## P2 (Wichtig, nach erstem Release)
 
 ### 8. Balancing-Pass
@@ -97,7 +80,6 @@ Beschreibung: Laufzeit, Kills, Schaden/Heilung, meistgenutzte Abilities.
 ### 13. Presets (easy/normal/hard)
 Beschreibung: Konfig-Presets für schnelle Server-Anpassung.
 
----
 ## P3 (Nice-to-have / später)
 
 ### 14. Modulare Boss-Fähigkeiten (Katalog + Weights)
@@ -105,7 +87,6 @@ Beschreibung: Konfig-Presets für schnelle Server-Anpassung.
 ### 16. Cloud-Speicher für PlayerData (optional)
 ### 17. Mod-/Resourcenpack für FX (höhere Qualität)
 
----
 ## Qualitätssicherung (QS)
 - Unit/Integration Tests: CombatEngine Kernfälle + Persistence.
 - Manuelle Tests: Multi-User, Disconnect/Reconnect, FX Performance.

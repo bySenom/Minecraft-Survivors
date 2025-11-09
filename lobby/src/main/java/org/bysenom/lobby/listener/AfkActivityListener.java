@@ -1,6 +1,5 @@
 package org.bysenom.lobby.listener;
 
-import org.bysenom.lobby.QueueManager;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -8,6 +7,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bysenom.lobby.QueueManager;
 
 public class AfkActivityListener implements Listener {
     private final QueueManager qm;
@@ -39,4 +39,3 @@ public class AfkActivityListener implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent e){ if (e.getWhoClicked() instanceof Player p) touch(p); }
 }
-
