@@ -91,6 +91,7 @@ public class BossManager {
             le.setCustomNameVisible(true);
         } catch (Throwable ignored) {}
         this.boss = le;
+        try { le.getPersistentDataContainer().set(new org.bukkit.NamespacedKey(plugin, "ms_boss_tag"), org.bukkit.persistence.PersistentDataType.BYTE, (byte)1); } catch (Throwable ignored) {}
         abilityTick = 0;
         phase = Phase.P1;
         broadcastSpawn();
@@ -562,5 +563,9 @@ public class BossManager {
             }
         } catch (Throwable ignored) {}
         try { clearUi(); } catch (Throwable ignored) {}
+    }
+
+    public synchronized org.bukkit.entity.LivingEntity getBossEntity() {
+        return isBossActive() ? boss : null;
     }
 }

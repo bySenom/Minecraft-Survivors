@@ -89,9 +89,12 @@ public class PyromancerAbility implements Ability {
             }
         } catch (Throwable ignored) {}
 
-        List<LivingEntity> mobs = spawnManager.getNearbyWaveMobs(loc, radius);
+        List<LivingEntity> mobs = spawnManager.getTargetsIncludingBoss(loc, radius);
         if (mobs.isEmpty()) return;
         mobs.sort(Comparator.comparingDouble(m -> m.getLocation().distanceSquared(loc)));
+        LivingEntity bossFirst = null;
+        for (LivingEntity m : mobs) { if (m.getType()!=null && m.getPersistentDataContainer().has(new org.bukkit.NamespacedKey(MinecraftSurvivors.getInstance(), "ms_boss_tag"), org.bukkit.persistence.PersistentDataType.BYTE)) { bossFirst = m; break; } }
+        if (bossFirst != null) { mobs.remove(bossFirst); mobs.add(0, bossFirst); }
 
         int hit = 0;
         for (LivingEntity target : mobs) {

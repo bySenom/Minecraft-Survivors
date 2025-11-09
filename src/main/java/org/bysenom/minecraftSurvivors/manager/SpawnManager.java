@@ -326,6 +326,23 @@ public class SpawnManager {
         return out;
     }
 
+    /**
+     * Liefert Ziele in Reichweite: alle markierten Wave-Mobs plus optional den aktiven Boss, falls innerhalb des Radius.
+     */
+    public java.util.List<org.bukkit.entity.LivingEntity> getTargetsIncludingBoss(org.bukkit.Location center, double radius) {
+        java.util.ArrayList<org.bukkit.entity.LivingEntity> out = new java.util.ArrayList<>(getNearbyWaveMobs(center, radius));
+        try {
+            if (center != null && center.getWorld() != null) {
+                org.bysenom.minecraftSurvivors.manager.BossManager bm = plugin.getGameManager() != null ? plugin.getGameManager().getBossManager() : null;
+                org.bukkit.entity.LivingEntity boss = bm != null ? bm.getBossEntity() : null;
+                if (boss != null && boss.isValid() && !boss.isDead() && boss.getWorld() == center.getWorld()) {
+                    if (boss.getLocation().distanceSquared(center) <= radius*radius) out.add(boss);
+                }
+            }
+        } catch (Throwable ignored) {}
+        return out;
+    }
+
     // Freeze einen einzelnen Mob für einen Spieler (nur AI aus) und starte Enforcer
     public void freezeSingleMobForPlayer(UUID playerUuid, LivingEntity mob) {
         if (playerUuid == null || mob == null) return;
@@ -957,7 +974,7 @@ public class SpawnManager {
                     try { java.lang.reflect.Method m = mob.getClass().getMethod("setScale", float.class); m.invoke(mob, (float) scaleCfg); } catch (Throwable ignored) {}
                 }
             } catch (Throwable outerScaleEx) {
-                try { java.lang.reflect.Method m = mob.getClass().getMethod("setScale", float.class); m.invoke(mob, (float) scaleCfg); } catch (Throwable ignoredScale2) {}
+                try { java.lang.reflect.Method m = mob.getClass().getMethod("setScale", float.class); m.invoke(mob, (float) scaleCfg); } catch (Throwable ignored) {}
             }
         } catch (Throwable ignored) {}
     }

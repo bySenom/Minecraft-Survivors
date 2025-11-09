@@ -49,7 +49,7 @@ public class PaladinAbility implements Ability {
         try { if (sp == null || sp.isFxEnabled()) spawnPulse(player, radius); } catch (Throwable ignored) {}
 
         for (int rep = 0; rep < repeats; rep++) {
-            List<LivingEntity> mobs = spawnManager.getNearbyWaveMobs(loc, radius);
+            List<LivingEntity> mobs = spawnManager.getTargetsIncludingBoss(loc, radius);
             for (LivingEntity target : mobs) {
                 if (target == null || !target.isValid()) continue;
                 try { target.damage(damage, player); } catch (Throwable ignored) {}

@@ -57,10 +57,13 @@ public class RangerAbility implements Ability {
             }
         } catch (Throwable ignored) {}
 
-        List<LivingEntity> mobs = spawnManager.getNearbyWaveMobs(loc, maxRange);
+        List<LivingEntity> mobs = spawnManager.getTargetsIncludingBoss(loc, maxRange);
         if (mobs.isEmpty()) return;
-        // bevorzugt weit entfernte Ziele
+        // Boss bevorzugt: falls Boss in Liste -> nach vorne setzen
         mobs.sort(Comparator.comparingDouble((LivingEntity m) -> m.getLocation().distanceSquared(loc)).reversed());
+        LivingEntity bossFirst = null;
+        for (LivingEntity m : mobs) { if (m.getType() != null && m.getPersistentDataContainer().has(new org.bukkit.NamespacedKey(MinecraftSurvivors.getInstance(), "ms_boss_tag"), org.bukkit.persistence.PersistentDataType.BYTE)) { bossFirst = m; break; } }
+        if (bossFirst != null) { mobs.remove(bossFirst); mobs.add(0, bossFirst); }
 
         int multi = 1 + Math.max(0, (sp != null ? sp.getBonusStrikes() : 0)); // mehrere Pfeile
         int pierce = Math.max(0, (sp != null ? sp.getRangerPierce() : 0));    // wie viele Ziele wird ein Pfeil durchdringen

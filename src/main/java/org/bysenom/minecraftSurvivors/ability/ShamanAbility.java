@@ -34,7 +34,7 @@ public class ShamanAbility implements Ability {
         double radius = baseRadius * (1.0 + (sp != null ? sp.getRadiusMult() : 0.0));
         // Apply generic SIZE multiplier
         if (sp != null) radius *= (1.0 + sp.getEffectiveSizeMult());
-        List<LivingEntity> mobs = spawnManager.getNearbyWaveMobs(playerLoc, radius);
+        List<LivingEntity> mobs = spawnManager.getTargetsIncludingBoss(playerLoc, radius);
 
         boolean debug = plugin.getConfigUtil().getBoolean("debug.shaman-log", true);
         if (debug) plugin.getLogger().info("[ShamanAbility] tick for " + player.getName() + " — found mobs: " + mobs.size());
