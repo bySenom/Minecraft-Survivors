@@ -227,7 +227,7 @@ public class SkillManager {
                 org.bukkit.Location center = target.getLocation();
                 for (int i=0;i<6;i++) {
                     org.bukkit.Location l = center.clone().add((java.util.concurrent.ThreadLocalRandom.current().nextDouble()-0.5)*3, 8+i*0.6, (java.util.concurrent.ThreadLocalRandom.current().nextDouble()-0.5)*3);
-                    center.getWorld().spawnParticle(Particle.END_ROD, l, 4, 0.1,0.1,0.1, 0.0);
+                    org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafe(center.getWorld(), Particle.END_ROD, l, 6, 0.08, 0.08, 0.08, 0.0);
                 }
                 for (org.bukkit.entity.LivingEntity le : mobs) {
                     if (le.getLocation().distanceSquared(center) < 6*6) {
@@ -446,7 +446,7 @@ public class SkillManager {
                     double x = center.getX() + Math.cos(ang) * currentR;
                     double z = center.getZ() + Math.sin(ang) * currentR;
                     org.bukkit.Location l = new org.bukkit.Location(center.getWorld(), x, center.getY()+0.2+prog*1.2, z);
-                    try { center.getWorld().spawnParticle(org.bukkit.Particle.REVERSE_PORTAL, l, 1, 0.05,0.05,0.05, 0.0); } catch (Throwable ignored) {}
+                    try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafe(center.getWorld(), org.bukkit.Particle.REVERSE_PORTAL, l, 1, 0.05,0.05,0.05, 0.0); } catch (Throwable ignored) {}
                 }
                 // Schaden + Pull
                 for (org.bukkit.entity.LivingEntity le : plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(center, currentR)) {
@@ -574,7 +574,7 @@ public class SkillManager {
                     int column = 6;
                     for (int i=0;i<column;i++) {
                         org.bukkit.Location l = c.clone().add(0, 0.2 + i*0.3, 0);
-                        try { c.getWorld().spawnParticle(org.bukkit.Particle.CRIT, l, 2, 0.02,0.02,0.02, 0.0); } catch (Throwable ignored) {}
+                        try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafe(c.getWorld(), org.bukkit.Particle.CRIT, l, 2, 0.02,0.02,0.02, 0.0); } catch (Throwable ignored) {}
                     }
                     int ringPts = 10;
                     for (int i=0;i<ringPts;i++) {
@@ -582,7 +582,7 @@ public class SkillManager {
                         double x = c.getX()+Math.cos(ang)*spireRadius;
                         double z = c.getZ()+Math.sin(ang)*spireRadius;
                         org.bukkit.Location l = new org.bukkit.Location(c.getWorld(), x, c.getY()+0.1+Math.sin(prog*10)*0.1, z);
-                        try { c.getWorld().spawnParticle(org.bukkit.Particle.PORTAL, l, 1, 0.03,0.03,0.03, 0.0); } catch (Throwable ignored) {}
+                        try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafe(c.getWorld(), org.bukkit.Particle.PORTAL, l, 1, 0.03,0.03,0.03, 0.0); } catch (Throwable ignored) {}
                     }
                     // Schaden/Effects für Gegner in Spire-Nähe (fokussiert)
                     java.util.List<org.bukkit.entity.LivingEntity> near = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(c, spireRadius + 0.4);
@@ -702,9 +702,9 @@ public class SkillManager {
         // kleine Partikel-Visualisierung wenn Schild vorhanden
         if (val > 0.0) {
             try {
-                p.getWorld().spawnParticle(Particle.END_ROD, p.getLocation().add(0, 1.0, 0), 8, 0.4, 0.4, 0.4, 0.02);
-            } catch (Throwable ignored) {}
-        }
+                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnBurst(p.getWorld(), p.getLocation().add(0,1.0,0), Particle.END_ROD, 10, 0.2);
+             } catch (Throwable ignored) {}
+         }
     }
 
 }
