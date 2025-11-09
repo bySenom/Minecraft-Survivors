@@ -130,6 +130,8 @@ Package: `org.bysenom.minecraftSurvivors.model`
 - `getCritChance()`
 - `getCritDamage()`
 - `getShieldMax()`
+- `getEffectiveSizeMult()`
+- `getEffectiveDurationMult()`
 - `removeAbility(String key)`
 - `addHpRegen(double v)`
 - `getHpRegen()`
