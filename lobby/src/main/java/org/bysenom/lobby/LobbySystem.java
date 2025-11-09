@@ -35,6 +35,8 @@ public final class LobbySystem extends JavaPlugin {
     public void onEnable() {
         saveDefaultConfig();
         this.queueManager = new QueueManager(this);
+        // Load persisted queue if enabled
+        try { this.queueManager.loadPersistedQueue(); } catch (Throwable t) { getLogger().warning("Queue load failed: "+t.getMessage()); }
         this.uiManager = new UiManager(this, queueManager);
         this.npcRegistry = new org.bysenom.lobby.npc.PlayerNpcRegistry(this);
         this.packetInterceptor = new org.bysenom.lobby.net.PacketInterceptor(this, npcRegistry);
@@ -115,6 +117,7 @@ public final class LobbySystem extends JavaPlugin {
             try { packetInterceptor.uninject(p); } catch (Throwable ignored) {}
         }
         try { if (cosmeticManager != null) cosmeticManager.shutdown(); } catch (Throwable ignored) {}
+        try { queueManager.savePersistedQueue(); } catch (Throwable ignored) {}
         getLogger().info("LobbySystem disabled.");
     }
 
@@ -236,24 +239,9 @@ public final class LobbySystem extends JavaPlugin {
     }
 
     private boolean canStartWithCurrentAdmission(int minNeeded) {
+        // Remove strict party gating: allow any admitted group >= min
         int admitted = queueManager.admittedCount();
-        if (admitted == 0) return false;
-        // Solo: genau 1 Spieler -> erlaubt
-        if (admitted == 1) return true;
-        // Mehrere -> alle müssen gleiche Party haben und Partygröße >= minNeeded
-        java.util.List<java.util.UUID> list = queueManager.admittedSnapshot();
-        org.bukkit.entity.Player first = org.bukkit.Bukkit.getPlayer(list.get(0));
-        if (first == null) return false;
-        org.bysenom.lobby.bridge.PartyBridge bridge = getPartyBridge();
-        if (bridge == null || !bridge.hasParty(first)) return false; // erste hat keine Party => kein gemeinsamer Start
-        java.util.Set<java.util.UUID> partyMembers = bridge.getMemberUuids(first);
-        if (partyMembers == null || partyMembers.isEmpty()) return false;
-        // Prüfe ob alle admitted IDs in partyMembers enthalten sind
-        for (java.util.UUID id : list) {
-            if (!partyMembers.contains(id)) return false;
-        }
-        // optional: require party size == admitted
-        return admitted >= minNeeded;
+        return admitted >= Math.max(1, minNeeded);
     }
 
     private boolean isSurvivorsLobbyState() {
@@ -331,13 +319,14 @@ public final class LobbySystem extends JavaPlugin {
 
     private void setupAdmissionLoop() {
         final int interval = Math.max(1, getConfig().getInt("admission.interval-seconds", 3));
-        final String startWhen = getConfig().getString("admission.start-when", "min");
-        final boolean backfill = getConfig().getBoolean("admission.backfill-while-running", true);
         final int min = Math.max(1, getConfig().getInt("min-players", 2));
         final String startCmd = getConfig().getString("survivors-start-command", "msstart");
         final boolean dispatchEnabled = getConfig().getBoolean("survivors.auto-dispatch-enabled", false);
+        final boolean backfill = getConfig().getBoolean("admission.backfill-while-running", true);
         autoStartTask = Bukkit.getScheduler().runTaskTimer(this, () -> {
             if (survivorsDispatchDone || !isSurvivorsLobbyState()) { stopAutoStartLoop(); return; }
+            // Enforce admission timeout periodically
+            try { queueManager.enforceAdmissionTimeout(); } catch (Throwable ignored) {}
             int queued = queueManager.size();
             int admitted = queueManager.admittedCount();
             if (bossBar != null) {
@@ -348,20 +337,9 @@ public final class LobbySystem extends JavaPlugin {
                 updateBossBar(title, prog);
             }
             if (countdownValue < 0) countdownValue = interval;
-            if (countdownValue <= 0) {
-                queueManager.admitNext();
-                countdownValue = interval;
-            } else {
-                countdownValue--;
-            }
-            boolean shouldStart;
-            switch (startWhen.toLowerCase()) {
-                case "queue_empty": shouldStart = queued == 0 && admitted > 0; break;
-                case "manual": shouldStart = false; break;
-                default: shouldStart = admitted >= min; break;
-            }
-            if (shouldStart && dispatchEnabled) {
-                if (!canStartWithCurrentAdmission(min)) return; // Warte weiter bis Bedingungen erfüllt
+            if (countdownValue <= 0) { queueManager.admitNext(); countdownValue = interval; } else { countdownValue--; }
+            if (dispatchEnabled && admitted >= min) {
+                // Start Survivors (console) und optional Queue leeren, wenn kein Backfill
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), startCmd);
                 survivorsDispatchDone = true;
                 if (!backfill) { countdownValue = -1; try { queueManager.clearQueue(true); } catch (Throwable ignored) {} }
