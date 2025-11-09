@@ -27,7 +27,6 @@ Akzeptanzkriterien:
 - Kein Wither-Placeholder mehr.
 - Meteor-FallingBlocks hinterlassen keine Blöcke (DONE)
 - Telegraphs (Warnringe/Sound-Cues) (DONE)
-- Boss hat zwei HP Balken: Need a fix
 
 ### 2. Neue Stats in UI/Progression verfügbar
 Beschreibung: LevelUp/Shop/Loot bieten und zeigen neue Stats (Max Health, HP Regen, Shield, Armor, Evasion, Lifesteal, Thorns, Crit Chance, Crit Damage, Projectile Count, Attack Speed, Projectile Bounce, Size, Duration, Damage vs. Elites/Bosses, Knockback, Jump Height, XP Gain, Elite Spawn Increase, Powerup Multiplier).

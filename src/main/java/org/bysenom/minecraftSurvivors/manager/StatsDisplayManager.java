@@ -166,6 +166,15 @@ public class StatsDisplayManager {
 
     private void updateEnemyBossbar(Player p) {
         try {
+            // Wenn der Endboss aktiv ist, keine zusätzliche Enemy-Bossbar anzeigen (sonst doppelte HP-Balken)
+            try {
+                var gm = plugin.getGameManager();
+                if (gm != null && gm.getBossManager() != null && gm.getBossManager().isBossActive()) {
+                    BossBar eOld = bossbarsEnemy.remove(p.getUniqueId());
+                    if (eOld != null) try { p.hideBossBar(eOld); } catch (Throwable ignored) {}
+                    return;
+                }
+            } catch (Throwable ignored) {}
             SpawnManager sm = plugin.getGameManager().getSpawnManager();
             double minutes = sm.getElapsedMinutes();
             double power = sm.getEnemyPowerIndex();
