@@ -157,7 +157,9 @@ public final class MinecraftSurvivors extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        try { if (this.scoreboardManager != null) this.scoreboardManager.stop(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "scoreboardManager.stop failed: ", t); }
+        // Ensure game and running waves/tasks are stopped first
+        try { if (this.gameManager != null) this.gameManager.stopGame(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "gameManager.stopGame failed: ", t); }
+         try { if (this.scoreboardManager != null) this.scoreboardManager.stop(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "scoreboardManager.stop failed: ", t); }
         try { if (this.statsDisplayManager != null) this.statsDisplayManager.stop(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "statsDisplayManager.stop failed: ", t); }
         try { if (this.tablistManager != null) this.tablistManager.stop(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "tablistManager.stop failed: ", t); }
         try { if (this.metaManager != null) this.metaManager.saveAll(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "metaManager.saveAll failed: ", t); }

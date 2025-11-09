@@ -90,8 +90,17 @@ public class BossDebugCommand implements CommandExecutor {
                     } catch (Throwable t) { p.sendMessage("§cLightning fehlgeschlagen: " + t.getMessage()); }
                 }
             }
+            case "aggro" -> {
+                if (!bm.isBossActive()) { p.sendMessage("§7Kein Boss aktiv."); }
+                else {
+                    try {
+                        bm.debugAggroNearest();
+                        p.sendMessage("§aBoss Aggro (nearest) ausgelöst.");
+                    } catch (Throwable t) { p.sendMessage("§cAggro fehlgeschlagen: " + t.getMessage()); }
+                }
+            }
             default -> {
-                p.sendMessage("§eVerwendung: /msboss <spawn|test|kill|meteor|barrage|shockwave|lightning>");
+                p.sendMessage("§eVerwendung: /msboss <spawn|test|kill|meteor|barrage|shockwave|lightning|aggro>");
             }
         }
         return true;

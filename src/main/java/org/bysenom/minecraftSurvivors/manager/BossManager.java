@@ -45,6 +45,12 @@ public class BossManager {
 
     private BukkitTask nameStandFollowTask = null; // 1-Tick-Follow für glattes Nachführen
 
+    // Track last use timestamps for boss abilities to honor cooldowns
+    private final java.util.Map<String, Long> lastAbilityUse = new java.util.concurrent.ConcurrentHashMap<>();
+
+    // Track scheduled BukkitTask instances (from runTaskLater/runTaskTimer) in a synchronized set so clearUi()/forceEnd() can cancel them; add registration of tasks where runTaskLater is used (meteor, meteorBarrage, shockwave, etc.).
+    private final java.util.Set<org.bukkit.scheduler.BukkitTask> scheduledTasks = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+
     public BossManager(MinecraftSurvivors plugin, SpawnManager spawnManager) {
         this.plugin = plugin;
         this.spawnManager = spawnManager;
@@ -299,17 +305,53 @@ public class BossManager {
     // === fehlende Fähigkeits- & Hilfs-Methoden (wiederhergestellt) ===
     private void performRandomAbility(double power) {
         if (!isBossActive()) return;
-        java.util.List<String> enabled = new java.util.ArrayList<>();
-        for (String k : new String[]{"meteor", "lightning_chain", "summon_minions", "shockwave"}) {
-            if (plugin.getConfigUtil().getBoolean("endgame.boss.ability." + k, true)) enabled.add(k);
+        java.util.List<String> candidates = new java.util.ArrayList<>();
+        for (String k : new String[]{"meteor", "lightning_chain", "summon_minions", "shockwave", "meteor_barrage"}) {
+            if (plugin.getConfigUtil().getBoolean("endgame.boss.ability." + k, false)) candidates.add(k);
         }
-        // In Phase 3: Meteor-Schauer bevorzugen (falls aktiviert)
-        if (phase == Phase.P3 && plugin.getConfigUtil().getBoolean("endgame.boss.ability.meteor_barrage", true)) {
-            enabled.add("meteor_barrage");
-            enabled.add("meteor_barrage"); // doppeltes Gewicht
+        if (candidates.isEmpty()) {
+            // fallback: allow core abilities if explicitly enabled false by default
+            for (String k : new String[]{"meteor", "lightning_chain", "summon_minions", "shockwave"}) {
+                if (plugin.getConfigUtil().getBoolean("endgame.boss.ability." + k, true)) candidates.add(k);
+            }
         }
-        if (enabled.isEmpty()) return;
-        String pick = enabled.get(new java.util.Random().nextInt(enabled.size()));
+        if (candidates.isEmpty()) return;
+
+        // Filter candidates by cooldown availability
+        java.util.List<String> available = new java.util.ArrayList<>();
+        for (String c : candidates) {
+            long cdTicks = plugin.getConfigUtil().getInt("endgame.boss.ability.cooldowns." + c, 0);
+            long cdMs = cdTicks > 0 ? cdTicks * 50L : 0L;
+            Long last = lastAbilityUse.get(c);
+            if (last == null || cdMs <= 0 || System.currentTimeMillis() - last >= cdMs) available.add(c);
+        }
+        if (available.isEmpty()) {
+            // nothing available due to cooldowns -> try to allow any (avoid deadlocks)
+            available.addAll(candidates);
+        }
+
+        // Check for config weights: endgame.boss.ability.weights.<key> but only for available abilities
+        java.util.Map<String, Integer> weights = new java.util.HashMap<>();
+        int total = 0;
+        for (String c : available) {
+            int w = plugin.getConfigUtil().getInt("endgame.boss.ability.weights." + c, 0);
+            if (w > 0) { weights.put(c, w); total += w; }
+        }
+        String pick;
+
+        if (!weights.isEmpty() && total > 0) {
+            int r = new java.util.Random().nextInt(total);
+            int acc = 0;
+            pick = null;
+            for (java.util.Map.Entry<String,Integer> en : weights.entrySet()) {
+                acc += en.getValue();
+                if (r < acc) { pick = en.getKey(); break; }
+            }
+            if (pick == null) pick = weights.keySet().iterator().next();
+        } else {
+            // Uniform random from available (non-cooled) candidates
+            pick = available.get(new java.util.Random().nextInt(available.size()));
+        }
         switch (pick) {
             case "meteor": abilityMeteor(power); break;
             case "lightning_chain": abilityLightningChain(power); break;
@@ -317,6 +359,8 @@ public class BossManager {
             case "shockwave": abilityShockwave(power); break;
             case "meteor_barrage": abilityMeteorBarrage(power); break;
         }
+        // record last use time
+        try { lastAbilityUse.put(pick, System.currentTimeMillis()); } catch (Throwable ignored) {}
     }
 
     private void abilityMeteorBarrage(double power) {
@@ -543,13 +587,29 @@ public class BossManager {
 
     private void updateUi() {
         if (!isBossActive()) { clearUi(); return; }
-        // Always hide any bossbar previously created by this manager; do not create new Adventure BossBars here.
-        if (bossbar != null) {
-            for (Player p : Bukkit.getOnlinePlayers()) {
-                try { p.hideBossBar(bossbar); } catch (Throwable ignored) {}
+        // Ensure Adventure BossBar exists and is updated with current HP + phase
+        try {
+            double hp = boss.getHealth();
+            double max = boss.getAttribute(Attribute.MAX_HEALTH) != null ? boss.getAttribute(Attribute.MAX_HEALTH).getBaseValue() : hp;
+            double prog = Math.max(0.0, Math.min(1.0, hp / Math.max(1.0, max)));
+            String phaseLabel = switch (phase) { case P1 -> "I"; case P2 -> "II"; case P3 -> "III"; };
+            String title = "Boss " + phaseLabel + " — " + (int)Math.round(hp) + "/" + (int)Math.round(max) + " HP";
+            if (bossbar == null) {
+                try {
+                    bossbar = net.kyori.adventure.bossbar.BossBar.bossBar(net.kyori.adventure.text.Component.text(title), (float)prog, net.kyori.adventure.bossbar.BossBar.Color.RED, net.kyori.adventure.bossbar.BossBar.Overlay.PROGRESS);
+                    for (Player p : Bukkit.getOnlinePlayers()) {
+                        try { p.showBossBar(bossbar); } catch (Throwable ignored) {}
+                    }
+                } catch (Throwable ignored) {
+                    bossbar = null;
+                }
+            } else {
+                try {
+                    bossbar.name(net.kyori.adventure.text.Component.text(title));
+                    bossbar.progress((float)prog);
+                } catch (Throwable ignored) {}
             }
-            bossbar = null;
-        }
+        } catch (Throwable ignored) {}
 
         // Ensure the name ArmorStand exists and shows only name+phase
         try { if (plugin.getConfigUtil().getBoolean("endgame.boss.name-armorstand.enabled", true)) spawnOrUpdateNameStand(); } catch (Throwable ignored) {}
@@ -630,13 +690,19 @@ public class BossManager {
     }
 
     private void clearUi() {
+        // cancel all additional scheduled ability/projectile tasks
+        try {
+            for (org.bukkit.scheduler.BukkitTask bt : new java.util.ArrayList<>(scheduledTasks)) {
+                try { if (bt != null && !bt.isCancelled()) bt.cancel(); } catch (Throwable ignored) {}
+                scheduledTasks.remove(bt);
+            }
+        } catch (Throwable ignored) {}
+
         if (bossbar != null) {
-            for (Player p : Bukkit.getOnlinePlayers())
-                try {
-                    p.hideBossBar(bossbar);
-                } catch (Throwable ignored) {
-                }
-            bossbar = null;
+            try {
+                for (Player p : Bukkit.getOnlinePlayers()) try { p.hideBossBar(bossbar); } catch (Throwable ignored) {}
+                bossbar = null;
+            } catch (Throwable ignored) { bossbar = null; }
         }
         // Holograms entfernen
         for (UUID id : holograms) {

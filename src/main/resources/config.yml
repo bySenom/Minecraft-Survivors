@@ -159,6 +159,49 @@ lootchest:
 ability:
   interval-ticks: 30          # Ticks zwischen Ability-Ticks (20 ticks = 1s). Default 30 = 1.5s
 
+# Endgame Boss tuning (weights & cooldowns)
+endgame:
+  boss:
+    enabled: true
+    base-hp: 200.0
+    speed-mult: 1.15
+    damage-base: 6.0
+    damage-scale-per-minute: 1.2
+    name-armorstand:
+      enabled: true
+      extra-offset: 0.9
+      dynamic-height:
+        enabled: true
+    # Ability availability (enable/disable per ability)
+    ability:
+      meteor: true
+      lightning_chain: true
+      summon_minions: true
+      shockwave: true
+      meteor_barrage: true
+      # Weighted selection for abilities (integer weight, 0 = not used)
+      weights:
+        meteor: 3
+        lightning_chain: 2
+        summon_minions: 2
+        shockwave: 2
+        meteor_barrage: 1
+      # Ability cooldowns (in ticks). 0 = no cooldown
+      cooldowns:
+        meteor: 100   # 5s
+        lightning_chain: 80  # 4s
+        summon_minions: 200   # 10s
+        shockwave: 120  # 6s
+        meteor_barrage: 240  # 12s
+    # Phase multipliers (used on phase enter)
+    phase:
+      p2:
+        speed-mult: 1.08
+        damage-mult: 1.10
+      p3:
+        speed-mult: 1.15
+        damage-mult: 1.25
+
 # Shaman specific
 shaman:
   base-damage: 6.0            # Basisschaden pro Strike (Minecraft Damage; 1.0 = 1 HP)
@@ -408,11 +451,6 @@ enrage:
   health-mult-max: 3.0     # Maximaler zusätzlicher Health-Multiplikator (x3)
   speed-mult-max: 1.6      # Maximaler Speed-Multiplikator (x1.6)
   damage-mult-max: 2.0     # Maximaler Damage-Multiplikator (x2.0)
-
-endgame:
-  enabled: true
-  boss:
-    type: WITHER
 
 tablist:
   enabled: true
