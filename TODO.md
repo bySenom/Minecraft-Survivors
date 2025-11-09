@@ -10,9 +10,8 @@ Dies ist die Aufgabenliste für das Kernspiel (Minecraft Survivors). Das LobbySy
 
 ---
 Status-Update (2025-11-09)
-- Erledigt: MAX_HEALTH Reset; CombatEngine zentralisiert; Endboss Meteor-Cleanup (FallingBlock Blockplacement verhindert, forceEnd bei Stop).
-- Endboss: Phase-/Ability-Telegraphs Feintuning OFFEN.
-- FX-Throttling: TEILWEISE (Spieler-FX Toggle vorhanden), Rate-Limiter noch OFFEN.
+- Erledigt: MAX_HEALTH Reset; CombatEngine zentralisiert; Endboss Meteor-Cleanup + Telegraphs; Boss-Debug /msboss.
+- FX-Throttling: Basis-Helfer (ParticleUtil throttle) hinzugefügt, Rate-Limiter Feintuning OFFEN.
 - Persistenz/Reset neuer Stats: TEILWEISE (Speicher vorhanden), Reset-Logik für neue Stats konsolidieren OFFEN.
 - Wellen/Continuous Stabilität: LAUFEND; Monitor für Zombie-Tasks noch OFFEN.
 - Doku: OFFEN.
@@ -24,10 +23,11 @@ Status-Update (2025-11-09)
 Beschreibung: Custom Boss mit Phasen (P1/P2/P3), Mechaniken (Meteor Barrage, Lightning Beam, Summons), klare Telegraphs.
 Akzeptanzkriterien:
 - Boss spawnt verlässlich, Phasenwechsel funktionieren.
-- Angriffsschaden/Tempo pro Phase balanciert.
+- Angriffsschaden/Tempo pro Phase balanciert (OFFEN Balancing-Feinschliff).
 - Kein Wither-Placeholder mehr.
 - Meteor-FallingBlocks hinterlassen keine Blöcke (DONE)
 - Telegraphs (Warnringe/Sound-Cues) (DONE)
+- Boss hat zwei HP Balken: Need a fix
 
 ### 2. Neue Stats in UI/Progression verfügbar
 Beschreibung: LevelUp/Shop/Loot bieten und zeigen neue Stats (Max Health, HP Regen, Shield, Armor, Evasion, Lifesteal, Thorns, Crit Chance, Crit Damage, Projectile Count, Attack Speed, Projectile Bounce, Size, Duration, Damage vs. Elites/Bosses, Knockback, Jump Height, XP Gain, Elite Spawn Increase, Powerup Multiplier).
@@ -47,12 +47,15 @@ Beschreibung: Sicheres Laden/Speichern aller neuen Stats + Reset bei Run-Beginn.
 Akzeptanzkriterien:
 - PlayerData migriert (Backward-Compat).
 - Start eines Runs setzt temporäre Boni korrekt zurück.
+- Besserer Glyphen check, wenn alle Slots belegt sind, dann levelup der Fähigkeit
+- Nur Glyphen anzeigen die man noch nicht gesockelt hat
 
 ### 5. Stabilität Wellen/Continuous Mode
 Beschreibung: Keine Zombie-Tasks; Start/Stop räumt sauber auf.
 Akzeptanzkriterien:
 - Alle BukkitRunnable werden bei Stop gecancelt.
 - Continuous und Wave-Mode laufen ohne Deadlocks.
+- Spieler sollen Solo und im Party-Modus spielen können. Spiel/Wave start müsste daher darauf konzipiert werden
 
 ### 6. Doku (README/Docs)
 Beschreibung: Installation, Konfiguration, neue Stats, FX-Commands (/fx …) kurz dokumentiert.
