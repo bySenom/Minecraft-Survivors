@@ -34,8 +34,8 @@ Anmerkung: Balancing (Schadenswerte, Spawn-Counts) und finale QA sind weiterhin 
 Beschreibung: LevelUp/Shop/Loot bieten und zeigen neue Stats (Max Health, HP Regen, Shield, Armor, Evasion, Lifesteal, Thorns, Crit Chance, Crit Damage, Projectile Count, Attack Speed, Projectile Bounce, Size, Duration, Damage vs. Elites/Bosses, Knockback, Jump Height, XP Gain, Elite Spawn Increase, Powerup Multiplier).
 Status: In Arbeit — Basis-Implementierung vorhanden (LevelUp-Menü zeigt Stat-Picks, `GuiManager` zeigt Stat-Overview, `GameManager` ActionBar-HUD zeigt XP + Level).
 Was noch fehlt / ToDo (kleinere, gezielte Tasks):
-- Persistenz: Basiswerte (z. B. hpRegen) sicher speichern & laden (teilweise erledigt; hpRegen-Base noch fehlend).
-- Tooltips: kurze Beschreibungen zu Stats im LevelUp-Menü (bereits vorhanden, Feintuning möglich).
+- Persistenz: Basiswerte (z. B. hpRegen) sicher speichern & laden — hpRegenBase persisted (ERLEDIGT).
+- Tooltips: kurze Beschreibungen zu Stats im LevelUp-Menü (bereits implementiert).
 - Rundungs-/Anzeige-Verbesserungen im HUD (z. B. präzisere Prozentanzeigen).
 - QA: Überprüfen, dass Stat-Modifikatoren von Glyphen/Items korrekt wirken und in UI reflektiert werden.
 

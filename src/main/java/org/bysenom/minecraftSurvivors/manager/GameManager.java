@@ -166,7 +166,9 @@ public class GameManager {
 
                     int currentXp = sp.getXp();
                     int xpToNext = sp.getXpToNext();
-                    p.sendActionBar(Component.text("XP: " + currentXp + "/" + xpToNext + " • Lvl " + sp.getClassLevel()));
+                    double pct = xpToNext > 0 ? (currentXp / (double) xpToNext) * 100.0 : 0.0;
+                    String hud = String.format(java.util.Locale.ROOT, "XP: %d/%d (%.1f%%) • Lvl %d", currentXp, xpToNext, pct, sp.getClassLevel());
+                    p.sendActionBar(Component.text(hud));
                 } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "HUD update failed for player: " + (p == null ? "null" : p.getUniqueId()) + ": ", t); }
             }
             // BossManager tick

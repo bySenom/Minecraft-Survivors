@@ -237,25 +237,27 @@ public class LevelUpMenu {
         case MAX_HEALTH -> "+"+v+" Herz(e)";
         case HP_REGEN -> "+"+v+" HP/s";
         case SHIELD -> "+"+v+" Schild";
-        case ARMOR -> "+"+percent(v)+" weniger Schaden";
-        case EVASION -> "+"+percent(v)+" Ausweichchance";
-        case LIFESTEAL -> "+"+percent(v)+" Lifesteal";
-        case THORNS -> "+"+percent(v)+" Rückschaden";
-        case CRIT_CHANCE -> "+"+percent(v)+" Crit";
-        case CRIT_DAMAGE -> "+"+percent(v)+" Crit Dmg Mult";
+        case ARMOR -> "+"+percentOne(v)+" weniger Schaden";
+        case EVASION -> "+"+percentOne(v)+" Ausweichchance";
+        case LIFESTEAL -> "+"+percentOne(v)+" Lifesteal";
+        case THORNS -> "+"+percentOne(v)+" Rückschaden";
+        case CRIT_CHANCE -> "+"+percentOne(v)+" Crit";
+        case CRIT_DAMAGE -> "+"+percentOne(v)+" Crit Dmg Mult";
         case PROJECTILE_COUNT -> "+"+((int)Math.round(v))+" Projektil(e)";
         case PROJECTILE_BOUNCE -> "+"+((int)Math.round(v))+" Bounce";
-        case ATTACK_SPEED -> "+"+percent(v)+" Angriffsrate";
-        case SIZE -> "+"+percent(v)+" AoE Größe";
-        case DURATION -> "+"+percent(v)+" Effektdauer";
-        case DAMAGE_ELITE_BOSS -> "+"+percent(v)+" Elite/Boss Schaden";
-        case KNOCKBACK -> "+"+percent(v)+" Knockback";
-        case JUMP_HEIGHT -> "+"+percent(v)+" Sprunghöhe";
-        case XP_GAIN -> "+"+percent(v)+" XP";
-        case ELITE_SPAWN_INCREASE -> "+"+percent(v)+" Elite Spawn";
-        case POWERUP_MULT -> "+"+percent(v)+" Powerup Mult";
+        case ATTACK_SPEED -> "+"+percentOne(v)+" Angriffsrate";
+        case SIZE -> "+"+percentOne(v)+" AoE Größe";
+        case DURATION -> "+"+percentOne(v)+" Effektdauer";
+        case DAMAGE_ELITE_BOSS -> "+"+percentOne(v)+" Elite/Boss Schaden";
+        case KNOCKBACK -> "+"+percentOne(v)+" Knockback";
+        case JUMP_HEIGHT -> "+"+percentOne(v)+" Sprunghöhe";
+        case XP_GAIN -> "+"+percentOne(v)+" XP";
+        case ELITE_SPAWN_INCREASE -> "+"+percentOne(v)+" Elite Spawn";
+        case POWERUP_MULT -> "+"+percentOne(v)+" Powerup Mult";
         default -> "+"+v;
     }; }
     private String percent(double v){ return (int)Math.round(v*100.0)+"%"; }
+    // Show percent with one decimal place for clearer UI
+    private String percentOne(double v){ return String.format(java.util.Locale.ROOT, "%.1f%%", v * 100.0); }
     private double round2(double v){ return Math.round(v*100.0)/100.0; }
 }

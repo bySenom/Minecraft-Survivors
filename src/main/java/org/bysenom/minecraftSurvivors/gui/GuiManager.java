@@ -93,14 +93,14 @@ public class GuiManager {
         // Stat-Übersicht (neue Stats sichtbar machen)
         if (sp != null) {
             java.util.List<Component> statLore = new java.util.ArrayList<>();
-            statLore.add(Component.text("Damage+ ").color(NamedTextColor.GRAY).append(Component.text(String.format("%.0f%%", sp.getEffectiveDamageMult()*100.0)).color(NamedTextColor.RED)));
-            statLore.add(Component.text("Crit ").color(NamedTextColor.GRAY).append(Component.text(String.format("%.0f%% / +%.0f%%", sp.getCritChance()*100.0, sp.getCritDamage()*100.0)).color(NamedTextColor.GOLD)));
-            statLore.add(Component.text("Armor ").color(NamedTextColor.GRAY).append(Component.text(String.format("%.0f%%", sp.getArmor()*100.0)).color(NamedTextColor.BLUE)));
-            statLore.add(Component.text("Evasion ").color(NamedTextColor.GRAY).append(Component.text(String.format("%.0f%%", sp.getEvasion()*100.0)).color(NamedTextColor.AQUA)));
+            statLore.add(Component.text("Damage+ ").color(NamedTextColor.GRAY).append(Component.text(String.format("%.1f%%", sp.getEffectiveDamageMult()*100.0)).color(NamedTextColor.RED)));
+            statLore.add(Component.text("Crit ").color(NamedTextColor.GRAY).append(Component.text(String.format("%.1f%% / +%.1f%%", sp.getCritChance()*100.0, sp.getCritDamage()*100.0)).color(NamedTextColor.GOLD)));
+            statLore.add(Component.text("Armor ").color(NamedTextColor.GRAY).append(Component.text(String.format("%.1f%%", sp.getArmor()*100.0)).color(NamedTextColor.BLUE)));
+            statLore.add(Component.text("Evasion ").color(NamedTextColor.GRAY).append(Component.text(String.format("%.1f%%", sp.getEvasion()*100.0)).color(NamedTextColor.AQUA)));
             statLore.add(Component.text("Shield ").color(NamedTextColor.GRAY).append(Component.text(String.format("%.1f", sp.getShieldMax())).color(NamedTextColor.WHITE)));
             statLore.add(Component.text("HP Regen ").color(NamedTextColor.GRAY).append(Component.text(String.format("%.2f/s", sp.getHpRegen())).color(NamedTextColor.GREEN)));
-            statLore.add(Component.text("Lifesteal ").color(NamedTextColor.GRAY).append(Component.text(String.format("%.0f%%", sp.getLifesteal()*100.0)).color(NamedTextColor.LIGHT_PURPLE)));
-            statLore.add(Component.text("Thorns ").color(NamedTextColor.GRAY).append(Component.text(String.format("%.0f%%", sp.getThorns()*100.0)).color(NamedTextColor.DARK_GREEN)));
+            statLore.add(Component.text("Lifesteal ").color(NamedTextColor.GRAY).append(Component.text(String.format("%.1f%%", sp.getLifesteal()*100.0)).color(NamedTextColor.LIGHT_PURPLE)));
+            statLore.add(Component.text("Thorns ").color(NamedTextColor.GRAY).append(Component.text(String.format("%.1f%%", sp.getThorns()*100.0)).color(NamedTextColor.DARK_GREEN)));
             inv.setItem(11, GuiTheme.createAction(plugin, Material.BOOK, Component.text("Stats").color(NamedTextColor.AQUA), statLore, "noop", false));
         }
 
