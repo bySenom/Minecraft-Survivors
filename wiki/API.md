@@ -13,6 +13,7 @@ This section contains automatically generated API documentation (basic).
 - [org.bysenom.minecraftSurvivors.ability.RangerAbility](../api/org/bysenom/minecraftSurvivors/ability/RangerAbility.md)
 - [org.bysenom.minecraftSurvivors.ability.ShamanAbility](../api/org/bysenom/minecraftSurvivors/ability/ShamanAbility.md)
 - [org.bysenom.minecraftSurvivors.ability.Stats](../api/org/bysenom/minecraftSurvivors/ability/Stats.md)
+- [org.bysenom.minecraftSurvivors.combat.CombatEngine](../api/org/bysenom/minecraftSurvivors/combat/CombatEngine.md)
 - [org.bysenom.minecraftSurvivors.command.FxTestCommand](../api/org/bysenom/minecraftSurvivors/command/FxTestCommand.md)
 - [org.bysenom.minecraftSurvivors.command.MsConfigCommand](../api/org/bysenom/minecraftSurvivors/command/MsConfigCommand.md)
 - [org.bysenom.minecraftSurvivors.command.MsConfigTabCompleter](../api/org/bysenom/minecraftSurvivors/command/MsConfigTabCompleter.md)
