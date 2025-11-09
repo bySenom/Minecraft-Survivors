@@ -38,7 +38,13 @@ public class PlayerDataManager {
         cfg.set("bonusDamage", sp.getBonusDamage());
         cfg.set("bonusStrikes", sp.getBonusStrikes());
         cfg.set("flatDamage", sp.getFlatDamage());
+        cfg.set("damageMult", sp.getDamageMult());
+        cfg.set("radiusMult", sp.getRadiusMult());
+        cfg.set("bonusStrikes", sp.getBonusStrikes());
         cfg.set("extraHearts", sp.getExtraHearts());
+        cfg.set("igniteBonusTicks", sp.getIgniteBonusTicks());
+        cfg.set("knockbackBonus", sp.getKnockbackBonus());
+        cfg.set("healBonus", sp.getHealBonus());
         cfg.set("moveSpeedMult", sp.getMoveSpeedMult());
         cfg.set("attackSpeedMult", sp.getAttackSpeedMult());
         // persist base HP regen so players keep their level-up choices
@@ -94,7 +100,13 @@ public class PlayerDataManager {
             sp.setBonusDamage(cfg.getDouble("bonusDamage", 0.0));
             sp.setBonusStrikes(cfg.getInt("bonusStrikes", 0));
             sp.setFlatDamage(cfg.getDouble("flatDamage", 0.0));
-            sp.setExtraHearts(cfg.getInt("extraHearts", 0));
+            try { sp.setDamageMult(cfg.getDouble("damageMult", sp.getDamageMult())); } catch (Throwable ignored) {}
+            try { sp.setRadiusMult(cfg.getDouble("radiusMult", sp.getRadiusMult())); } catch (Throwable ignored) {}
+            try { sp.setBonusStrikes(cfg.getInt("bonusStrikes", sp.getBonusStrikes())); } catch (Throwable ignored) {}
+            try { sp.setExtraHearts(cfg.getInt("extraHearts", sp.getExtraHearts())); } catch (Throwable ignored) {}
+            try { sp.setIgniteBonusTicks(cfg.getInt("igniteBonusTicks", sp.getIgniteBonusTicks())); } catch (Throwable ignored) {}
+            try { sp.setKnockbackBonus(cfg.getDouble("knockbackBonus", sp.getKnockbackBonus())); } catch (Throwable ignored) {}
+            try { sp.setHealBonus(cfg.getDouble("healBonus", sp.getHealBonus())); } catch (Throwable ignored) {}
             sp.setMoveSpeedMult(cfg.getDouble("moveSpeedMult", 0.0));
             sp.setAttackSpeedMult(cfg.getDouble("attackSpeedMult", 0.0));
             try { sp.setBaseHpRegen(cfg.getDouble("hpRegenBase", sp.getBaseHpRegen())); } catch (Throwable ignored) {}

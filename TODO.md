@@ -36,7 +36,7 @@ Status: In Arbeit — Basis-Implementierung vorhanden (LevelUp-Menü zeigt Stat-
 Was noch fehlt / ToDo (kleinere, gezielte Tasks):
 - Persistenz: Basiswerte (z. B. hpRegen) sicher speichern & laden — hpRegenBase persisted (ERLEDIGT).
 - Tooltips: kurze Beschreibungen zu Stats im LevelUp-Menü (bereits implementiert).
-- Rundungs-/Anzeige-Verbesserungen im HUD (z. B. präzisere Prozentanzeigen).
+- Rundungs-/Anzeige-Verbesserungen im HUD (z. B. präzisere Prozentanzeigen). (ERLEDIGT)
 - QA: Überprüfen, dass Stat-Modifikatoren von Glyphen/Items korrekt wirken und in UI reflektiert werden.
 
 ### 3. Performance & FX-Throttling
