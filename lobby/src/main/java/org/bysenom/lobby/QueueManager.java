@@ -22,31 +22,8 @@ public class QueueManager {
         } catch (Throwable ignored) {}
     }
 
+    // Individueller Beitritt: unabhängig von Party/Leader
     public boolean join(Player p) {
-        // Party-Bridge Autojoin: Wenn Leader joint, alle Mitglieder mit in Queue
-        if (plugin.getPartyBridge().isLeader(p)) {
-            Set<UUID> members = plugin.getPartyBridge().getMemberUuids(p);
-            // Leader zuerst
-            boolean changed = queue.add(p.getUniqueId());
-            for (UUID m : members) {
-                if (!m.equals(p.getUniqueId())) {
-                    Player mp = plugin.getServer().getPlayer(m);
-                    if (mp != null && mp.isOnline()) {
-                        queue.add(m);
-                        mp.sendMessage("§aDein Party-Leader hat dich gequeued. Position: §e" + getPosition(m));
-                        try { LobbySystem.get().addToBossBar(mp); } catch (Throwable ignored) {}
-                    }
-                }
-            }
-            p.sendMessage("§aQueue beigetreten (Party). Deine Position: §e" + getPosition(p.getUniqueId()));
-            try { LobbySystem.get().addToBossBar(p); } catch (Throwable ignored) {}
-            return changed;
-        }
-        // Falls Mitglied aber nicht Leader -> kein Teilbeitritt zulassen
-        if (plugin.getPartyBridge().hasParty(p) && !plugin.getPartyBridge().isLeader(p)) {
-            p.sendMessage("§eDu bist in einer Party. Nur der Leader kann die Queue betreten.");
-            return false;
-        }
         if (queue.add(p.getUniqueId())) {
             p.sendMessage("§aQueue beigetreten. Position: §e" + getPosition(p.getUniqueId()));
             try { LobbySystem.get().addToBossBar(p); } catch (Throwable ignored) {}
@@ -57,19 +34,13 @@ public class QueueManager {
         }
     }
 
+    // Alt: joinParty(UUID) bleibt bestehen für etwaige Altnutzer, bewirkt jetzt nur Leader-Join
     public void joinParty(UUID leaderId) {
         Player leader = plugin.getServer().getPlayer(leaderId);
         if (leader == null) return;
-        if (!plugin.getPartyBridge().isLeader(leader)) return; // Sicherheitscheck
-        Set<UUID> members = plugin.getPartyBridge().getMemberUuids(leader);
-        for (UUID m : members) {
-            Player mp = plugin.getServer().getPlayer(m);
-            if (mp != null && mp.isOnline()) {
-                queue.add(m);
-                mp.sendMessage("§aDeine Party wurde gequeued. Position: §e" + getPosition(m));
-                try { LobbySystem.get().addToBossBar(mp); } catch (Throwable ignored) {}
-            }
-        }
+        queue.add(leaderId);
+        try { LobbySystem.get().addToBossBar(leader); } catch (Throwable ignored) {}
+        leader.sendMessage("§aQueue beigetreten. Position: §e" + getPosition(leaderId));
     }
 
     public boolean leave(Player p) { return leaveInternal(p, false); }
@@ -81,21 +52,6 @@ public class QueueManager {
         try { LobbySystem.get().removeFromBossBar(p); } catch (Throwable ignored) {}
         if (removed) {
             if (!silent) p.sendMessage("§cQueue verlassen.");
-            // Wenn Leader verlässt, gesamte Party entfernen
-            if (plugin.getPartyBridge().isLeader(p)) {
-                Set<UUID> members = plugin.getPartyBridge().getMemberUuids(p);
-                for (UUID m : members) {
-                    if (!m.equals(p.getUniqueId())) {
-                        queue.remove(m);
-                        admitted.remove(m);
-                        Player mp = plugin.getServer().getPlayer(m);
-                        if (mp != null && mp.isOnline()) {
-                            if (!silent) mp.sendMessage("§cQueue verlassen (Leader hat verlassen).");
-                            try { LobbySystem.get().removeFromBossBar(mp); } catch (Throwable ignored) {}
-                        }
-                    }
-                }
-            }
             // Survivors-Kontext explizit entfernen, falls gesetzt
             setSurvivorsContext(p.getUniqueId(), false);
             return true;
