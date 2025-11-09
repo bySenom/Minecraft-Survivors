@@ -80,7 +80,25 @@ public class GuiClickListener implements Listener {
             }
             case "open_class_select", "start_wizard" -> {
                 try { plugin.getGameManager().enterSurvivorsContext(player.getUniqueId()); } catch (Throwable ignored) {}
-                guiManager.openClassSelection(player);
+                // Neu: Party-Flow -> Ready-Vote statt sofort Klassenwahl
+                try {
+                    var pm = plugin.getPartyManager();
+                    var party = pm != null ? pm.getPartyOf(player.getUniqueId()) : null;
+                    if (party != null) {
+                        if (party.getLeader().equals(player.getUniqueId())) {
+                            int voteSec = Math.max(5, plugin.getConfigUtil().getInt("lobby.party-vote.seconds", 15));
+                            plugin.getGameManager().beginPartyStartVote(party, voteSec);
+                            player.sendMessage("§eReady-Abstimmung gestartet. Bitte bestätigen.");
+                        } else {
+                            player.sendMessage("§eWarte bis der Party-Leader die Ready-Abstimmung startet.");
+                        }
+                    } else {
+                        // Solo: sofort Klassenwahl
+                        guiManager.openClassSelection(player);
+                    }
+                } catch (Throwable t) {
+                    player.sendMessage("§cFehler beim Start: " + t.getMessage());
+                }
                 return;
             }
             case "start" -> {
@@ -130,15 +148,13 @@ public class GuiClickListener implements Listener {
                 player.sendMessage(nr ? "§aBereit gesetzt." : "§eBereitschaft aufgehoben.");
                 try { plugin.getScoreboardManager().forceUpdate(player); } catch (Throwable ignored) {}
                 if (nr) {
-                    // Solo Auto-Start oder Party-Vote
+                    // Nur Party-Flow: Leader startet Ready-Check
                     try {
                         var pm = plugin.getPartyManager();
                         var party = pm != null ? pm.getPartyOf(player.getUniqueId()) : null;
                         if (party == null) {
-                            // Solo -> sofort Countdown ohne weitere Ready-Anforderung
-                            plugin.getGameManager().trySoloAutoStart(player);
+                            player.sendMessage("§7Solo: Wähle deine Klasse im Menü – Startet automatisch sobald nur du im Modus bist.");
                         } else if (party.getLeader().equals(player.getUniqueId())) {
-                            // Leader startet Abstimmung
                             int voteSec = Math.max(5, plugin.getConfigUtil().getInt("lobby.party-vote.seconds", 15));
                             plugin.getGameManager().beginPartyStartVote(party, voteSec);
                         } else {
@@ -147,7 +163,7 @@ public class GuiClickListener implements Listener {
                     } catch (Throwable ignored) {}
                 }
                 else {
-                    // Ready entfernt -> Countdown abbrechen falls läuft
+                    // Ready entfernt -> Countdown ggf. abbrechen
                     try { plugin.getGameManager().abortStartCountdown("Player unready"); } catch (Throwable ignored) {}
                 }
                 return;
@@ -169,20 +185,12 @@ public class GuiClickListener implements Listener {
             if (sp != null) {
                 sp.setSelectedClass(chosen);
                 try { plugin.getGameManager().enterSurvivorsContext(player.getUniqueId()); } catch (Throwable ignored) {}
-                // Unterscheide Solo vs. Party
-                boolean inParty = false;
-                try { var pm = plugin.getPartyManager(); var party = pm != null ? pm.getPartyOf(player.getUniqueId()) : null; inParty = (party != null); } catch (Throwable ignored) {}
-                if (inParty) {
-                    player.sendMessage("§aKlasse gewählt: §f" + chosen.name() + " §7(Leader startet Start-Abstimmung über 'Bereit')");
-                } else {
-                    player.sendMessage("§aKlasse gewählt: §f" + chosen.name() + " §7(Countdown startet automatisch – kein 'Bereit' nötig)");
-                    // Solo: sofort Countdown versuchen
-                    try { plugin.getGameManager().trySoloAutoStart(player); } catch (Throwable ignored) {}
-                }
+                // Kein Auto-Start mehr hier; Party-Flow startet nach gemeinsamer Klassenwahl über GameManager
+                player.sendMessage("§aKlasse gewählt: §f" + chosen.name());
                 try { player.playSound(player.getLocation(), org.bukkit.Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.3f); } catch (Throwable ignored) {}
                 try { plugin.getScoreboardManager().forceUpdate(player); } catch (Throwable ignored) {}
-                // Für Party-Fall weiterhin AutoStart prüfen, falls Konfiguration all-ready nutzt
-                try { plugin.getGameManager().requestAutoStartIfAllReady(); } catch (Throwable ignored) {}
+                // Solo-Start: wenn allein im Survivors-Kontext und Klasse gewählt, startet GameManager.trySoloAutoStart
+                try { plugin.getGameManager().trySoloAutoStart(player); } catch (Throwable ignored) {}
             }
             guiManager.openMainMenu(player);
             return;

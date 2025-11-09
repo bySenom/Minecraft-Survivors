@@ -18,6 +18,6 @@ public class JoinQuitListener implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
-        qm.leave(e.getPlayer());
+        qm.leaveSilent(e.getPlayer());
     }
 }

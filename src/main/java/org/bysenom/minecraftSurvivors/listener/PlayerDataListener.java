@@ -76,10 +76,11 @@ public class PlayerDataListener implements Listener {
         if (sp != null) {
             Bukkit.getScheduler().runTaskAsynchronously(MinecraftSurvivors.getInstance(), () -> dataManager.save(sp));
         }
-        // If a player leaves while a countdown is running, abort the countdown
+        // Party-Vote Bereinigung & Countdown Abort & Pause Cleanup
         try {
             GameManager gm = MinecraftSurvivors.getInstance().getGameManager();
             if (gm != null) {
+                try { gm.handlePlayerQuit(uuid); } catch (Throwable ignored) {}
                 try { gm.abortStartCountdown("player quit: " + e.getPlayer().getName()); } catch (Throwable ignored) {}
                 try { gm.resumeForPlayer(uuid); } catch (Throwable ignored) {}
             }

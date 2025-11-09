@@ -26,6 +26,8 @@ public final class LobbySystem extends JavaPlugin {
     private String lastBossTitle = null;
     private double lastBossProgress = -1.0;
 
+    private volatile boolean survivorsDispatchDone = false;
+
     @Override
     public void onLoad() { instance = this; }
 
@@ -233,6 +235,53 @@ public final class LobbySystem extends JavaPlugin {
         setupAutoStartLoop();
     }
 
+    private boolean canStartWithCurrentAdmission(int minNeeded) {
+        int admitted = queueManager.admittedCount();
+        if (admitted == 0) return false;
+        // Solo: genau 1 Spieler -> erlaubt
+        if (admitted == 1) return true;
+        // Mehrere -> alle müssen gleiche Party haben und Partygröße >= minNeeded
+        java.util.List<java.util.UUID> list = queueManager.admittedSnapshot();
+        org.bukkit.entity.Player first = org.bukkit.Bukkit.getPlayer(list.get(0));
+        if (first == null) return false;
+        org.bysenom.lobby.bridge.PartyBridge bridge = getPartyBridge();
+        if (bridge == null || !bridge.hasParty(first)) return false; // erste hat keine Party => kein gemeinsamer Start
+        java.util.Set<java.util.UUID> partyMembers = bridge.getMemberUuids(first);
+        if (partyMembers == null || partyMembers.isEmpty()) return false;
+        // Prüfe ob alle admitted IDs in partyMembers enthalten sind
+        for (java.util.UUID id : list) {
+            if (!partyMembers.contains(id)) return false;
+        }
+        // optional: require party size == admitted
+        return admitted >= minNeeded;
+    }
+
+    private boolean isSurvivorsLobbyState() {
+        try {
+            org.bukkit.plugin.Plugin pl = getServer().getPluginManager().getPlugin("MinecraftSurvivors");
+            if (pl != null) {
+                // Prüfe per Reflection ob GameManager#getState == LOBBY ohne harte Compile-Abhängigkeit
+                Class<?> mainClazz = pl.getClass();
+                java.lang.reflect.Method gmGetter = mainClazz.getMethod("getGameManager");
+                Object gm = gmGetter.invoke(pl);
+                if (gm != null) {
+                    java.lang.reflect.Method stateMethod = gm.getClass().getMethod("getState");
+                    Object stateObj = stateMethod.invoke(gm);
+                    String stateName = String.valueOf(stateObj);
+                    return "LOBBY".equalsIgnoreCase(stateName);
+                }
+            }
+        } catch (Throwable ignored) {}
+        // Falls Plugin nicht geladen oder Fehler -> treat as lobby (kein Start erzwingen)
+        return true;
+    }
+
+    private void stopAutoStartLoop() {
+        try {
+            if (autoStartTask != null) { autoStartTask.cancel(); autoStartTask = null; }
+        } catch (Throwable ignored) {}
+    }
+
     private void setupAutoStartLoop() {
         boolean admission = getConfig().getBoolean("admission.enabled", true);
         if (admission) {
@@ -243,23 +292,34 @@ public final class LobbySystem extends JavaPlugin {
         final int max = Math.max(min, getConfig().getInt("max-players", 8));
         final int seconds = Math.max(3, getConfig().getInt("autostart-seconds", 15));
         final String startCmd = getConfig().getString("survivors-start-command", "msstart");
+        final boolean dispatchEnabled = getConfig().getBoolean("survivors.auto-dispatch-enabled", false); // Default false -> kein AutoStart
         autoStartTask = Bukkit.getScheduler().runTaskTimer(this, () -> {
+            // Falls Spiel schon läuft oder bereits dispatcht wurde -> Task beenden
+            if (survivorsDispatchDone || !isSurvivorsLobbyState()) { stopAutoStartLoop(); return; }
             int size = queueManager.size();
             if (bossBar != null) {
                 double prog = Math.min(1.0, size / (double) min);
-                String title = size >= min ? "Lobby • Start in " + (countdownValue > 0 ? countdownValue + "s" : seconds + "s") : "Lobby • Spieler: " + size + "/" + min;
+                String title = size >= min ? "Lobby • Startbereit" : "Lobby • Spieler: " + size + "/" + min;
                 updateBossBar(title, prog);
             }
+            if (!dispatchEnabled) return; // Auto-Dispatch global deaktiviert
             if (size >= min) {
                 if (countdownValue < 0) countdownValue = seconds;
                 if (size >= max) countdownValue = Math.min(countdownValue, 5);
                 if (countdownValue <= 0) {
+                    // Validierung: admittedSnapshot muss Solo oder gemeinsame Party sein
+                    if (!canStartWithCurrentAdmission(min)) { countdownValue = seconds; return; }
                     for (java.util.UUID id : queueManager.snapshot()) {
                         org.bukkit.entity.Player p = Bukkit.getPlayer(id);
-                        if (p != null && p.isOnline()) p.performCommand("msmenu");
+                        if (p != null && p.isOnline()) {
+                            try { p.performCommand("msmenu"); } catch (Throwable ignored) {}
+                        }
                     }
+                    // Einmaliger Dispatch
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), startCmd);
-                    countdownValue = -1;
+                    survivorsDispatchDone = true;
+                    try { queueManager.clearQueue(true); } catch (Throwable ignored) {}
+                    stopAutoStartLoop();
                 } else {
                     countdownValue--;
                 }
@@ -275,7 +335,9 @@ public final class LobbySystem extends JavaPlugin {
         final boolean backfill = getConfig().getBoolean("admission.backfill-while-running", true);
         final int min = Math.max(1, getConfig().getInt("min-players", 2));
         final String startCmd = getConfig().getString("survivors-start-command", "msstart");
+        final boolean dispatchEnabled = getConfig().getBoolean("survivors.auto-dispatch-enabled", false);
         autoStartTask = Bukkit.getScheduler().runTaskTimer(this, () -> {
+            if (survivorsDispatchDone || !isSurvivorsLobbyState()) { stopAutoStartLoop(); return; }
             int queued = queueManager.size();
             int admitted = queueManager.admittedCount();
             if (bossBar != null) {
@@ -285,7 +347,6 @@ public final class LobbySystem extends JavaPlugin {
                 double prog = Math.min(1.0, admitted / target);
                 updateBossBar(title, prog);
             }
-            // Alle 'interval' Sekunden genau eine Zulassung
             if (countdownValue < 0) countdownValue = interval;
             if (countdownValue <= 0) {
                 queueManager.admitNext();
@@ -293,18 +354,18 @@ public final class LobbySystem extends JavaPlugin {
             } else {
                 countdownValue--;
             }
-            // Startbedingungen
             boolean shouldStart;
             switch (startWhen.toLowerCase()) {
                 case "queue_empty": shouldStart = queued == 0 && admitted > 0; break;
                 case "manual": shouldStart = false; break;
-                default: // min
-                    shouldStart = admitted >= min;
-                    break;
+                default: shouldStart = admitted >= min; break;
             }
-            if (shouldStart) {
+            if (shouldStart && dispatchEnabled) {
+                if (!canStartWithCurrentAdmission(min)) return; // Warte weiter bis Bedingungen erfüllt
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), startCmd);
-                if (!backfill) { countdownValue = -1; }
+                survivorsDispatchDone = true;
+                if (!backfill) { countdownValue = -1; try { queueManager.clearQueue(true); } catch (Throwable ignored) {} }
+                stopAutoStartLoop();
             }
         }, 20L, 20L);
     }

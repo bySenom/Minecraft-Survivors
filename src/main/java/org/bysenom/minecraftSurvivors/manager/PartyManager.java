@@ -254,6 +254,15 @@ public class PartyManager {
         return getPendingInviteLeader(target) != null;
     }
 
+    /** Cancel a pending invite for a target (if any). */
+    public synchronized boolean cancelInvite(java.util.UUID target) {
+        if (target == null) return false;
+        boolean removed = false;
+        if (invites.remove(target) != null) removed = true;
+        if (pendingInvites.remove(target) != null) removed = true;
+        return removed;
+    }
+
     /**
      * Send a clickable accept/decline message to a player. Clicking will run commands:
      * /party accept <leaderUUID>  and /party decline <leaderUUID>

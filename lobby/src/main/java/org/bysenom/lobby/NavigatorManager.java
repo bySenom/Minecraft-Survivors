@@ -24,7 +24,7 @@ public class NavigatorManager {
 
     public void giveCompass(Player p) {
         if (!plugin.getConfig().getBoolean("compass.enabled", true)) return;
-        int slot = plugin.getConfig().getInt("compass.slot", 0);
+        int slot = plugin.getConfig().getInt("compass.slot", 4);
         ItemStack compass = new ItemStack(Material.COMPASS);
         ItemMeta meta = compass.getItemMeta();
         meta.displayName(Component.text(plugin.getConfig().getString("compass.name", "§bNavigator")));

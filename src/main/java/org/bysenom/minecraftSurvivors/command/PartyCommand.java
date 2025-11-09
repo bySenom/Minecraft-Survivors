@@ -37,10 +37,14 @@ public class PartyCommand implements CommandExecutor {
                 if (pm.leave(p.getUniqueId())) p.sendMessage("§aDu hast die Party verlassen."); else p.sendMessage("§cDu bist in keiner Party.");
                 return true;
             case "invite":
-                if (args.length < 2) { p.sendMessage("§c/party invite <Spieler>"); return true; }
+                if (args.length < 2) { p.sendMessage("§c/party invite <Spieler> [Sekunden]"); return true; }
                 Player t = Bukkit.getPlayer(args[1]);
                 if (t == null) { p.sendMessage("§cSpieler nicht gefunden."); return true; }
-                if (pm.invite(p.getUniqueId(), t.getUniqueId(), 60)) p.sendMessage("§aEinladung gesendet."); else p.sendMessage("§cInvite fehlgeschlagen.");
+                int sec = 60;
+                if (args.length >= 3) {
+                    try { sec = Math.max(5, Integer.parseInt(args[2])); } catch (Throwable ignored) {}
+                }
+                if (pm.invite(p.getUniqueId(), t.getUniqueId(), sec)) p.sendMessage("§aEinladung gesendet ("+sec+"s)."); else p.sendMessage("§cInvite fehlgeschlagen.");
                 return true;
             case "join":
                 if (args.length < 2) { p.sendMessage("§c/party join <Leader>"); return true; }
@@ -65,19 +69,25 @@ public class PartyCommand implements CommandExecutor {
                 if (args.length < 2) { p.sendMessage("§c/party decline <LeaderUUID>"); return true; }
                 try {
                     java.util.UUID leaderId = java.util.UUID.fromString(args[1]);
-                    // Einladung als abgelaufen markieren/entfernen
-                    // Ein einfacher Weg: erneut invite prüfen und löschen
-                    // Direktes Entfernen:
-                    try {
-                        java.lang.reflect.Field invF = org.bysenom.minecraftSurvivors.manager.PartyManager.class.getDeclaredField("invites");
-                        invF.setAccessible(true);
-                        java.util.Map<java.util.UUID, ?> invites = (java.util.Map<java.util.UUID, ?>) invF.get(pm);
-                        invites.remove(p.getUniqueId());
-                    } catch (Throwable ignored) {}
-                    p.sendMessage("§7Einladung abgelehnt.");
+                    // Einladung ablehnen -> pending invite für diesen Spieler entfernen
+                    boolean ok = pm.cancelInvite(p.getUniqueId());
+                    p.sendMessage(ok ? "§7Einladung abgelehnt." : "§cKeine gültige Einladung gefunden.");
                 } catch (IllegalArgumentException ex) {
                     p.sendMessage("§cUngültige Leader-UUID.");
                 }
+                return true;
+            case "kick":
+                if (args.length < 2) { p.sendMessage("§c/party kick <Spieler>"); return true; }
+                Player k = Bukkit.getPlayer(args[1]);
+                if (k == null) { p.sendMessage("§cSpieler nicht gefunden."); return true; }
+                if (pm.getByLeader(p.getUniqueId()) == null) { p.sendMessage("§cNur der Leader kann kicken."); return true; }
+                if (pm.kickMember(p.getUniqueId(), k.getUniqueId())) p.sendMessage("§aSpieler entfernt."); else p.sendMessage("§cKick fehlgeschlagen.");
+                return true;
+            case "promote":
+                if (args.length < 2) { p.sendMessage("§c/party promote <Spieler>"); return true; }
+                Player np = Bukkit.getPlayer(args[1]);
+                if (np == null) { p.sendMessage("§cSpieler nicht gefunden."); return true; }
+                if (pm.transferLeadership(p.getUniqueId(), np.getUniqueId())) p.sendMessage("§aLeader übertragen."); else p.sendMessage("§cPromotion fehlgeschlagen.");
                 return true;
             case "list":
                 PartyManager.Party party = pm.getPartyOf(p.getUniqueId());

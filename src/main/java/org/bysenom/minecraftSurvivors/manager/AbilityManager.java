@@ -55,7 +55,11 @@ public class AbilityManager {
     }
 
     private void tickAll() {
+        org.bysenom.minecraftSurvivors.model.GameState state = null;
+        try { state = gameManager != null ? gameManager.getState() : null; } catch (Throwable ignored) {}
+        boolean running = state == org.bysenom.minecraftSurvivors.model.GameState.RUNNING;
         for (Player p : Bukkit.getOnlinePlayers()) {
+            if (!running) continue; // Vor Spielstart keine Klassen-Fähigkeiten ticken
             SurvivorPlayer sp = playerManager.get(p.getUniqueId());
             if (sp == null) continue;
             // skip players who are paused (choosing a level/powerup)
@@ -78,7 +82,8 @@ public class AbilityManager {
                     paladinAbility.tick(p, sp);
                     break;
                 default:
-                    shamanAbility.tick(p, sp);
+                    // keine unbekannte Default-Aktion
+                    break;
             }
         }
     }

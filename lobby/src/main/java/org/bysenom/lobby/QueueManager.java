@@ -30,9 +30,12 @@ public class QueueManager {
             boolean changed = queue.add(p.getUniqueId());
             for (UUID m : members) {
                 if (!m.equals(p.getUniqueId())) {
-                    queue.add(m);
                     Player mp = plugin.getServer().getPlayer(m);
-                    if (mp != null && mp.isOnline()) mp.sendMessage("§aDein Party-Leader hat dich gequeued. Position: §e" + getPosition(m));
+                    if (mp != null && mp.isOnline()) {
+                        queue.add(m);
+                        mp.sendMessage("§aDein Party-Leader hat dich gequeued. Position: §e" + getPosition(m));
+                        try { LobbySystem.get().addToBossBar(mp); } catch (Throwable ignored) {}
+                    }
                 }
             }
             p.sendMessage("§aQueue beigetreten (Party). Deine Position: §e" + getPosition(p.getUniqueId()));
@@ -60,21 +63,24 @@ public class QueueManager {
         if (!plugin.getPartyBridge().isLeader(leader)) return; // Sicherheitscheck
         Set<UUID> members = plugin.getPartyBridge().getMemberUuids(leader);
         for (UUID m : members) {
-            queue.add(m);
             Player mp = plugin.getServer().getPlayer(m);
             if (mp != null && mp.isOnline()) {
+                queue.add(m);
                 mp.sendMessage("§aDeine Party wurde gequeued. Position: §e" + getPosition(m));
                 try { LobbySystem.get().addToBossBar(mp); } catch (Throwable ignored) {}
             }
         }
     }
 
-    public boolean leave(Player p) {
+    public boolean leave(Player p) { return leaveInternal(p, false); }
+    public boolean leaveSilent(Player p) { return leaveInternal(p, true); }
+
+    private boolean leaveInternal(Player p, boolean silent) {
         boolean removed = queue.remove(p.getUniqueId());
         admitted.remove(p.getUniqueId());
         try { LobbySystem.get().removeFromBossBar(p); } catch (Throwable ignored) {}
         if (removed) {
-            p.sendMessage("§cQueue verlassen.");
+            if (!silent) p.sendMessage("§cQueue verlassen.");
             // Wenn Leader verlässt, gesamte Party entfernen
             if (plugin.getPartyBridge().isLeader(p)) {
                 Set<UUID> members = plugin.getPartyBridge().getMemberUuids(p);
@@ -84,7 +90,7 @@ public class QueueManager {
                         admitted.remove(m);
                         Player mp = plugin.getServer().getPlayer(m);
                         if (mp != null && mp.isOnline()) {
-                            mp.sendMessage("§cQueue verlassen (Leader hat verlassen).");
+                            if (!silent) mp.sendMessage("§cQueue verlassen (Leader hat verlassen).");
                             try { LobbySystem.get().removeFromBossBar(mp); } catch (Throwable ignored) {}
                         }
                     }
@@ -94,7 +100,7 @@ public class QueueManager {
             setSurvivorsContext(p.getUniqueId(), false);
             return true;
         } else {
-            p.sendMessage("§eNicht in der Queue.");
+            if (!silent) p.sendMessage("§eNicht in der Queue.");
             return false;
         }
     }
@@ -104,6 +110,7 @@ public class QueueManager {
     public List<UUID> snapshot() { return new ArrayList<>(queue); }
     public int admittedCount() { return admitted.size(); }
     public boolean isAdmitted(UUID id) { return admitted.contains(id); }
+    public java.util.List<java.util.UUID> admittedSnapshot() { return new java.util.ArrayList<>(admitted); }
 
     public int getPosition(UUID id) {
         int pos = 1;
@@ -121,23 +128,36 @@ public class QueueManager {
         Iterator<UUID> it = queue.iterator();
         while (it.hasNext()) {
             UUID next = it.next();
-            if (!admitted.contains(next)) {
-                admitted.add(next);
-                Player p = plugin.getServer().getPlayer(next);
-                if (p != null && p.isOnline()) {
-                    p.sendMessage("§aDu bist jetzt dran! Öffne Survivors-Menü...");
-                    try { LobbySystem.get().removeFromBossBar(p); } catch (Throwable ignored) {}
-                    // Survivors-Kontext setzen, damit HUD/Scoreboard erscheinen
-                    setSurvivorsContext(p.getUniqueId(), true);
-                    // Survivors-Menü für Klassenwahl öffnen
-                    p.performCommand("msmenu");
-                }
-                return next;
+            if (admitted.contains(next)) continue;
+            Player p = plugin.getServer().getPlayer(next);
+            if (p == null || !p.isOnline()) {
+                // Offline/abwesend -> überspringen, nicht als admitted zählen
+                continue;
             }
+            admitted.add(next);
+            p.sendMessage("§aDu bist jetzt dran! Öffne Survivors-Menü...");
+            try { LobbySystem.get().removeFromBossBar(p); } catch (Throwable ignored) {}
+            // Survivors-Kontext setzen, damit HUD/Scoreboard erscheinen
+            setSurvivorsContext(p.getUniqueId(), true);
+            // Survivors-Menü für Klassenwahl öffnen
+            p.performCommand("msmenu");
+            return next;
         }
         return null;
     }
 
     /** Leert admission-Status (z.B. nach Rundenende) */
     public void resetAdmission() { admitted.clear(); }
+
+    /** Leert die Queue (und optional admitted) und entfernt BossBar Einträge. */
+    public void clearQueue(boolean includeAdmitted) {
+        for (UUID id : new java.util.ArrayList<>(queue)) {
+            Player p = plugin.getServer().getPlayer(id);
+            if (p != null && p.isOnline()) {
+                try { LobbySystem.get().removeFromBossBar(p); } catch (Throwable ignored) {}
+            }
+        }
+        queue.clear();
+        if (includeAdmitted) admitted.clear();
+    }
 }
