@@ -134,3 +134,9 @@ Package: `org.bysenom.minecraftSurvivors.model`
 - `getXpGain()`
 - `getDamageEliteBoss()`
 - `getKnockbackEffective()`
+- `setPerRunCount(String key, int val)`
+- `setPerDayCount(String key, int val)`
+- `setShopPurchasesRun(int v)`
+- `setAbilityLevel(String key, int level)`
+- `setSkillLevel(String key, int level)`
+- `setWeaponLevel(String key, int level)`
