@@ -834,6 +834,11 @@ public class SurvivorPlayer {
         return statModifiers.removeIf(sm -> sm.id.equals(id));
     }
 
+    public void removeStatModifiersIf(java.util.function.Predicate<org.bysenom.minecraftSurvivors.model.StatModifier> pred) {
+        if (pred == null) return;
+        statModifiers.removeIf(pred);
+    }
+
     public java.util.List<org.bysenom.minecraftSurvivors.model.StatModifier> getModifiersFor(org.bysenom.minecraftSurvivors.model.StatType t) {
         java.util.List<org.bysenom.minecraftSurvivors.model.StatModifier> out = new java.util.ArrayList<>();
         for (var m : statModifiers) if (m.type == t) out.add(m);

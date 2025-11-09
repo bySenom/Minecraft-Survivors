@@ -17,7 +17,6 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
-import org.bysenom.minecraftSurvivors.model.SurvivorPlayer;
 
 public class LootchestListener implements Listener {
 
@@ -292,7 +291,7 @@ public class LootchestListener implements Listener {
                 if (!stoppedA) { if (tick >= nextAdvA) { posA++; renderColumn(centerA, posA); nextAdvA = tick + intervalA; if (tick > stopA*0.6 && intervalA < 6) intervalA++; } if (tick >= stopA) { stoppedA = true; setFinal(centerA); try { player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.12f, 1.6f);} catch(Throwable ignored){} } }
                 if (!stoppedB) { if (tick >= nextAdvB) { posB++; renderColumn(centerB, posB); nextAdvB = tick + intervalB; if (tick > stopB*0.6 && intervalB < 6) intervalB++; } if (tick >= stopB) { stoppedB = true; setFinal(centerB); try { player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.12f, 1.4f);} catch(Throwable ignored){} } }
                 if (!stoppedC) { if (tick >= nextAdvC) { posC++; renderColumn(centerC, posC); nextAdvC = tick + intervalC; if (tick > stopC*0.6 && intervalC < 6) intervalC++; } if (tick >= stopC) { stoppedC = true; setFinal(centerC); try { player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.12f, 1.2f);} catch(Throwable ignored){} } }
-                if (stoppedA && stoppedB && stoppedC) { try { player.playSound(player.getLocation(), stopSoundFor(hit.type), 0.9f, 1.0f);} catch(Throwable ignored){} applyReward(player, toMap(hit)); org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> player.closeInventory(), 18L); cancel(); return; }
+                if (stoppedA && stoppedB && stoppedC) { try { player.playSound(player.getLocation(), stopSoundFor(hit.type), 0.9f, 1.0f);} catch(Throwable ignored){} LootchestListener.this.applyLootReward(player, toMap(hit)); org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> player.closeInventory(), 18L); cancel(); return; }
                 tick++;
             } catch (Throwable t) { cancel(); }
         }
@@ -324,92 +323,10 @@ public class LootchestListener implements Listener {
             ItemStack cur = symbols.get(Math.floorMod(center==11?posA:(center==13?posB:posC), sz));
             inv.setItem(center, cur);
         }
-        private void applyReward(Player p, java.util.Map<String,Object> reward) {
-            // Frühzeitiger Knockback bevor Inventar geschlossen wird und Reward angewandt wird
-            try { plugin.getGameManager().getSpawnManager().repelMobsAround(p, 6.0, 1.0, true); try { int t = Math.max(1, plugin.getConfigUtil().getInt("spawn.repel-protect-ticks", 12)); plugin.getGameManager().protectPlayer(p.getUniqueId(), t); } catch(Throwable ignored){} } catch (Throwable ignored) {}
-            if (reward == null) { p.sendMessage("§eDie Kiste war leer…"); return; }
-            Object oType = reward.get("type");
-            Object oVal = reward.get("value");
-            Object oName = reward.get("name");
-            String type = (oType == null) ? "UNKNOWN" : String.valueOf(oType);
-            double val = (oVal == null) ? 0.0 : parseDoubleSafe(oVal);
-            String nm = (oName == null) ? type : String.valueOf(oName);
-            SurvivorPlayer sp = plugin.getPlayerManager().get(p.getUniqueId());
-            boolean applied = false;
-            try {
-                if (sp != null) {
-                    org.bysenom.minecraftSurvivors.model.StatType st = null;
-                    switch (type.toUpperCase()) {
-                        case "DAMAGE_MULT": st = org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_MULT; break;
-                        case "DAMAGE_ADD": st = org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ADD; break;
-                        case "FLAT_DAMAGE": st = org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ADD; break;
-                        case "RADIUS_MULT": st = org.bysenom.minecraftSurvivors.model.StatType.RADIUS_MULT; break;
-                        case "PALADIN_HEAL": st = org.bysenom.minecraftSurvivors.model.StatType.HP_REGEN; break;
-                        case "SPEED": st = org.bysenom.minecraftSurvivors.model.StatType.SPEED; break;
-                        case "ATTACK_SPEED": st = org.bysenom.minecraftSurvivors.model.StatType.ATTACK_SPEED; break;
-                        case "RESIST": st = org.bysenom.minecraftSurvivors.model.StatType.RESIST; break;
-                        case "LUCK": st = org.bysenom.minecraftSurvivors.model.StatType.LUCK; break;
-                        case "HEALTH_HEARTS": st = org.bysenom.minecraftSurvivors.model.StatType.HEALTH_HEARTS; break;
-                        case "MAX_HEALTH": st = org.bysenom.minecraftSurvivors.model.StatType.MAX_HEALTH; break;
-                        case "HP_REGEN": st = org.bysenom.minecraftSurvivors.model.StatType.HP_REGEN; break;
-                        case "SHIELD": st = org.bysenom.minecraftSurvivors.model.StatType.SHIELD; break;
-                        case "ARMOR": st = org.bysenom.minecraftSurvivors.model.StatType.ARMOR; break;
-                        case "EVASION": st = org.bysenom.minecraftSurvivors.model.StatType.EVASION; break;
-                        case "LIFESTEAL": st = org.bysenom.minecraftSurvivors.model.StatType.LIFESTEAL; break;
-                        case "THORNS": st = org.bysenom.minecraftSurvivors.model.StatType.THORNS; break;
-                        case "CRIT_CHANCE": st = org.bysenom.minecraftSurvivors.model.StatType.CRIT_CHANCE; break;
-                        case "CRIT_DAMAGE": st = org.bysenom.minecraftSurvivors.model.StatType.CRIT_DAMAGE; break;
-                        case "DAMAGE_ELITE_BOSS": st = org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ELITE_BOSS; break;
-                        case "KNOCKBACK": st = org.bysenom.minecraftSurvivors.model.StatType.KNOCKBACK; break;
-                        case "XP_GAIN": st = org.bysenom.minecraftSurvivors.model.StatType.XP_GAIN; break;
-                        case "POWERUP_MULT": st = org.bysenom.minecraftSurvivors.model.StatType.POWERUP_MULT; break;
-                    }
-                    if (st != null) {
-                        org.bysenom.minecraftSurvivors.model.StatModifier mod = new org.bysenom.minecraftSurvivors.model.StatModifier(st, val, "lootchest:" + nm);
-                        sp.addStatModifier(mod);
-                        plugin.getPlayerDataManager().saveAsync(sp);
-                        applied = true;
-                    }
-                }
-            } catch (Throwable ignored) {}
-            if (!applied) {
-                // fallback to legacy direct application if player profile missing or mapping failed
-                if (sp != null) {
-                    switch (type.toUpperCase()) {
-                        case "DAMAGE_MULT": sp.addDamageMult(val); break;
-                        case "DAMAGE_ADD": sp.addBonusDamage(val); break;
-                        case "FLAT_DAMAGE": sp.addBonusDamage(val); break;
-                        case "RADIUS_MULT": sp.addRadiusMult(val); break;
-                        case "PALADIN_HEAL": sp.addHpRegen(val); break;
-                        case "SPEED": sp.addMoveSpeedMult(val); break;
-                        case "ATTACK_SPEED": sp.addAttackSpeedMult(val); break;
-                        case "RESIST": sp.addDamageResist(val); break;
-                        case "LUCK": sp.addLuck(val); break;
-                        case "HEALTH_HEARTS": sp.addExtraHearts((int)Math.round(val)); break;
-                        case "MAX_HEALTH": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.MAX_HEALTH, val, "lootchest:"+nm)); break;
-                        case "HP_REGEN": sp.addHpRegen(val); break;
-                        case "SHIELD": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.SHIELD, val, "lootchest:"+nm)); break;
-                        case "ARMOR": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.ARMOR, val, "lootchest:"+nm)); break;
-                        case "EVASION": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.EVASION, val, "lootchest:"+nm)); break;
-                        case "LIFESTEAL": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.LIFESTEAL, val, "lootchest:"+nm)); break;
-                        case "THORNS": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.THORNS, val, "lootchest:"+nm)); break;
-                        case "CRIT_CHANCE": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.CRIT_CHANCE, val, "lootchest:"+nm)); break;
-                        case "CRIT_DAMAGE": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.CRIT_DAMAGE, val, "lootchest:"+nm)); break;
-                        case "DAMAGE_ELITE_BOSS": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ELITE_BOSS, val, "lootchest:"+nm)); break;
-                        case "KNOCKBACK": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.KNOCKBACK, val, "lootchest:"+nm)); break;
-                        case "XP_GAIN": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.XP_GAIN, val, "lootchest:"+nm)); break;
-                        case "POWERUP_MULT": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.POWERUP_MULT, val, "lootchest:"+nm)); break;
-                        default: p.sendMessage("§eUnbekannte Belohnung: "+type); return;
-                    }
-                } else {
-                    p.sendMessage("§eUnbekannte Belohnung: "+type);
-                    return;
-                }
-            }
-             try { p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.0f); } catch (Throwable ignored) {}
-             p.sendMessage("§aGewonnen: "+nm+" §7("+val+")");
-         }
-     }
+        @Override public void cancel() { super.cancel(); }
+        // Replace earlier call: create map via outer helper
+        private Map<String,Object> toMap(WeightedReward wr){ Map<String,Object> m = new HashMap<>(); m.put("type", wr.type); m.put("value", wr.value); m.put("name", wr.name); return m; }
+    }
     // ---- Rewards / Icons / Sounds ----
     private static class WeightedReward { final String type; final double value; final String name; final int weight; WeightedReward(String t,double v,String n,int w){type=t;value=v;name=n;weight=w;} }
 
@@ -462,9 +379,15 @@ public class LootchestListener implements Listener {
             case "THORNS": m = Material.CACTUS; break;
             case "CRIT_CHANCE": m = Material.SPYGLASS; break;
             case "CRIT_DAMAGE": m = Material.NETHERITE_SWORD; break;
+            case "PROJECTILE_COUNT": m = Material.FIREWORK_ROCKET; break;
+            case "PROJECTILE_BOUNCE": m = Material.SLIME_BALL; break;
+            case "SIZE": m = Material.SLIME_BLOCK; break;
+            case "DURATION": m = Material.CLOCK; break;
             case "DAMAGE_ELITE_BOSS": m = Material.DRAGON_BREATH; break;
             case "KNOCKBACK": m = Material.PISTON; break;
+            case "JUMP_HEIGHT": m = Material.RABBIT_FOOT; break;
             case "XP_GAIN": m = Material.EXPERIENCE_BOTTLE; break;
+            case "ELITE_SPAWN_INCREASE": m = Material.WITHER_ROSE; break;
             case "POWERUP_MULT": m = Material.ENCHANTING_TABLE; break;
             default: m = Material.PAPER; break;
         }
@@ -473,46 +396,6 @@ public class LootchestListener implements Listener {
         if (im != null) { NamedTextColor c = wr.weight >= 5 ? NamedTextColor.GOLD : (wr.weight >= 2 ? NamedTextColor.AQUA : NamedTextColor.WHITE); im.displayName(Component.text(wr.name).color(c)); it.setItemMeta(im);} return it;
     }
     private ItemStack fadedIconFor(WeightedReward wr){ ItemStack it = iconFor(wr).clone(); try{ ItemMeta im = it.getItemMeta(); if(im!=null){ im.displayName(Component.text("· "+wr.name+" ·").color(NamedTextColor.GRAY)); it.setItemMeta(im);} }catch(Throwable ignored){} return it; }
-
-    private void applyReward(Player p, Map<?, ?> m) {
-        if (m == null) { p.sendMessage("§eDie Kiste war leer…"); return; }
-        Object oType = m.get("type");
-        Object oVal = m.get("value");
-        Object oName = m.get("name");
-        String type = (oType == null) ? "UNKNOWN" : String.valueOf(oType);
-        double val = (oVal == null) ? 0.0 : parseDoubleSafe(oVal);
-        String nm = (oName == null) ? type : String.valueOf(oName);
-        SurvivorPlayer sp = plugin.getPlayerManager().get(p.getUniqueId());
-        switch (type.toUpperCase()) {
-            case "DAMAGE_MULT": sp.addDamageMult(val); break;
-            case "DAMAGE_ADD": sp.addBonusDamage(val); break;
-            case "FLAT_DAMAGE": sp.addBonusDamage(val); break;
-            case "RADIUS_MULT": sp.addRadiusMult(val); break;
-            case "PALADIN_HEAL": sp.addHpRegen(val); break;
-            case "SPEED": sp.addMoveSpeedMult(val); break;
-            case "ATTACK_SPEED": sp.addAttackSpeedMult(val); break;
-            case "RESIST": sp.addDamageResist(val); break;
-            case "LUCK": sp.addLuck(val); break;
-            case "HEALTH_HEARTS": sp.addExtraHearts((int)Math.round(val)); break;
-            case "MAX_HEALTH": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.MAX_HEALTH, val, "lootchest:"+nm)); break;
-            case "HP_REGEN": sp.addHpRegen(val); break;
-            case "SHIELD": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.SHIELD, val, "lootchest:"+nm)); break;
-            case "ARMOR": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.ARMOR, val, "lootchest:"+nm)); break;
-            case "EVASION": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.EVASION, val, "lootchest:"+nm)); break;
-            case "LIFESTEAL": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.LIFESTEAL, val, "lootchest:"+nm)); break;
-            case "THORNS": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.THORNS, val, "lootchest:"+nm)); break;
-            case "CRIT_CHANCE": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.CRIT_CHANCE, val, "lootchest:"+nm)); break;
-            case "CRIT_DAMAGE": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.CRIT_DAMAGE, val, "lootchest:"+nm)); break;
-            case "DAMAGE_ELITE_BOSS": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ELITE_BOSS, val, "lootchest:"+nm)); break;
-            case "KNOCKBACK": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.KNOCKBACK, val, "lootchest:"+nm)); break;
-            case "XP_GAIN": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.XP_GAIN, val, "lootchest:"+nm)); break;
-            case "POWERUP_MULT": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.POWERUP_MULT, val, "lootchest:"+nm)); break;
-            default: p.sendMessage("§eUnbekannte Belohnung: "+type); return;
-        }
-        try { p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.0f); } catch (Throwable ignored) {}
-        p.sendMessage("§aGewonnen: "+nm+" §7("+val+")");
-    }
-    private Map<String,Object> toMap(WeightedReward wr){ Map<String,Object> m = new HashMap<>(); m.put("type", wr.type); m.put("value", wr.value); m.put("name", wr.name); return m; }
 
     // ---- GUI utils ----
     private void fill(Inventory inv, Material mat) { ItemStack pane = new ItemStack(mat); ItemMeta im = pane.getItemMeta(); if (im != null) { im.displayName(Component.text(" ")); pane.setItemMeta(im);} for (int i=0;i<inv.getSize();i++) inv.setItem(i, pane); }
@@ -582,4 +465,70 @@ public class LootchestListener implements Listener {
             LOOT_PAUSED.add(uid);
         } catch (Throwable ignored) {}
     }
+
+    // Mapping & Anwendung der Reward-StatModifier (zentral, damit ReelsTask nur Auswahl triggert)
+    private void applyLootReward(org.bukkit.entity.Player p, java.util.Map<String,Object> reward) {
+        if (p == null || reward == null) { if (p!=null) p.sendMessage("§eDie Kiste war leer…"); return; }
+        String type = String.valueOf(reward.getOrDefault("type","UNKNOWN"));
+        double val = 0.0; try { Object v = reward.get("value"); if (v instanceof Number) val=((Number)v).doubleValue(); else if (v!=null) val = Double.parseDouble(String.valueOf(v)); } catch (Throwable ignored) {}
+        String nm = String.valueOf(reward.getOrDefault("name", type));
+        var sp = plugin.getPlayerManager().get(p.getUniqueId());
+        if (sp == null) { p.sendMessage("§cKein Spielerprofil"); return; }
+        String up = type.toUpperCase(java.util.Locale.ROOT);
+        if ("FLAT_DAMAGE".equals(up)) up = "DAMAGE_ADD";
+        if ("PALADIN_HEAL".equals(up)) up = "HP_REGEN";
+        org.bysenom.minecraftSurvivors.model.StatType st = switch (up) {
+            case "DAMAGE_MULT" -> org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_MULT;
+            case "DAMAGE_ADD" -> org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ADD;
+            case "RADIUS_MULT" -> org.bysenom.minecraftSurvivors.model.StatType.RADIUS_MULT;
+            case "SPEED" -> org.bysenom.minecraftSurvivors.model.StatType.SPEED;
+            case "ATTACK_SPEED" -> org.bysenom.minecraftSurvivors.model.StatType.ATTACK_SPEED;
+            case "RESIST" -> org.bysenom.minecraftSurvivors.model.StatType.RESIST;
+            case "LUCK" -> org.bysenom.minecraftSurvivors.model.StatType.LUCK;
+            case "HEALTH_HEARTS" -> org.bysenom.minecraftSurvivors.model.StatType.HEALTH_HEARTS;
+            case "MAX_HEALTH" -> org.bysenom.minecraftSurvivors.model.StatType.MAX_HEALTH;
+            case "HP_REGEN" -> org.bysenom.minecraftSurvivors.model.StatType.HP_REGEN;
+            case "SHIELD" -> org.bysenom.minecraftSurvivors.model.StatType.SHIELD;
+            case "ARMOR" -> org.bysenom.minecraftSurvivors.model.StatType.ARMOR;
+            case "EVASION" -> org.bysenom.minecraftSurvivors.model.StatType.EVASION;
+            case "LIFESTEAL" -> org.bysenom.minecraftSurvivors.model.StatType.LIFESTEAL;
+            case "THORNS" -> org.bysenom.minecraftSurvivors.model.StatType.THORNS;
+            case "CRIT_CHANCE" -> org.bysenom.minecraftSurvivors.model.StatType.CRIT_CHANCE;
+            case "CRIT_DAMAGE" -> org.bysenom.minecraftSurvivors.model.StatType.CRIT_DAMAGE;
+            case "PROJECTILE_COUNT" -> org.bysenom.minecraftSurvivors.model.StatType.PROJECTILE_COUNT;
+            case "PROJECTILE_BOUNCE" -> org.bysenom.minecraftSurvivors.model.StatType.PROJECTILE_BOUNCE;
+            case "SIZE" -> org.bysenom.minecraftSurvivors.model.StatType.SIZE;
+            case "DURATION" -> org.bysenom.minecraftSurvivors.model.StatType.DURATION;
+            case "DAMAGE_ELITE_BOSS" -> org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ELITE_BOSS;
+            case "KNOCKBACK" -> org.bysenom.minecraftSurvivors.model.StatType.KNOCKBACK;
+            case "JUMP_HEIGHT" -> org.bysenom.minecraftSurvivors.model.StatType.JUMP_HEIGHT;
+            case "XP_GAIN" -> org.bysenom.minecraftSurvivors.model.StatType.XP_GAIN;
+            case "ELITE_SPAWN_INCREASE" -> org.bysenom.minecraftSurvivors.model.StatType.ELITE_SPAWN_INCREASE;
+            case "POWERUP_MULT" -> org.bysenom.minecraftSurvivors.model.StatType.POWERUP_MULT;
+            default -> null;
+        };
+        if (st == null) { p.sendMessage("§eUnbekannte Belohnung: "+type); return; }
+        if (st == org.bysenom.minecraftSurvivors.model.StatType.PROJECTILE_COUNT || st == org.bysenom.minecraftSurvivors.model.StatType.PROJECTILE_BOUNCE || st == org.bysenom.minecraftSurvivors.model.StatType.HEALTH_HEARTS) {
+            val = Math.max(1.0, Math.round(val));
+        }
+        org.bysenom.minecraftSurvivors.model.StatModifier mod = new org.bysenom.minecraftSurvivors.model.StatModifier(st, val, "lootchest:"+nm);
+        sp.addStatModifier(mod);
+        try { plugin.getPlayerDataManager().saveAsync(sp); } catch (Throwable ignored) {}
+        try { p.playSound(p.getLocation(), org.bukkit.Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.0f); } catch (Throwable ignored) {}
+        p.sendMessage("§aGewonnen: "+nm+formatSuffix(st,val));
+    }
+    private String formatSuffix(org.bysenom.minecraftSurvivors.model.StatType st,double val){ return switch (st){
+        case DAMAGE_MULT, RADIUS_MULT, SPEED, ATTACK_SPEED, RESIST, LUCK, CRIT_CHANCE, CRIT_DAMAGE, SIZE, DURATION, DAMAGE_ELITE_BOSS, KNOCKBACK, XP_GAIN, ELITE_SPAWN_INCREASE, POWERUP_MULT, EVASION, LIFESTEAL, THORNS, JUMP_HEIGHT -> " ("+percent(val)+")";
+        case DAMAGE_ADD -> " (+"+round2(val)+" dmg)";
+        case HEALTH_HEARTS -> " (+"+(int)val+" Herz)";
+        case MAX_HEALTH -> " (+"+round2(val)+" MaxHP)";
+        case HP_REGEN -> " (+"+round2(val)+" HP/s)";
+        case SHIELD -> " (+"+round2(val)+" Schild)";
+        case ARMOR -> " ("+percent(val)+" Armor)";
+        case PROJECTILE_COUNT -> " (+"+(int)val+" Projektil)";
+        case PROJECTILE_BOUNCE -> " (+"+(int)val+" Bounce)";
+        default -> " (+"+round2(val)+")"; };
+    }
+    private String percent(double v){ return (int)Math.round(v*100.0)+"%"; }
+    private double round2(double v){ return Math.round(v*100.0)/100.0; }
 }
