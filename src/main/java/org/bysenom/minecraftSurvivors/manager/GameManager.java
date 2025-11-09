@@ -8,7 +8,6 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
 import org.bysenom.minecraftSurvivors.listener.LootchestListener;
 import org.bysenom.minecraftSurvivors.model.GameState;
-import org.bysenom.minecraftSurvivors.model.PlayerClass;
 import org.bysenom.minecraftSurvivors.task.WaveTask;
 
 public class GameManager {
@@ -133,17 +132,24 @@ public class GameManager {
     public void ensureClassAbility(java.util.UUID uuid) {
         if (uuid == null) return;
         var sp = playerManager.get(uuid); if (sp == null) return;
-        PlayerClass pc = sp.getSelectedClass(); if (pc == null) return;
-        String abilityKey = switch (pc) {
+        org.bysenom.minecraftSurvivors.model.PlayerClass pc = sp.getSelectedClass(); if (pc == null) return;
+        String correct = switch (pc) {
             case SHAMAN -> "ab_lightning";
             case PYROMANCER -> "ab_fire";
             case RANGER -> "ab_ranged";
             case PALADIN -> "ab_holy";
         };
-        if (!sp.hasAbility(abilityKey)) {
-            int idx = sp.addAbilityAtFirstFreeIndex(abilityKey, 1);
+        // Entferne andere Klassen-Abilities falls vorhanden (nur die, die nicht zur aktuellen gehören)
+        java.util.List<String> classAbilities = java.util.Arrays.asList("ab_lightning","ab_fire","ab_ranged","ab_holy");
+        for (String k : new java.util.ArrayList<>(sp.getAbilities())) {
+            if (classAbilities.contains(k) && !k.equals(correct)) {
+                sp.removeAbility(k);
+            }
+        }
+        if (!sp.hasAbility(correct)) {
+            int idx = sp.addAbilityAtFirstFreeIndex(correct, 1);
             if (idx >= 0) {
-                sp.setAbilityOrigin(abilityKey, "class");
+                sp.setAbilityOrigin(correct, "class");
                 try { plugin.getPlayerDataManager().saveAsync(sp); } catch (Throwable ignored) {}
             }
         }

@@ -41,6 +41,7 @@ public class SpawnManager {
     private static final org.bukkit.NamespacedKey MAX_HEALTH = org.bukkit.NamespacedKey.minecraft("generic.max_health");
     private static final org.bukkit.NamespacedKey MOVEMENT_SPEED = org.bukkit.NamespacedKey.minecraft("generic.movement_speed");
     private static final org.bukkit.NamespacedKey ATTACK_DAMAGE = org.bukkit.NamespacedKey.minecraft("generic.attack_damage");
+    private static final org.bukkit.NamespacedKey FOLLOW_RANGE = org.bukkit.NamespacedKey.minecraft("generic.follow_range");
 
     // PDC Keys für Baseline-Attribute
     private static final org.bukkit.NamespacedKey BASE_MAX_HP = new org.bukkit.NamespacedKey("minecraftsurvivors","base_max_hp");
@@ -78,6 +79,7 @@ public class SpawnManager {
         try {
             if (aggroTask != null && !aggroTask.isCancelled()) return;
             int every = Math.max(10, plugin.getConfigUtil().getInt("ai.aggro-tick-interval", 20));
+            double followRangeCfg = Math.max(16.0, plugin.getConfigUtil().getDouble("ai.follow-range", 64.0));
             aggroTask = org.bukkit.Bukkit.getScheduler().runTaskTimer(plugin, () -> {
                 try {
                     if (plugin.getGameManager() == null || plugin.getGameManager().getState() != org.bysenom.minecraftSurvivors.model.GameState.RUNNING) return;
@@ -87,12 +89,13 @@ public class SpawnManager {
                         for (org.bukkit.entity.Entity e : w.getEntities()) {
                             if (!(e instanceof org.bukkit.entity.Mob mob)) continue;
                             if (!e.getPersistentDataContainer().has(waveKey, org.bukkit.persistence.PersistentDataType.BYTE)) continue;
-                            // Follow Range erhöhen
                             try {
-                                org.bukkit.attribute.AttributeInstance fr = mob.getAttribute(org.bukkit.attribute.Attribute.FOLLOW_RANGE);
-                                if (fr != null && fr.getBaseValue() < 64.0) fr.setBaseValue(64.0);
+                                org.bukkit.attribute.Attribute frAttr = org.bukkit.Registry.ATTRIBUTE.get(FOLLOW_RANGE);
+                                if (frAttr != null) {
+                                    org.bukkit.attribute.AttributeInstance fr = mob.getAttribute(frAttr);
+                                    if (fr != null && fr.getBaseValue() < followRangeCfg) fr.setBaseValue(followRangeCfg);
+                                }
                             } catch (Throwable ignored) {}
-                            // Nächsten Spieler als Ziel setzen
                             org.bukkit.entity.Player nearest = null;
                             double best = Double.MAX_VALUE;
                             for (org.bukkit.entity.Player p : players) {

@@ -514,4 +514,15 @@ public class SurvivorPlayer {
 
     public boolean isReady() { return ready; }
     public void setReady(boolean r) { this.ready = r; }
+
+    public boolean removeAbility(String key) {
+        if (key == null) return false;
+        int idx = abilities.indexOf(key);
+        if (idx < 0) return false;
+        abilities.remove(idx);
+        abilityLevels.remove(key);
+        abilityOrigins.remove(key);
+        abilityGlyphs.remove(key);
+        return true;
+    }
 }

@@ -20,6 +20,7 @@ public class SkillManager {
     private final java.util.Map<java.util.UUID, java.util.Map<org.bukkit.entity.LivingEntity, org.bukkit.Location>> temporalAnchors = new java.util.HashMap<>();
     // Zusatz: Lingering Void Felder (Center + Ablaufzeit)
     private final java.util.List<LingeringVoidField> lingeringVoidFields = new java.util.ArrayList<>();
+    private final java.util.Map<java.util.UUID, java.util.Map<String, Long>> lastGlyphMsg = new java.util.HashMap<>();
 
     private static final class LingeringVoidField {
         final org.bukkit.Location center; final long expireAt; final double radius; final double damage;
@@ -158,6 +159,7 @@ public class SkillManager {
                     }
                     p.playSound(p.getLocation(), Sound.ITEM_TRIDENT_THUNDER, 0.6f, 0.6f);
                 } catch (Throwable ignored) {}
+                glyphProcNotify(p, "ab_lightning:overcharge", target.getLocation());
             }
             // Genkidama: kleine Chance, großen Meteor zu rufen
             if (glyphs.contains("ab_lightning:genkidama") && java.util.concurrent.ThreadLocalRandom.current().nextInt(20) == 0) {
@@ -172,13 +174,15 @@ public class SkillManager {
                     }
                 }
                 try { p.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 0.7f, 0.8f);} catch (Throwable ignored) {}
+                glyphProcNotify(p, "ab_lightning:genkidama", target.getLocation());
             }
-            // Sturmkette: springt auf zusätzliches Ziel
+            // Sturmkette
             if (glyphs.contains("ab_lightning:storm_chain") && mobs.size() > 1) {
                 org.bukkit.entity.LivingEntity extra = mobs.get(java.util.concurrent.ThreadLocalRandom.current().nextInt(mobs.size()));
                 if (!extra.equals(target)) {
                     try { extra.damage(damage * 0.6 * (1.0 + sp.getDamageMult()), p); extra.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, extra.getLocation().add(0,1.0,0), 10, 0.2,0.2,0.2, 0.02);} catch (Throwable ignored) {}
                 }
+                glyphProcNotify(p, "ab_lightning:storm_chain", target.getLocation());
             }
         }
         // synergy: lightning + fire -> ignite
@@ -323,6 +327,7 @@ public class SkillManager {
         boolean gravityWell = glyphs.contains("ab_void_nova:gravity_well");
         boolean rupture = glyphs.contains("ab_void_nova:rupture");
         boolean lingering = glyphs.contains("ab_void_nova:lingering_void");
+        if (gravityWell) glyphProcNotify(p, "ab_void_nova:gravity_well", center);
         // Partikel + Ticks
         int ticks = (int) Math.round(durationSec * 20);
         try { p.playSound(center, org.bukkit.Sound.ENTITY_SHULKER_BULLET_HIT, 0.6f, 0.4f); } catch (Throwable ignored) {}
@@ -332,7 +337,6 @@ public class SkillManager {
                 if (!p.isOnline()) { cancel(); return; }
                 if (t[0] >= ticks) {
                     cancel();
-                    // Rupture Explosion
                     if (rupture) {
                         try { center.getWorld().spawnParticle(org.bukkit.Particle.PORTAL, center.clone().add(0,1,0), 120, radius/2, 0.6, radius/2, 0.2); } catch (Throwable ignored) {}
                         for (org.bukkit.entity.LivingEntity le : mobs) {
@@ -342,10 +346,11 @@ public class SkillManager {
                             }
                         }
                         try { p.playSound(center, org.bukkit.Sound.ENTITY_ENDERMAN_SCREAM, 0.7f, 0.6f); } catch (Throwable ignored) {}
+                        glyphProcNotify(p, "ab_void_nova:rupture", center);
                     }
-                    // Lingering Feld
                     if (lingering) {
                         lingeringVoidFields.add(new LingeringVoidField(center.clone(), System.currentTimeMillis() + 3500, Math.max(2.5, radius * 0.6), damage * 0.25));
+                        glyphProcNotify(p, "ab_void_nova:lingering_void", center);
                     }
                     return;
                 }
@@ -385,6 +390,9 @@ public class SkillManager {
         boolean hasteBurst = glyphs.contains("ab_time_rift:haste_burst");
         boolean slowField = glyphs.contains("ab_time_rift:slow_field");
         boolean anchor = glyphs.contains("ab_time_rift:temporal_anchor");
+        if (hasteBurst) glyphProcNotify(p, "ab_time_rift:haste_burst", center);
+        if (slowField) glyphProcNotify(p, "ab_time_rift:slow_field", center);
+        if (anchor) glyphProcNotify(p, "ab_time_rift:temporal_anchor", center);
         int ticks = (int)Math.round(durSec*20);
         // Speichere Anker-Positionen
         if (anchor) {
@@ -455,6 +463,8 @@ public class SkillManager {
         boolean toxicBloom = glyphs.contains("ab_venom_spire:toxic_bloom");
         boolean neurotoxin = glyphs.contains("ab_venom_spire:neurotoxin");
         boolean corrosive = glyphs.contains("ab_venom_spire:corrosive_venom");
+        if (toxicBloom) glyphProcNotify(p, "ab_venom_spire:toxic_bloom", p.getLocation());
+        // neurotoxin/corrosive procs im Tick bei Anwendung
         // Schaden und Dauer
         double baseDps = (0.9 + lvl * 0.45 + sp.getFlatDamage() * 0.25) * (1.0 + sp.getDamageMult());
         double durSec = 2.5 + Math.min(5.0, lvl * 0.25);
@@ -500,9 +510,11 @@ public class SkillManager {
                         try { le.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.POISON, 40, 0, false, false, true)); } catch (Throwable ignored) {}
                         if (neurotoxin && java.util.concurrent.ThreadLocalRandom.current().nextInt(20) == 0) {
                             try { le.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS, 60, 2, false, false, true)); } catch (Throwable ignored) {}
+                            glyphProcNotify(p, "ab_venom_spire:neurotoxin", le.getLocation());
                         }
                         if (corrosive && java.util.concurrent.ThreadLocalRandom.current().nextInt(16) == 0) {
                             try { le.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.WEAKNESS, 80, 1, false, false, true)); } catch (Throwable ignored) {}
+                            glyphProcNotify(p, "ab_venom_spire:corrosive_venom", le.getLocation());
                         }
                     }
                     if (t[0] % 10 == 0) { try { c.getWorld().playSound(c, org.bukkit.Sound.BLOCK_STONE_BREAK, 0.4f, 0.9f); } catch (Throwable ignored) {} }
@@ -534,5 +546,36 @@ public class SkillManager {
                 try { le.damage(f.damage/2.0); } catch (Throwable ignored) {}
             }
         }
+    }
+
+    private void glyphProcNotify(org.bukkit.entity.Player p, String glyphKey, org.bukkit.Location where) {
+        if (p == null || glyphKey == null) return;
+        long now = System.currentTimeMillis();
+        java.util.Map<String, Long> m = lastGlyphMsg.computeIfAbsent(p.getUniqueId(), k -> new java.util.HashMap<>());
+        Long last = m.getOrDefault(glyphKey, 0L);
+        if (now - last < 1000L) return; // anti-spam 1s
+        m.put(glyphKey, now);
+        try { p.sendMessage(net.kyori.adventure.text.Component.text("Glyph aktiviert: "+glyphKey).color(net.kyori.adventure.text.format.NamedTextColor.LIGHT_PURPLE)); } catch (Throwable ignored) {}
+        // kleine Partikel-Signatur je Glyph
+        try {
+            org.bukkit.Particle particle = org.bukkit.Particle.END_ROD;
+            if (glyphKey.endsWith("genkidama")) particle = org.bukkit.Particle.END_ROD; // GLOW ersetzt -> END_ROD
+            else if (glyphKey.endsWith("storm_chain")) particle = org.bukkit.Particle.ELECTRIC_SPARK;
+            else if (glyphKey.endsWith("overcharge")) particle = org.bukkit.Particle.CRIT;
+            else if (glyphKey.endsWith("inferno") || glyphKey.endsWith("phoenix") || glyphKey.endsWith("combust")) particle = org.bukkit.Particle.FLAME;
+            else if (glyphKey.endsWith("multishot") || glyphKey.endsWith("ricochet") || glyphKey.endsWith("headshot")) particle = org.bukkit.Particle.CRIT;
+            else if (glyphKey.endsWith("consecration") || glyphKey.endsWith("penance")) particle = org.bukkit.Particle.END_ROD;
+            else if (glyphKey.endsWith("divine_shield")) particle = org.bukkit.Particle.HEART;
+            else if (glyphKey.endsWith("earthsplit") || glyphKey.endsWith("fracture")) particle = org.bukkit.Particle.SMOKE;
+            else if (glyphKey.endsWith("vacuum")) particle = org.bukkit.Particle.PORTAL;
+            else if (glyphKey.endsWith("brittle") || glyphKey.endsWith("glacier") || glyphKey.endsWith("shatter")) particle = org.bukkit.Particle.SNOWFLAKE;
+            else if (glyphKey.endsWith("aegis") || glyphKey.endsWith("pulse") || glyphKey.endsWith("beacon")) particle = org.bukkit.Particle.END_ROD;
+            else if (glyphKey.endsWith("gravity_well") || glyphKey.endsWith("rupture") || glyphKey.endsWith("lingering_void")) particle = org.bukkit.Particle.REVERSE_PORTAL;
+            else if (glyphKey.endsWith("toxic_bloom") || glyphKey.endsWith("neurotoxin") || glyphKey.endsWith("corrosive_venom")) particle = Particle.ITEM_SLIME; // falls nicht vorhanden -> fallback unten
+            // Fallback, wenn SLIME nicht existiert
+            try { org.bukkit.Particle.valueOf("SLIME"); } catch (Throwable ex) { particle = Particle.HAPPY_VILLAGER; }
+            org.bukkit.Location l = where != null ? where : p.getLocation();
+            l.getWorld().spawnParticle(particle, l.clone().add(0,1.0,0), 12, 0.5,0.5,0.5, 0.02);
+        } catch (Throwable ignored) {}
     }
 }
