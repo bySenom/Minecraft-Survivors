@@ -2,6 +2,7 @@
 package org.bysenom.minecraftSurvivors.model;
 
 import java.util.UUID;
+import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
 
 public class SurvivorPlayer {
 
@@ -875,14 +876,26 @@ public class SurvivorPlayer {
     // (duplicate definitions removed below)
 
     // --- Effective combat stat getters (from StatModifiers) ---
-    public double getArmor() { return Math.max(0.0, getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.ARMOR)); }
-    public double getEvasion() { return Math.max(0.0, Math.min(0.90, getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.EVASION))); }
-    public double getLifesteal() { return Math.max(0.0, getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.LIFESTEAL)); }
-    public double getThorns() { return Math.max(0.0, getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.THORNS)); }
-    public double getCritChance() { return Math.max(0.0, Math.min(1.0, getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.CRIT_CHANCE))); }
-    public double getCritDamage() { return Math.max(0.0, getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.CRIT_DAMAGE)); } // e.g. 0.5 = +50%
-    public double getShieldMax() { return Math.max(0.0, getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.SHIELD)); }
-    // shield regen rate will be handled by GameManager using config percent of max per second
+    public double getArmor() { double raw = Math.max(0.0, getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.ARMOR)); return clampByConfig("combat.cap.armor", raw, 0.90); }
+    public double getEvasion() { double raw = Math.max(0.0, getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.EVASION)); return clampByConfig("combat.cap.evasion", raw, 0.90); }
+    public double getLifesteal() { double raw = Math.max(0.0, getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.LIFESTEAL)); return clampByConfig("combat.cap.lifesteal", raw, 1.00); }
+    public double getThorns() { double raw = Math.max(0.0, getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.THORNS)); return clampByConfig("combat.cap.thorns", raw, 1.50); }
+    public double getCritChance() { double raw = Math.max(0.0, getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.CRIT_CHANCE)); return clampByConfig("combat.cap.crit_chance", raw, 1.00); }
+    public double getCritDamage() { double raw = Math.max(0.0, getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.CRIT_DAMAGE)); return clampByConfig("combat.cap.crit_damage", raw, 5.00); }
+    public double getShieldMax() { double raw = Math.max(0.0, getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.SHIELD)); return clampByConfig("combat.cap.shield", raw, raw); }
+    // New effective multipliers for size & duration
+    public double getEffectiveSizeMult() { return Math.max(0.0, getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.SIZE)); }
+    public double getEffectiveDurationMult() { return Math.max(0.0, getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.DURATION)); }
+    private double clampByConfig(String path, double value, double defCap) {
+        try {
+            MinecraftSurvivors pl = MinecraftSurvivors.getInstance();
+            if (pl != null && pl.getConfigUtil() != null) {
+                double cap = pl.getConfigUtil().getDouble(path, defCap);
+                return Math.min(value, Math.max(0.0, cap));
+            }
+        } catch (Throwable ignored) {}
+        return Math.min(value, defCap);
+    }
 
     public boolean removeAbility(String key) {
         if (key == null) return false;

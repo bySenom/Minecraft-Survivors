@@ -129,9 +129,7 @@ public class GameManager {
 
                     // Apply MAX_HEALTH bonus dynamically
                     try {
-                        double base = 20.0;
                         var attr = p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
-                        if (attr != null) base = attr.getBaseValue();
                         int heartsExtra = sp.getEffectiveExtraHearts();
                         double maxHealthBonusHearts = sp.getMaxHealthBonusHearts();
                         double target = Math.max(1.0, 20.0 + heartsExtra * 1.0 + maxHealthBonusHearts * 2.0);
@@ -147,7 +145,8 @@ public class GameManager {
                         if (hpRegenPerSec > 0.0) {
                             double perTick = hpRegenPerSec / (plugin.getConfigUtil().getInt("combat.ticks-per-second", 20));
                             if (perTick > 0.0) {
-                                double max = p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH) != null ? p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getBaseValue() : 20.0;
+                                var maxAttr = p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+                                double max = maxAttr != null ? maxAttr.getBaseValue() : 20.0;
                                 p.setHealth(Math.min(max, p.getHealth() + perTick));
                             }
                         }
@@ -212,8 +211,8 @@ public class GameManager {
         try {
             org.bukkit.inventory.PlayerInventory inv = p.getInventory();
             for (int i = 0; i < 5; i++) { inv.setItem(i, null); }
-        } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "giveInitialKit inventory clear failed for player " + (p == null ? "null" : p.getUniqueId()) + ": ", t); }
-        try { p.updateInventory(); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "giveInitialKit updateInventory failed for player " + (p == null ? "null" : p.getUniqueId()) + ": ", t); }
+        } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "giveInitialKit inventory clear failed for player " + p.getUniqueId() + ": ", t); }
+        try { p.updateInventory(); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "giveInitialKit updateInventory failed for player " + p.getUniqueId() + ": ", t); }
     }
 
     public synchronized void startGame() {
@@ -375,7 +374,7 @@ public class GameManager {
     public synchronized void protectPlayer(java.util.UUID playerUuid, int ticks) {
         if (playerUuid == null || ticks <= 0) return;
         try {
-            long until = System.currentTimeMillis() + Math.max(1, ticks) * 50L;
+            long until = System.currentTimeMillis() + (long)ticks * 50L;
             protectedUntil.put(playerUuid, until);
             // cancel any existing task
             try {
@@ -385,7 +384,7 @@ public class GameManager {
             org.bukkit.scheduler.BukkitTask t = org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 try { Long cur = protectedUntil.get(playerUuid); if (cur != null && cur <= System.currentTimeMillis()) protectedUntil.remove(playerUuid); } catch (Throwable ignored) {}
                 try { protectTasks.remove(playerUuid); } catch (Throwable ignored) {}
-            }, Math.max(1, ticks));
+            }, ticks);
             protectTasks.put(playerUuid, t);
         } catch (Throwable ignored) {}
     }
@@ -672,7 +671,13 @@ public class GameManager {
         for (var en : partyVotes.entrySet()) { java.util.UUID leader = en.getKey(); PartyVoteState vs = en.getValue(); if (vs == null) continue; if (leader.equals(quitting) || vs.members.contains(quitting)) affectedLeaders.add(leader); }
         for (java.util.UUID leader : affectedLeaders) {
             PartyVoteState vs = partyVotes.remove(leader); if (vs == null) continue; if (vs.timeoutTask != null) try { vs.timeoutTask.cancel(); } catch (Throwable ignored) {}
-            for (java.util.UUID u : vs.members) { org.bukkit.entity.Player pl = org.bukkit.Bukkit.getPlayer(u); if (pl != null && pl.isOnline()) { pl.sendMessage(net.kyori.adventure.text.Component.text("Party-Start abgebrochen (Mitglied offline)").color(net.kyori.adventure.text.format.NamedTextColor.RED)); try { pl.closeInventory(); } catch (Throwable ignored) {} } }
+            for (java.util.UUID u : vs.members) {
+                org.bukkit.entity.Player pl = org.bukkit.Bukkit.getPlayer(u);
+                if (pl != null && pl.isOnline()) {
+                    pl.sendMessage(net.kyori.adventure.text.Component.text("Party-Start abgebrochen (Mitglied offline)").color(net.kyori.adventure.text.format.NamedTextColor.RED));
+                    try { pl.closeInventory(); } catch (Throwable ignored) {}
+                }
+            }
         }
         // Falls eine Klassenwahl-Phase lief, ebenso abbrechen
         java.util.List<java.util.UUID> affectedClassLeaders = new java.util.ArrayList<>();
