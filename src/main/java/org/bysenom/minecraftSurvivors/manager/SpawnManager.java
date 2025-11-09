@@ -35,6 +35,8 @@ public class SpawnManager {
     // Continuous spawn state
     private BukkitTask continuousTask;
     private long continuousStartMillis = 0L;
+    // Akkumulierte Millisekunden, die vor einer Pause bereits vergangen sind (um Enrage korrekt zu pausieren/resumieren)
+    private long continuousPausedAccumMillis = 0L;
     private final Map<UUID, Double> spawnAccumulator = new ConcurrentHashMap<>();
     private long restPhaseUntilMillis = 0L;
 
@@ -379,7 +381,10 @@ public class SpawnManager {
 
     public synchronized void startContinuous() {
         stopContinuous();
-        continuousStartMillis = System.currentTimeMillis();
+        // setze Startzeit so, dass bereits gelaufene Zeit (bei Resume) berücksichtigt wird
+        long now = System.currentTimeMillis();
+        continuousStartMillis = now - Math.max(0L, continuousPausedAccumMillis);
+        continuousPausedAccumMillis = 0L;
         int ticksPerCycle = plugin.getConfigUtil().getInt("spawn.continuous.ticks-per-cycle", 20);
         continuousTask = new org.bukkit.scheduler.BukkitRunnable() {
             @Override
@@ -396,12 +401,18 @@ public class SpawnManager {
         if (continuousTask != null) {
             continuousTask.cancel();
             continuousTask = null;
+            // akkumulierte Laufzeit bis zur Pause speichern
+            if (continuousStartMillis > 0L) {
+                continuousPausedAccumMillis = System.currentTimeMillis() - continuousStartMillis;
+                continuousStartMillis = 0L;
+            }
             plugin.getLogger().info("Continuous spawn paused");
         }
     }
 
     public synchronized void resumeContinuous() {
         if (continuousTask == null) {
+            // startContinuous berücksichtigt continuousPausedAccumMillis
             startContinuous();
             plugin.getLogger().info("Continuous spawn resumed");
         }
@@ -413,6 +424,9 @@ public class SpawnManager {
             continuousTask = null;
         }
         spawnAccumulator.clear();
+        // Reset timing so Enrage/elapsed doesn't keep increasing after stop
+        continuousStartMillis = 0L;
+        continuousPausedAccumMillis = 0L;
         if (scalingTask != null) { scalingTask.cancel(); scalingTask = null; }
     }
 

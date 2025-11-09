@@ -89,7 +89,6 @@ public class SkillManager {
     }
 
     private void tick() {
-        long now = System.currentTimeMillis();
         org.bysenom.minecraftSurvivors.model.GameState gs = null;
         try { gs = plugin.getGameManager().getState(); } catch (Throwable ignored) {}
         boolean running = gs == org.bysenom.minecraftSurvivors.model.GameState.RUNNING;
@@ -353,11 +352,15 @@ public class SkillManager {
             if (other.getLocation().distanceSquared(p.getLocation()) <= radius*radius) {
                 try {
                     double before = other.getHealth();
-                    double max = other.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue();
+                    double max = 20.0;
+                    try {
+                        org.bukkit.attribute.AttributeInstance ai = other.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+                        if (ai != null) max = ai.getBaseValue();
+                    } catch (Throwable ignored) {}
                     if (aegis && java.util.concurrent.ThreadLocalRandom.current().nextDouble() < aegisChance) {
                         double shieldAmount = heal * aegisMultiplier;
-                        addAegisShield(other, shieldAmount);
-                        other.getWorld().spawnParticle(org.bukkit.Particle.SPELL_INSTANT, other.getLocation().add(0,1.0,0), 8, 0.3, 0.4, 0.3, 0.01);
+                        addAegisShield(other.getUniqueId(), shieldAmount);
+                        other.getWorld().spawnParticle(Particle.INSTANT_EFFECT, other.getLocation().add(0,1.0,0), 8, 0.3, 0.4, 0.3, 0.01);
                         other.playSound(other.getLocation(), org.bukkit.Sound.ITEM_TOTEM_USE, 0.5f, 1.2f);
                         if (other.equals(p)) glyphProcNotify(p, "ab_heal_totem:aegis", p.getLocation());
                     } else {
@@ -509,16 +512,15 @@ public class SkillManager {
                     return;
                 }
                 double prog = t[0]/(double)ticks;
-                double r = radius;
                 for (int i=0;i<24;i++) {
                     double ang = 2*Math.PI*i/24.0 + prog*Math.PI*2;
-                    double x = center.getX()+Math.cos(ang)*r;
-                    double z = center.getZ()+Math.sin(ang)*r;
+                    double x = center.getX()+Math.cos(ang)*radius;
+                    double z = center.getZ()+Math.sin(ang)*radius;
                     org.bukkit.Location l = new org.bukkit.Location(center.getWorld(), x, center.getY()+0.2, z);
                     try { center.getWorld().spawnParticle(org.bukkit.Particle.PORTAL, l, 1, 0.05,0.05,0.05,0.0); } catch (Throwable ignored) {}
                 }
                 // Effekte auf Mobs: Slowness verstärkt durch slowField
-                for (org.bukkit.entity.LivingEntity le : plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(center, r)) {
+                for (org.bukkit.entity.LivingEntity le : plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(center, radius)) {
                     try {
                         int amp = slowField ? 2 : 1;
                         le.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS, 20, amp, false, false, true));
@@ -559,7 +561,7 @@ public class SkillManager {
             org.bukkit.Location baseLoc = target.getLocation().clone();
             try { baseLoc.setY(baseLoc.getWorld().getHighestBlockYAt(baseLoc) + 1); } catch (Throwable ignored) {}
             final org.bukkit.Location c = baseLoc;
-            final double spireRadius = Math.max(1.0, (toxicBloom ? 1.6 : 1.2));
+            final double spireRadius = (toxicBloom ? 1.6 : 1.2);
             final double perTickDamage = Math.max(0.05, baseDps / Math.max(5.0, totalTicks / 20.0));
             try { p.playSound(c, org.bukkit.Sound.BLOCK_BASALT_BREAK, 0.7f, 0.8f); } catch (Throwable ignored) {}
             final int[] t = {0};
@@ -575,11 +577,10 @@ public class SkillManager {
                         try { c.getWorld().spawnParticle(org.bukkit.Particle.CRIT, l, 2, 0.02,0.02,0.02, 0.0); } catch (Throwable ignored) {}
                     }
                     int ringPts = 10;
-                    double rr = spireRadius;
                     for (int i=0;i<ringPts;i++) {
                         double ang = 2*Math.PI*i/ringPts;
-                        double x = c.getX()+Math.cos(ang)*rr;
-                        double z = c.getZ()+Math.sin(ang)*rr;
+                        double x = c.getX()+Math.cos(ang)*spireRadius;
+                        double z = c.getZ()+Math.sin(ang)*spireRadius;
                         org.bukkit.Location l = new org.bukkit.Location(c.getWorld(), x, c.getY()+0.1+Math.sin(prog*10)*0.1, z);
                         try { c.getWorld().spawnParticle(org.bukkit.Particle.PORTAL, l, 1, 0.03,0.03,0.03, 0.0); } catch (Throwable ignored) {}
                     }
@@ -646,24 +647,66 @@ public class SkillManager {
         try { p.sendMessage(net.kyori.adventure.text.Component.text("Glyph aktiviert: "+glyphKey).color(net.kyori.adventure.text.format.NamedTextColor.LIGHT_PURPLE)); } catch (Throwable ignored) {}
         // kleine Partikel-Signatur je Glyph
         try {
-            org.bukkit.Particle particle = org.bukkit.Particle.END_ROD;
-            if (glyphKey.endsWith("genkidama")) particle = org.bukkit.Particle.END_ROD; // GLOW ersetzt -> END_ROD
-            else if (glyphKey.endsWith("storm_chain")) particle = org.bukkit.Particle.ELECTRIC_SPARK;
-            else if (glyphKey.endsWith("overcharge")) particle = org.bukkit.Particle.CRIT;
-            else if (glyphKey.endsWith("inferno") || glyphKey.endsWith("phoenix") || glyphKey.endsWith("combust")) particle = org.bukkit.Particle.FLAME;
-            else if (glyphKey.endsWith("multishot") || glyphKey.endsWith("ricochet") || glyphKey.endsWith("headshot")) particle = org.bukkit.Particle.CRIT;
-            else if (glyphKey.endsWith("consecration") || glyphKey.endsWith("penance")) particle = org.bukkit.Particle.END_ROD;
-            else if (glyphKey.endsWith("divine_shield")) particle = org.bukkit.Particle.HEART;
-            else if (glyphKey.endsWith("earthsplit") || glyphKey.endsWith("fracture")) particle = org.bukkit.Particle.SMOKE;
-            else if (glyphKey.endsWith("vacuum")) particle = org.bukkit.Particle.PORTAL;
-            else if (glyphKey.endsWith("brittle") || glyphKey.endsWith("glacier") || glyphKey.endsWith("shatter")) particle = org.bukkit.Particle.SNOWFLAKE;
-            else if (glyphKey.endsWith("aegis") || glyphKey.endsWith("pulse") || glyphKey.endsWith("beacon")) particle = org.bukkit.Particle.END_ROD;
-            else if (glyphKey.endsWith("gravity_well") || glyphKey.endsWith("rupture") || glyphKey.endsWith("lingering_void")) particle = org.bukkit.Particle.REVERSE_PORTAL;
-            else if (glyphKey.endsWith("toxic_bloom") || glyphKey.endsWith("neurotoxin") || glyphKey.endsWith("corrosive_venom")) particle = Particle.ITEM_SLIME; // falls nicht vorhanden -> fallback unten
-            // Fallback, wenn SLIME nicht existiert
-            try { org.bukkit.Particle.valueOf("SLIME"); } catch (Throwable ex) { particle = Particle.HAPPY_VILLAGER; }
+            org.bukkit.Particle particle = org.bukkit.Particle.END_ROD; // default
+            String suffix = glyphKey.contains(":") ? glyphKey.substring(glyphKey.indexOf(":") + 1) : glyphKey;
+            // group suffixes by visual
+            if (suffix.endsWith("genkidama") || suffix.endsWith("aegis") || suffix.endsWith("pulse") || suffix.endsWith("beacon") || suffix.endsWith("consecration")) {
+                particle = org.bukkit.Particle.END_ROD;
+            } else if (suffix.endsWith("storm_chain") || suffix.endsWith("electric")) {
+                particle = org.bukkit.Particle.ELECTRIC_SPARK;
+            } else if (suffix.endsWith("overcharge") || suffix.endsWith("multishot") || suffix.endsWith("ricochet") || suffix.endsWith("headshot")) {
+                particle = org.bukkit.Particle.CRIT;
+            } else if (suffix.endsWith("inferno") || suffix.endsWith("phoenix") || suffix.endsWith("combust")) {
+                particle = org.bukkit.Particle.FLAME;
+            } else if (suffix.endsWith("divine_shield")) {
+                particle = org.bukkit.Particle.HEART;
+            } else if (suffix.endsWith("earthsplit") || suffix.endsWith("fracture")) {
+                particle = org.bukkit.Particle.SMOKE;
+            } else if (suffix.endsWith("vacuum") || suffix.endsWith("vacuum_pull")) {
+                particle = org.bukkit.Particle.PORTAL;
+            } else if (suffix.endsWith("brittle") || suffix.endsWith("glacier") || suffix.endsWith("shatter")) {
+                particle = org.bukkit.Particle.SNOWFLAKE;
+            } else if (suffix.endsWith("gravity_well") || suffix.endsWith("rupture") || suffix.endsWith("lingering_void")) {
+                particle = org.bukkit.Particle.REVERSE_PORTAL;
+            } else if (suffix.endsWith("toxic_bloom") || suffix.endsWith("neurotoxin") || suffix.endsWith("corrosive_venom")) {
+                // ITEM_SLIME can be version-dependent; fallback handled below
+                try { particle = org.bukkit.Particle.valueOf("ITEM_SLIME"); } catch (Throwable ex) { particle = org.bukkit.Particle.HAPPY_VILLAGER; }
+            }
+            // final fallback: ensure the particle can actually be spawned
             org.bukkit.Location l = where != null ? where : p.getLocation();
-            l.getWorld().spawnParticle(particle, l.clone().add(0,1.0,0), 12, 0.5,0.5,0.5, 0.02);
+            try { l.getWorld().spawnParticle(particle, l.clone().add(0,1.0,0), 12, 0.5,0.5,0.5, 0.02); } catch (Throwable ex) {
+                try { l.getWorld().spawnParticle(org.bukkit.Particle.END_ROD, l.clone().add(0,1.0,0), 8, 0.4,0.4,0.4, 0.02); } catch (Throwable ignored) {}
+            }
         } catch (Throwable ignored) {}
     }
+
+    public void addAegisShield(java.util.UUID id, double amount) {
+        if (id == null || amount <= 0.0) return;
+        aegisShields.merge(id, amount, Double::sum);
+        // optional: begrenze maximalen Schildwert aus config (falls vorhanden)
+        try {
+            double max = plugin.getConfigUtil().getDouble("heal_totem.aegis.max", Double.MAX_VALUE);
+            aegisShields.computeIfPresent(id, (k, v) -> Math.min(v, max));
+        } catch (Throwable ignored) {}
+        updateAegisVisual(id);
+    }
+
+    private void updateAegisVisual(java.util.UUID id) {
+        if (id == null) return;
+        Player p = Bukkit.getPlayer(id);
+        if (p == null || !p.isOnline()) return;
+        double val = aegisShields.getOrDefault(id, 0.0);
+        // ActionBar-Anzeige (nutzt net.kyori.adventure.Component wie im Projekt)
+        try {
+            String text = val > 0.0 ? String.format("§bAegis: %.1f", val) : "";
+            p.sendActionBar(net.kyori.adventure.text.Component.text(text));
+        } catch (Throwable ignored) {}
+        // kleine Partikel-Visualisierung wenn Schild vorhanden
+        if (val > 0.0) {
+            try {
+                p.getWorld().spawnParticle(Particle.END_ROD, p.getLocation().add(0, 1.0, 0), 8, 0.4, 0.4, 0.4, 0.02);
+            } catch (Throwable ignored) {}
+        }
+    }
+
 }

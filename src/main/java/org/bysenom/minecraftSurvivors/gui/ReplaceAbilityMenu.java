@@ -118,8 +118,8 @@ public class ReplaceAbilityMenu {
                     return;
                 }
             }
-            // Open confirmation UI before replacing
-            new ReplaceConfirmMenu(p, sp, idx, newKey, newLevelBase, rar).open();
+            // Open confirmation UI before replacing (sp parameter removed from constructor)
+            new ReplaceConfirmMenu(p, idx, newKey, newLevelBase, rar).open();
             return;
 
          }

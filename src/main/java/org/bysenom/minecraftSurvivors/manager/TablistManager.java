@@ -2,6 +2,7 @@ package org.bysenom.minecraftSurvivors.manager;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
@@ -19,6 +20,11 @@ public class TablistManager {
     private final PlayerManager playerManager;
     private final GameManager gameManager;
     private BukkitTask task;
+
+    // Caches to avoid sending unchanged tab updates
+    private final java.util.Map<UUID, String> lastHeader = new ConcurrentHashMap<>();
+    private final java.util.Map<UUID, String> lastFooter = new ConcurrentHashMap<>();
+    private final java.util.Map<UUID, String> lastPlayerListName = new ConcurrentHashMap<>();
 
     public TablistManager(MinecraftSurvivors plugin, PlayerManager playerManager, GameManager gameManager) {
         this.plugin = plugin;
@@ -40,6 +46,7 @@ public class TablistManager {
         for (Player p : Bukkit.getOnlinePlayers()) {
             try { p.sendPlayerListHeaderAndFooter(Component.empty(), Component.empty()); } catch (Throwable ignored) {}
         }
+        lastHeader.clear(); lastFooter.clear(); lastPlayerListName.clear();
     }
 
     private void tick() {
@@ -48,11 +55,26 @@ public class TablistManager {
         String title = plugin.getConfigUtil().getString("tablist.header-title", "Minecraft Survivors");
         for (Player p : Bukkit.getOnlinePlayers()) {
             try {
-                Component header = buildHeader(title, showPower);
-                Component footer = showParty ? buildPartyFooter(p) : Component.empty();
-                p.sendPlayerListHeaderAndFooter(header, footer);
-                // Optional: List Name – Klasse & Level
-                setPlayerListName(p);
+                Component headerComp = buildHeader(title, showPower);
+                Component footerComp = showParty ? buildPartyFooter(p) : Component.empty();
+
+                // serialize to plain text for cheap equality checks
+                String headerPlain = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(headerComp);
+                String footerPlain = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(footerComp);
+
+                String prevHeader = lastHeader.get(p.getUniqueId());
+                String prevFooter = lastFooter.get(p.getUniqueId());
+
+                if (!headerPlain.equals(prevHeader) || !footerPlain.equals(prevFooter)) {
+                    try {
+                        p.sendPlayerListHeaderAndFooter(headerComp, footerComp);
+                        lastHeader.put(p.getUniqueId(), headerPlain);
+                        lastFooter.put(p.getUniqueId(), footerPlain);
+                    } catch (Throwable ignored) {}
+                }
+
+                // Optional: List Name – Klasse & Level (only update when changed)
+                updatePlayerListNameIfNeeded(p);
             } catch (Throwable ignored) {}
         }
     }
@@ -65,9 +87,9 @@ public class TablistManager {
             NamedTextColor col = NamedTextColor.WHITE;
             String icon = "●";
             switch (String.valueOf(st)) {
-                case "RUNNING": col = NamedTextColor.GREEN; icon = "▶"; break;
-                case "PAUSED": col = NamedTextColor.YELLOW; icon = "⏸"; break;
-                case "ENDED": col = NamedTextColor.RED; icon = "■"; break;
+                case "RUNNING" -> { col = NamedTextColor.GREEN; icon = "▶"; }
+                case "PAUSED" -> { col = NamedTextColor.YELLOW; icon = "⏸"; }
+                case "ENDED" -> { col = NamedTextColor.RED; icon = "■"; }
             }
             // Time
             double minutes = 0.0;
@@ -96,7 +118,7 @@ public class TablistManager {
         if (party == null) return Component.text("Keine Party", NamedTextColor.DARK_GRAY);
         List<UUID> online = pm.onlineMembers(party);
         if (online.isEmpty()) return Component.text("Party: (niemand online)", NamedTextColor.DARK_GRAY);
-        List<Component> lines = online.stream().map(u -> buildPartyLine(u)).collect(Collectors.toList());
+        List<Component> lines = online.stream().map(this::buildPartyLine).collect(Collectors.toList());
         Component title = Component.text("Party:", NamedTextColor.AQUA);
         return Component.join(JoinConfiguration.newlines(), title, Component.join(JoinConfiguration.newlines(), lines));
     }
@@ -107,7 +129,7 @@ public class TablistManager {
         if (name == null) name = memberId.toString().substring(0, 8);
         double hp = 0.0, max = 20.0;
         if (pl != null && pl.isOnline()) {
-            try { max = pl.getAttribute(Attribute.MAX_HEALTH) != null ? pl.getAttribute(Attribute.MAX_HEALTH).getBaseValue() : 20.0; } catch (Throwable ignored) {}
+            try { org.bukkit.attribute.AttributeInstance ai = pl.getAttribute(Attribute.MAX_HEALTH); if (ai != null) max = ai.getBaseValue(); } catch (Throwable ignored) {}
             try { hp = pl.getHealth(); } catch (Throwable ignored) {}
         }
         String bar = makeBar(hp / Math.max(1.0, max), 12);
@@ -119,17 +141,17 @@ public class TablistManager {
             SurvivorPlayer sp = playerManager.get(memberId);
             if (sp != null && sp.getSelectedClass() != null) {
                 switch (sp.getSelectedClass().name()) {
-                    case "SHAMAN": icon = "⚡"; break;
-                    case "PYROMANCER": icon = "🔥"; break;
-                    case "RANGER": icon = "🏹"; break;
-                    case "PALADIN": icon = "✚"; break;
+                    case "SHAMAN" -> icon = "⚡";
+                    case "PYROMANCER" -> icon = "🔥";
+                    case "RANGER" -> icon = "🏹";
+                    case "PALADIN" -> icon = "✚";
                 }
             }
         } catch (Throwable ignored) {}
         return Component.text(icon + " " + name + " ", NamedTextColor.WHITE).append(barC).append(hpC);
     }
 
-    private void setPlayerListName(Player p) {
+    private void updatePlayerListNameIfNeeded(Player p) {
         try {
             SurvivorPlayer sp = playerManager.get(p.getUniqueId());
             String icon = ""; int lvl = 1;
@@ -137,17 +159,20 @@ public class TablistManager {
                 lvl = sp.getClassLevel();
                 if (sp.getSelectedClass() != null) {
                     switch (sp.getSelectedClass().name()) {
-                        case "SHAMAN": icon = "⚡"; break;
-                        case "PYROMANCER": icon = "🔥"; break;
-                        case "RANGER": icon = "🏹"; break;
-                        case "PALADIN": icon = "✚"; break;
+                        case "SHAMAN" -> icon = "⚡";
+                        case "PYROMANCER" -> icon = "🔥";
+                        case "RANGER" -> icon = "🏹";
+                        case "PALADIN" -> icon = "✚";
                     }
                 }
             }
-            // Baue den Namen ohne Legacy-Formatcodes
+            String plain = (icon.isEmpty() ? "" : icon + " ") + p.getName() + " (Lv " + lvl + ")";
+            String prev = lastPlayerListName.get(p.getUniqueId());
+            if (plain.equals(prev)) return;
             Component left = Component.text((icon.isEmpty() ? "" : icon + " ") + p.getName() + " ", NamedTextColor.WHITE);
             Component level = Component.text("(Lv " + lvl + ")", NamedTextColor.GRAY);
             p.playerListName(left.append(level));
+            lastPlayerListName.put(p.getUniqueId(), plain);
         } catch (Throwable ignored) {}
     }
 
@@ -159,4 +184,7 @@ public class TablistManager {
         sb.append("]");
         return sb.toString();
     }
+
+    // Convenience overload using default length 12 (used by tablist footer)
+    private String makeBar(double ratio) { return makeBar(ratio, 12); }
 }
