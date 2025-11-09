@@ -82,6 +82,7 @@ This section contains automatically generated API documentation (basic).
 - [org.bysenom.minecraftSurvivors.manager.PartyManager](../api/org/bysenom/minecraftSurvivors/manager/PartyManager.md)
 - [org.bysenom.minecraftSurvivors.manager.PartyStartState](../api/org/bysenom/minecraftSurvivors/manager/PartyStartState.md)
 - [org.bysenom.minecraftSurvivors.manager.PartyVoteState](../api/org/bysenom/minecraftSurvivors/manager/PartyVoteState.md)
+- [org.bysenom.minecraftSurvivors.manager.Phase](../api/org/bysenom/minecraftSurvivors/manager/Phase.md)
 - [org.bysenom.minecraftSurvivors.manager.PlayerManager](../api/org/bysenom/minecraftSurvivors/manager/PlayerManager.md)
 - [org.bysenom.minecraftSurvivors.manager.safely](../api/org/bysenom/minecraftSurvivors/manager/safely.md)
 - [org.bysenom.minecraftSurvivors.manager.ScoreboardManager](../api/org/bysenom/minecraftSurvivors/manager/ScoreboardManager.md)
