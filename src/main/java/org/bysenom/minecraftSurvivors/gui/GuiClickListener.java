@@ -122,6 +122,16 @@ public class GuiClickListener implements Listener {
                 org.bysenom.minecraftSurvivors.util.Msg.ok(player, "+10 Essence");
                 guiManager.openAdminPanel(player); return;
             }
+            case "toggle_ready" -> {
+                var sp = plugin.getPlayerManager().get(player.getUniqueId());
+                if (sp == null) return;
+                boolean nr = !sp.isReady();
+                sp.setReady(nr);
+                player.sendMessage(nr ? "§aBereit gesetzt." : "§eBereitschaft aufgehoben.");
+                try { plugin.getScoreboardManager().forceUpdate(player); } catch (Throwable ignored) {}
+                try { plugin.getGameManager().requestAutoStartIfAllReady(); } catch (Throwable ignored) {}
+                return;
+            }
             default -> {}
         }
 
@@ -138,9 +148,9 @@ public class GuiClickListener implements Listener {
             var sp = plugin.getPlayerManager().get(player.getUniqueId());
             if (sp != null) {
                 sp.setSelectedClass(chosen);
-                sp.setReady(true); // Nach Wahl direkt als "bereit" markieren
+                // NICHT automatisch ready setzen; Spieler muss toggle_ready klicken
                 try { plugin.getGameManager().enterSurvivorsContext(player.getUniqueId()); } catch (Throwable ignored) {}
-                player.sendMessage("§aKlasse gewählt: §f" + chosen.name());
+                player.sendMessage("§aKlasse gewählt: §f" + chosen.name() + " §7(Nutze 'Bereit' um Countdown zu starten)");
                 try { player.playSound(player.getLocation(), org.bukkit.Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.3f); } catch (Throwable ignored) {}
                 try { plugin.getScoreboardManager().forceUpdate(player); } catch (Throwable ignored) {}
                 // Autostart nur wenn alle bereit sind
