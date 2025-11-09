@@ -3,14 +3,12 @@ package org.bysenom.minecraftSurvivors.manager;
 
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
 import org.bysenom.minecraftSurvivors.listener.LootchestListener;
 import org.bysenom.minecraftSurvivors.model.GameState;
+import org.bysenom.minecraftSurvivors.model.PlayerClass;
 import org.bysenom.minecraftSurvivors.task.WaveTask;
 
 public class GameManager {
@@ -90,7 +88,8 @@ public class GameManager {
         if (p != null && p.isOnline()) {
             // Scoreboard sichtbar halten
             try { plugin.getScoreboardManager().forceUpdateAll(); } catch (Throwable ignored) {}
-            // Klassen-Startwaffe vergeben
+            // Klassenfähigkeit sicherstellen und Hotbar vorbereiten
+            try { ensureClassAbility(uuid); } catch (Throwable ignored) {}
             try { giveInitialKit(p); } catch (Throwable ignored) {}
         }
     }
@@ -129,59 +128,36 @@ public class GameManager {
     }
 
     /**
-     * Vergibt Anfangs-Klassen-Ausrüstung (Hotbar Item), falls noch nicht vorhanden.
+     * Sorgt dafür, dass die Klassen-Ability im Ability-Slot vorhanden ist (Slot 0..4 wird von SkillManager gerendert).
+     */
+    public void ensureClassAbility(java.util.UUID uuid) {
+        if (uuid == null) return;
+        var sp = playerManager.get(uuid); if (sp == null) return;
+        PlayerClass pc = sp.getSelectedClass(); if (pc == null) return;
+        String abilityKey = switch (pc) {
+            case SHAMAN -> "ab_lightning";
+            case PYROMANCER -> "ab_fire";
+            case RANGER -> "ab_ranged";
+            case PALADIN -> "ab_holy";
+        };
+        if (!sp.hasAbility(abilityKey)) {
+            int idx = sp.addAbilityAtFirstFreeIndex(abilityKey, 1);
+            if (idx >= 0) {
+                sp.setAbilityOrigin(abilityKey, "class");
+                try { plugin.getPlayerDataManager().saveAsync(sp); } catch (Throwable ignored) {}
+            }
+        }
+    }
+
+    /**
+     * Räumt die Hotbar-Slots 0..4 leer, damit der SkillManager dort die Abilities rendert (keine Klassenwaffen mehr).
      */
     public void giveInitialKit(org.bukkit.entity.Player p) {
         if (p == null) return;
-        var sp = playerManager.get(p.getUniqueId());
-        if (sp == null) return;
-        var pc = sp.getSelectedClass();
-        if (pc == null) return;
-        org.bukkit.inventory.PlayerInventory inv = p.getInventory();
-        // Falls bereits ein Klassen-Item existiert (Meta check via display name), nichts tun
-        for (org.bukkit.inventory.ItemStack is : inv.getContents()) {
-            if (is == null) continue;
-            try {
-                var meta = is.getItemMeta();
-                if (meta != null && meta.hasDisplayName()) {
-                    var dn = meta.displayName();
-                    String plain = dn == null ? "" : net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(dn);
-                    if (plain.contains(pc.name())) { return; }
-                }
-            } catch (Throwable ignored) {}
-        }
-        org.bukkit.Material mat;
-        String name;
-        switch (pc) {
-            case PYROMANCER -> { mat = org.bukkit.Material.BLAZE_ROD; name = "§cPyromant Fokus"; }
-            case SHAMAN -> { mat = org.bukkit.Material.STICK; name = "§2Schamanenstab"; }
-            case RANGER -> { mat = org.bukkit.Material.BOW; name = "§aRanger Bogen"; }
-            case PALADIN -> { mat = org.bukkit.Material.IRON_SWORD; name = "§fPaladin Klinge"; }
-            default -> { mat = org.bukkit.Material.WOODEN_SWORD; name = "§7Starter"; }
-        }
-        org.bukkit.inventory.ItemStack item = new org.bukkit.inventory.ItemStack(mat);
         try {
-            var meta = item.getItemMeta();
-            if (meta != null) {
-                meta.displayName(net.kyori.adventure.text.Component.text(name));
-                // Verwendung der neuen Registry API mit Fallback
-                if (mat == org.bukkit.Material.BOW) {
-                    Enchantment infinity = byKey("infinity");
-                    if (infinity == null) infinity = byKey("infinity_arrow");
-                    if (infinity != null) meta.addEnchant(infinity, 1, true);
-                }
-                if (mat == org.bukkit.Material.IRON_SWORD) {
-                    Enchantment unbreaking = byKey("unbreaking");
-                    if (unbreaking != null) meta.addEnchant(unbreaking, 2, true);
-                }
-                item.setItemMeta(meta);
-            }
-            // Bogen braucht 1 Pfeil für Infinity Mechanik
-            if (mat == org.bukkit.Material.BOW && !inv.contains(org.bukkit.Material.ARROW)) {
-                inv.addItem(new org.bukkit.inventory.ItemStack(org.bukkit.Material.ARROW, 1));
-            }
+            org.bukkit.inventory.PlayerInventory inv = p.getInventory();
+            for (int i = 0; i < 5; i++) { inv.setItem(i, null); }
         } catch (Throwable ignored) {}
-        inv.addItem(item);
         try { p.updateInventory(); } catch (Throwable ignored) {}
     }
 
@@ -484,20 +460,5 @@ public class GameManager {
      */
     public void tryOpenNextQueuedDelayed(java.util.UUID uuid) {
         Bukkit.getScheduler().runTaskLater(plugin, () -> tryOpenNextQueued(uuid), 1L);
-    }
-
-    /**
-     * Holt ein Enchantment über neuen Registry-Mechanismus mit Fallback auf alte API.
-     */
-    @SuppressWarnings("deprecation")
-    private Enchantment byKey(String key) {
-        if (key == null || key.isEmpty()) return null;
-        NamespacedKey nk = NamespacedKey.minecraft(key);
-        Enchantment ench = null;
-        try { ench = Registry.ENCHANTMENT.get(nk); } catch (Throwable ignored) {}
-        if (ench == null) {
-            try { ench = Enchantment.getByKey(nk); } catch (Throwable ignored) {}
-        }
-        return ench;
     }
 }

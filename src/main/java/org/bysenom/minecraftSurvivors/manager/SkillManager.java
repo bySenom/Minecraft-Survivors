@@ -16,6 +16,15 @@ public class SkillManager {
     private final MinecraftSurvivors plugin;
     private org.bukkit.scheduler.BukkitTask task;
     private final Map<UUID, Map<String, Long>> cooldowns = new HashMap<>();
+    // Zusatz: temporale Anker für Temporal Rift (Entity -> ursprüngliche Position)
+    private final java.util.Map<java.util.UUID, java.util.Map<org.bukkit.entity.LivingEntity, org.bukkit.Location>> temporalAnchors = new java.util.HashMap<>();
+    // Zusatz: Lingering Void Felder (Center + Ablaufzeit)
+    private final java.util.List<LingeringVoidField> lingeringVoidFields = new java.util.ArrayList<>();
+
+    private static final class LingeringVoidField {
+        final org.bukkit.Location center; final long expireAt; final double radius; final double damage;
+        LingeringVoidField(org.bukkit.Location c, long expireAt, double radius, double damage) { this.center=c; this.expireAt=expireAt; this.radius=radius; this.damage=damage; }
+    }
 
     public SkillManager(MinecraftSurvivors plugin) { this.plugin = plugin; }
 
@@ -36,6 +45,8 @@ public class SkillManager {
                 runAbility(p, sp, ab, lvl);
             }
         }
+        // Nach allen Spieler-Fähigkeiten lingering Felder ticken
+        tickLingeringVoidFields();
     }
 
     private void renderHotbar(Player p, SurvivorPlayer sp) {
@@ -111,6 +122,9 @@ public class SkillManager {
             case "ab_shockwave": runShockwave(p, lvl); break;
             case "ab_frost_nova": runFrostNova(p, lvl); break;
             case "ab_heal_totem": runHealTotem(p, lvl); break;
+            case "ab_void_nova": runVoidNova(p, sp, lvl); break;
+            case "ab_time_rift": runTimeRift(p, sp, lvl); break;
+            case "ab_venom_spire": runVenomSpire(p, sp, lvl); break;
             default: break;
         }
     }
@@ -293,5 +307,209 @@ public class SkillManager {
             } catch (Throwable ignored) {}
         }
         try { p.playSound(p.getLocation(), org.bukkit.Sound.BLOCK_GLASS_BREAK, 0.5f, 1.6f); } catch (Throwable ignored) {}
+    }
+
+    private void runVoidNova(Player p, SurvivorPlayer sp, int lvl) {
+        long base = Math.max(800, 2200 - lvl * 140L);
+        long cd = (long) Math.max(200.0, base / Math.max(1.0, 1.0 + sp.getAttackSpeedMult()));
+        if (onCd(p.getUniqueId(), "ab_void_nova", cd)) return;
+        double radius = 5.0 + lvl * 0.7 + sp.getRadiusMult() * 2.0;
+        double damage = (2.2 + lvl * 0.9 + sp.getFlatDamage() * 0.5) * (1.0 + sp.getDamageMult());
+        double durationSec = 2.0 + Math.min(6.0, lvl * 0.25);
+        org.bukkit.Location center = p.getLocation();
+        java.util.List<org.bukkit.entity.LivingEntity> mobs = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(center, radius);
+        // Glyphen
+        java.util.List<String> glyphs = sp.getGlyphs("ab_void_nova");
+        boolean gravityWell = glyphs.contains("ab_void_nova:gravity_well");
+        boolean rupture = glyphs.contains("ab_void_nova:rupture");
+        boolean lingering = glyphs.contains("ab_void_nova:lingering_void");
+        // Partikel + Ticks
+        int ticks = (int) Math.round(durationSec * 20);
+        try { p.playSound(center, org.bukkit.Sound.ENTITY_SHULKER_BULLET_HIT, 0.6f, 0.4f); } catch (Throwable ignored) {}
+        final int[] t = {0};
+        org.bukkit.scheduler.BukkitRunnable task = new org.bukkit.scheduler.BukkitRunnable() {
+            @Override public void run() {
+                if (!p.isOnline()) { cancel(); return; }
+                if (t[0] >= ticks) {
+                    cancel();
+                    // Rupture Explosion
+                    if (rupture) {
+                        try { center.getWorld().spawnParticle(org.bukkit.Particle.PORTAL, center.clone().add(0,1,0), 120, radius/2, 0.6, radius/2, 0.2); } catch (Throwable ignored) {}
+                        for (org.bukkit.entity.LivingEntity le : mobs) {
+                            if (!le.isValid()) continue;
+                            if (le.getLocation().distanceSquared(center) <= radius * radius) {
+                                try { le.damage(damage * 1.5, p); } catch (Throwable ignored) {}
+                            }
+                        }
+                        try { p.playSound(center, org.bukkit.Sound.ENTITY_ENDERMAN_SCREAM, 0.7f, 0.6f); } catch (Throwable ignored) {}
+                    }
+                    // Lingering Feld
+                    if (lingering) {
+                        lingeringVoidFields.add(new LingeringVoidField(center.clone(), System.currentTimeMillis() + 3500, Math.max(2.5, radius * 0.6), damage * 0.25));
+                    }
+                    return;
+                }
+                double prog = t[0] / (double) ticks; // 0..1
+                double currentR = Math.max(0.5, radius * prog);
+                // Puls Partikel-Ring
+                for (int i=0;i<Math.max(32, (int)(currentR*10));i++) {
+                    double ang = 2 * Math.PI * i / Math.max(32,(int)(currentR*10));
+                    double x = center.getX() + Math.cos(ang) * currentR;
+                    double z = center.getZ() + Math.sin(ang) * currentR;
+                    org.bukkit.Location l = new org.bukkit.Location(center.getWorld(), x, center.getY()+0.2+prog*1.2, z);
+                    try { center.getWorld().spawnParticle(org.bukkit.Particle.REVERSE_PORTAL, l, 1, 0.05,0.05,0.05, 0.0); } catch (Throwable ignored) {}
+                }
+                // Schaden + Pull
+                for (org.bukkit.entity.LivingEntity le : plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(center, currentR)) {
+                    if (!le.isValid()) continue;
+                    try { le.damage(damage/Math.max(4, ticks/20.0), p); } catch (Throwable ignored) {}
+                    if (gravityWell) {
+                        org.bukkit.util.Vector pull = center.toVector().subtract(le.getLocation().toVector()).normalize().multiply(0.15);
+                        pull.setY(0.02);
+                        try { le.setVelocity(le.getVelocity().add(pull)); } catch (Throwable ignored) {}
+                    }
+                }
+                t[0]++;
+            }
+        }; task.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private void runTimeRift(Player p, SurvivorPlayer sp, int lvl) {
+        long base = Math.max(1000, 3000 - lvl * 160L);
+        long cd = (long) Math.max(220.0, base / Math.max(1.0, 1.0 + sp.getAttackSpeedMult()));
+        if (onCd(p.getUniqueId(), "ab_time_rift", cd)) return;
+        double radius = 4.0 + lvl * 0.5;
+        double durSec = 1.0 + Math.min(4.0, lvl * 0.15);
+        org.bukkit.Location center = p.getLocation();
+        java.util.List<String> glyphs = sp.getGlyphs("ab_time_rift");
+        boolean hasteBurst = glyphs.contains("ab_time_rift:haste_burst");
+        boolean slowField = glyphs.contains("ab_time_rift:slow_field");
+        boolean anchor = glyphs.contains("ab_time_rift:temporal_anchor");
+        int ticks = (int)Math.round(durSec*20);
+        // Speichere Anker-Positionen
+        if (anchor) {
+            java.util.Map<org.bukkit.entity.LivingEntity, org.bukkit.Location> map = new java.util.HashMap<>();
+            for (org.bukkit.entity.LivingEntity le : plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(center, radius)) {
+                map.put(le, le.getLocation().clone());
+            }
+            temporalAnchors.put(p.getUniqueId(), map);
+        }
+        try { p.playSound(center, org.bukkit.Sound.BLOCK_ENCHANTMENT_TABLE_USE, 0.6f, 0.3f); } catch (Throwable ignored) {}
+        // Haste Burst -> kurzer effekt
+        if (hasteBurst) {
+            try { p.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.HASTE, Math.max(40, ticks), 1, false, false, true)); } catch (Throwable ignored) {}
+        }
+        final int[] t = {0};
+        org.bukkit.scheduler.BukkitRunnable task = new org.bukkit.scheduler.BukkitRunnable() {
+            @Override public void run() {
+                if (!p.isOnline()) { cancel(); return; }
+                if (t[0] >= ticks) {
+                    cancel();
+                    if (anchor) {
+                        java.util.Map<org.bukkit.entity.LivingEntity, org.bukkit.Location> map = temporalAnchors.remove(p.getUniqueId());
+                        if (map != null) {
+                            for (var e : map.entrySet()) {
+                                org.bukkit.entity.LivingEntity le = e.getKey();
+                                if (le != null && le.isValid()) {
+                                    try { le.teleport(e.getValue()); } catch (Throwable ignored) {}
+                                }
+                            }
+                            try { p.playSound(center, org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 0.5f, 1.4f); } catch (Throwable ignored) {}
+                        }
+                    }
+                    return;
+                }
+                double prog = t[0]/(double)ticks;
+                double r = radius;
+                for (int i=0;i<24;i++) {
+                    double ang = 2*Math.PI*i/24.0 + prog*Math.PI*2;
+                    double x = center.getX()+Math.cos(ang)*r;
+                    double z = center.getZ()+Math.sin(ang)*r;
+                    org.bukkit.Location l = new org.bukkit.Location(center.getWorld(), x, center.getY()+0.2, z);
+                    try { center.getWorld().spawnParticle(org.bukkit.Particle.PORTAL, l, 1, 0.05,0.05,0.05,0.0); } catch (Throwable ignored) {}
+                }
+                // Effekte auf Mobs: Slowness verstärkt durch slowField
+                for (org.bukkit.entity.LivingEntity le : plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(center, r)) {
+                    try {
+                        int amp = slowField ? 2 : 1;
+                        le.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS, 20, amp, false, false, true));
+                    } catch (Throwable ignored) {}
+                }
+                t[0]++;
+            }
+        }; task.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private void runVenomSpire(Player p, SurvivorPlayer sp, int lvl) {
+        long base = Math.max(600, 2000 - lvl * 130L);
+        long cd = (long) Math.max(180.0, base / Math.max(1.0, 1.0 + sp.getAttackSpeedMult()));
+        if (onCd(p.getUniqueId(), "ab_venom_spire", cd)) return;
+        double radius = 3.0 + lvl * 0.6;
+        double damage = (0.9 + lvl * 0.45 + sp.getFlatDamage() * 0.25) * (1.0 + sp.getDamageMult());
+        double durSec = 3.0 + Math.min(6.0, lvl * 0.3);
+        java.util.List<String> glyphs = sp.getGlyphs("ab_venom_spire");
+        boolean toxicBloom = glyphs.contains("ab_venom_spire:toxic_bloom");
+        boolean neurotoxin = glyphs.contains("ab_venom_spire:neurotoxin");
+        boolean corrosive = glyphs.contains("ab_venom_spire:corrosive_venom");
+        if (toxicBloom) radius *= 1.35;
+        org.bukkit.Location center = p.getLocation();
+        int ticks = (int)Math.round(durSec*20);
+        try { p.playSound(center, org.bukkit.Sound.ENTITY_SPIDER_AMBIENT, 0.5f, 0.7f); } catch (Throwable ignored) {}
+        final org.bukkit.Location c = center;
+        final double r = radius;
+        final int totalTicks = ticks;
+        final int[] t = {0};
+        org.bukkit.scheduler.BukkitRunnable task = new org.bukkit.scheduler.BukkitRunnable() {
+            @Override public void run() {
+                if (!p.isOnline()) { cancel(); return; }
+                if (t[0] >= totalTicks) { cancel(); return; }
+                double prog = t[0]/(double)totalTicks;
+                double ringR = r * (0.7 + 0.3*Math.sin(prog*Math.PI));
+                int points = Math.max(24,(int)(ringR*12));
+                for (int i=0;i<points;i++) {
+                    double ang = 2*Math.PI*i/points;
+                    double x = c.getX()+Math.cos(ang)*ringR;
+                    double z = c.getZ()+Math.sin(ang)*ringR;
+                    org.bukkit.Location l = new org.bukkit.Location(c.getWorld(), x, c.getY()+0.2+Math.sin(prog*4)*0.3, z);
+                    try { c.getWorld().spawnParticle(Particle.PORTAL, l, 1, 0.03,0.03,0.03, 0.0); } catch (Throwable ignored) {}
+                }
+                // Wirkung auf Mobs
+                for (org.bukkit.entity.LivingEntity le : plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(c, r)) {
+                    if (!le.isValid()) continue;
+                    try { le.damage(damage/Math.max(5, totalTicks/20.0), p); } catch (Throwable ignored) {}
+                    try { le.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.POISON, 40, 0, false, false, true)); } catch (Throwable ignored) {}
+                    if (neurotoxin && java.util.concurrent.ThreadLocalRandom.current().nextInt(18) == 0) {
+                        try { le.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS, 60, 2, false, false, true)); } catch (Throwable ignored) {}
+                    }
+                    if (corrosive && java.util.concurrent.ThreadLocalRandom.current().nextInt(14) == 0) {
+                        try { le.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.WEAKNESS, 80, 1, false, false, true)); } catch (Throwable ignored) {}
+                    }
+                }
+                t[0]++;
+            }
+        }; task.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    // Tick für Lingering Void Felder (in bestehendem tick() integrieren)
+    private void tickLingeringVoidFields() {
+        long now = System.currentTimeMillis();
+        if (lingeringVoidFields.isEmpty()) return;
+        java.util.Iterator<LingeringVoidField> it = lingeringVoidFields.iterator();
+        while (it.hasNext()) {
+            LingeringVoidField f = it.next();
+            if (now >= f.expireAt) { it.remove(); continue; }
+            // Partikelteppich
+            for (int i=0;i<12;i++) {
+                double ang = 2*Math.PI*i/12.0 + (now%2000)/2000.0*2*Math.PI;
+                double x = f.center.getX()+Math.cos(ang)*f.radius;
+                double z = f.center.getZ()+Math.sin(ang)*f.radius;
+                org.bukkit.Location l = new org.bukkit.Location(f.center.getWorld(), x, f.center.getY()+0.1, z);
+                try { f.center.getWorld().spawnParticle(org.bukkit.Particle.ASH, l, 1, 0.02,0.02,0.02,0.0); } catch (Throwable ignored) {}
+            }
+            // Schaden anwenden
+            for (org.bukkit.entity.LivingEntity le : plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(f.center, f.radius)) {
+                try { le.damage(f.damage/2.0); } catch (Throwable ignored) {}
+            }
+        }
     }
 }
