@@ -9,6 +9,25 @@
 Dies ist die Aufgabenliste NUR für das LobbySystem. Änderungen am Kernspiel (Minecraft Survivors) stehen in einer separaten Datei.
 
 ---
+## Status-Update (2025-11-09)
+- P1.1 Auto-Admit Scheduler: ERLEDIGT (setupAdmissionLoop mit `admission.enabled`, `admission.interval-seconds`, Start optional via `survivors.auto-dispatch-enabled`).
+- P1.2 Maximal zugelassene Spieler (Capacity): ERLEDIGT (Limit via `admission.max-admitted` in `admitNext`). Hinweis: /queue status "Voll"-Hinweis noch offen.
+- P1.3 Disconnect-Cleanup: ERLEDIGT (Quit-Listener entfernt auch admitted/Interna; BossBar wird entfernt; Survivors-Kontext wird verlassen).
+- P1.4 Admission Timeout: ERLEDIGT (enforceAdmissionTimeout; `admission.timeout-seconds`, `admission.timeout-action` = recycle|remove).
+- P1.5 Re-Join Cooldown: ERLEDIGT (`queue.rejoin-cooldown-seconds`).
+- P1.6 Persistenz: ERLEDIGT (`queue.persist-enabled`; speichert/ladet queue/admitted).
+- P1.7 Reset-Hook bei Rundenende: OFFEN (TODO: Survivors-GameStop erkennen, `resetAdmission()` ausführen, BossBar ggf. re-syncen).
+- P1.8 Logging & Metriken Basis: TEILWEISE (Debug-Logs + avg wait vorhanden; /queue stats Command noch OFFEN).
+- P1.9 Fehlerrobustheit Survivors nicht vorhanden: ERLEDIGT (Reflection try/catch, isSurvivorsLobbyState fallback).
+- P1.10 README Abschnitt "LobbySystem": OFFEN.
+
+Nächste Schritte (P1 Rest):
+1) Reset-Hook auf Survivors-Rundenende verdrahten (GameStop erkennen + `resetAdmission()`).
+2) `/queue stats` Admin-Command (size, admittedCount, avgWait).
+3) `/queue status`: Hinweis "Server voll" zeigen, wenn `admission.max-admitted` erreicht wurde.
+4) README Abschnitt zu Konfig und Abläufen ergänzen.
+
+---
 ## P1 (Release-kritisch)
 
 ### 1. Auto-Admit Scheduler
@@ -167,4 +186,3 @@ Akzeptanzkriterien:
 8. Persistenz
 
 Fertig für Release wenn P1 abgeschlossen.
-

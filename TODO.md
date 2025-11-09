@@ -13,6 +13,16 @@ Allerhöchste Priorität
 - MAX_HEALTH durch Lootchest sollten nach Runden Ende verschwinden
 -
 
+---
+Status-Update (2025-11-09)
+- Höchste Prio bestätigt: MAX_HEALTH (Lootchest) muss beim Rundenende zurückgesetzt werden. Aktuell OFFEN.
+- Combat-Pipeline: IN ARBEIT/TEILWEISE (einige Stats wirken bereits), zentrale Engine noch OFFEN.
+- Endboss (100% Enrage): GERÜST VORHANDEN, Finalisierung OFFEN.
+- FX-Throttling: TEILWEISE (Spieler-FX Toggle vorhanden), Rate-Limiter noch OFFEN.
+- Persistenz/Reset neuer Stats: TEILWEISE (Speicher vorhanden), Reset-Logik für neue Stats konsolidieren OFFEN.
+- Wellen/Continuous Stabilität: LAUFEND; Monitor für Zombie-Tasks noch OFFEN.
+- Doku: OFFEN.
+
 ## P1 (Release-kritisch)
 
 ### 1. Combat-Pipeline: zentrale Reihenfolge und Implementierung
@@ -116,4 +126,3 @@ Beschreibung: Konfig-Presets für schnelle Server-Anpassung.
 6. Balancing
 
 Release, wenn P1 abgeschlossen.
-
