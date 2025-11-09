@@ -116,6 +116,7 @@ Package: `org.bysenom.minecraftSurvivors.model`
 - `setCounter(String key, int v)`
 - `incCounter(String key, int d)`
 - `removeStatModifier(java.util.UUID id)`
+- `removeStatModifiersIf(java.util.function.Predicate<org.bysenom.minecraftSurvivors.model.StatModifier> pred)`
 - `getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType t)`
 - `getEffectiveDamageMult()`
 - `getEffectiveDamageAdd()`
