@@ -385,6 +385,27 @@ public class SkillManager {
         double radius = 5.0 + lvl * 0.5;
         double damage = 1.0 + lvl * 0.3;
         org.bukkit.Location loc = p.getLocation();
+        // Fancy frost nova visuals (optional)
+        boolean fancyAll = plugin.getConfigUtil().getBoolean("visuals.fancy-enabled", true);
+        boolean fancyFrost = plugin.getConfigUtil().getBoolean("visuals.frostnova.fancy", true);
+        if (fancyAll && fancyFrost) {
+            int ringPts = Math.max(12, plugin.getConfigUtil().getInt("visuals.frostnova.ring-points", 36));
+            // Zwei Ringe: innen und außen
+            double inner = Math.max(1.0, radius * 0.6);
+            double outer = radius;
+            try {
+                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRing(loc.getWorld(), loc.clone().add(0, 0.2, 0), inner, ringPts, org.bukkit.Particle.SNOWFLAKE);
+                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRing(loc.getWorld(), loc.clone().add(0, 0.25, 0), outer, ringPts, org.bukkit.Particle.SNOWFLAKE);
+            } catch (Throwable ignored) {}
+            // Eissplitter: Richtungs-Impulse (nur Visuals)
+            int shards = Math.max(6, plugin.getConfigUtil().getInt("visuals.frostnova.shards", 12));
+            for (int i = 0; i < shards; i++) {
+                double ang = 2 * Math.PI * i / shards;
+                double dx = Math.cos(ang), dz = Math.sin(ang);
+                org.bukkit.Location tip = loc.clone().add(dx * (inner + 0.5), 0.3, dz * (inner + 0.5));
+                try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnBurst(loc.getWorld(), tip, org.bukkit.Particle.CRIT, 4, 0.08); } catch (Throwable ignored) {}
+            }
+        }
         java.util.List<org.bukkit.entity.LivingEntity> mobs = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(loc, radius);
         for (org.bukkit.entity.LivingEntity le : mobs) {
             try {
