@@ -7,3 +7,4 @@ Package: `org.bysenom.minecraftSurvivors.manager`
 
 - `isBossActive()`
 - `tick()`
+- `forceEnd()`
