@@ -75,9 +75,11 @@ Das optionale `LobbySystem` Plugin steuert Warteschlange & gestaffelten Eintritt
    - `admission.max-admitted` – maximale parallele zugelassene Spieler (0 = unbegrenzt).
    - `admission.timeout-seconds` – Zeit bis Admission verfällt, wenn Spieler nicht startet.
    - `admission.timeout-action` – `remove` oder `recycle` (zurück ans Ende).
+   - `admission.eta-sample-size` – Anzahl vergangener Zulassungen für Rolling ETA.
    - `queue.rejoin-cooldown-seconds` – Anti-Spam Cooldown für /queue join.
    - `queue.persist-enabled` – Queue beim Server-Neustart erhalten.
    - `queue.debug` – ausführliche Logausgaben.
+   - (geplant) `queue.afk-timeout-seconds` – Zeit bis AFK-Spieler aus Queue entfernt werden.
 3. Spieler nutzen `/queue join` → Auto-Zulassung in Wellen. Status mit `/queue status`.
 4. Admins: `/queue stats`, `/queue next`.
 5. Auto-Start Survivors nach Mindestanzahl via `survivors.auto-dispatch-enabled=true` in LobbySystem Config.

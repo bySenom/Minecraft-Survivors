@@ -24,6 +24,19 @@ public class QueueManager {
 
     // Rolling ETA samples (timestamps of admissions)
     private final Deque<Long> admitTimestamps = new ArrayDeque<>();
+    private final Map<UUID, Long> lastActivity = new HashMap<>();
+    private long now(){ return System.currentTimeMillis(); }
+    private int afkTimeoutSeconds(){ return Math.max(0, plugin.getConfig().getInt("queue.afk-timeout-seconds", 0)); }
+    public void markActive(UUID id){ if(id!=null) lastActivity.put(id, now()); }
+    public void pruneAfk(){ int to = afkTimeoutSeconds(); if(to<=0) return; long cutoff = now() - to*1000L; java.util.List<UUID> removed = new java.util.ArrayList<>();
+        for(UUID id : new java.util.ArrayList<>(queue)){
+            Long act = lastActivity.get(id);
+            if(act!=null && act < cutoff && !admitted.contains(id)) { queue.remove(id); joinAt.remove(id); removed.add(id); }
+        }
+        if(!removed.isEmpty()){
+            for(UUID id: removed){ Player p = plugin.getServer().getPlayer(id); if(p!=null&&p.isOnline()) p.sendMessage("§cAus Queue entfernt (AFK)"); }
+        }
+    }
 
     public QueueManager(LobbySystem plugin) { this.plugin = plugin; }
 
@@ -52,6 +65,7 @@ public class QueueManager {
         long cd = rejoinCooldownSec() * 1000L;
         Long last = lastJoinAttempt.get(p.getUniqueId());
         lastJoinAttempt.put(p.getUniqueId(), now);
+        markActive(p.getUniqueId());
         if (cd > 0 && last != null && (now - last) < cd) {
             long remain = (cd - (now - last)) / 1000L + 1;
             p.sendMessage("§cBitte warte " + remain + "s vor erneutem /queue join.");
@@ -59,6 +73,7 @@ public class QueueManager {
         }
         if (queue.add(p.getUniqueId())) {
             joinAt.put(p.getUniqueId(), now);
+            markActive(p.getUniqueId());
             p.sendMessage("§aQueue beigetreten. Position: §e" + getPosition(p.getUniqueId()));
             try { LobbySystem.get().addToBossBar(p); } catch (Throwable ignored) {}
             debug("join " + p.getName() + " pos=" + getPosition(p.getUniqueId()));
@@ -84,6 +99,7 @@ public class QueueManager {
     private boolean leaveInternal(Player p, boolean silent) {
         boolean removed = queue.remove(p.getUniqueId());
         boolean wasAdmitted = admitted.remove(p.getUniqueId());
+        lastActivity.remove(p.getUniqueId());
         if (wasAdmitted) admittedAt.remove(p.getUniqueId());
         joinAt.remove(p.getUniqueId());
         try { LobbySystem.get().removeFromBossBar(p); } catch (Throwable ignored) {}
@@ -132,6 +148,7 @@ public class QueueManager {
             }
             admitted.add(next);
             admittedAt.put(next, System.currentTimeMillis());
+            markActive(next);
             // Rolling ETA tracking
             admitTimestamps.addLast(System.currentTimeMillis());
             while (admitTimestamps.size() > etaSampleSize()) admitTimestamps.removeFirst();

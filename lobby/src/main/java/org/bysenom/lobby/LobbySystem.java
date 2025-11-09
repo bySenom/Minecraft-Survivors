@@ -98,6 +98,7 @@ public final class LobbySystem extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new org.bysenom.lobby.listener.CompassListener(), this);
         // Neu: Reaktive Cosmetics (Trails/Emotes)
         Bukkit.getPluginManager().registerEvents(new org.bysenom.lobby.listener.CosmeticListener(), this);
+        Bukkit.getPluginManager().registerEvents(new org.bysenom.lobby.listener.AfkActivityListener(queueManager), this);
 
         setupBossBar();
         setupAutoOpenOnJoin();
@@ -365,6 +366,7 @@ public final class LobbySystem extends JavaPlugin {
             try { queueManager.enforceAdmissionTimeout(); } catch (Throwable ignored) {}
             int queued = queueManager.size();
             int admitted = queueManager.admittedCount();
+            try { queueManager.pruneAfk(); } catch (Throwable ignored) {}
             if (bossBar != null) {
                 int etaNext = (countdownValue < 0 ? interval : countdownValue);
                 String title = "Lobby • In Queue: " + queued + " • Zugelassen: " + admitted + " • Next in " + etaNext + "s";

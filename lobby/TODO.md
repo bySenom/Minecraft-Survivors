@@ -10,20 +10,14 @@ Dies ist die Aufgabenliste NUR für das LobbySystem. Änderungen am Kernspiel (M
 
 ---
 ## Status-Update (2025-11-09)
-- Erledigt: Auto-Admit Scheduler, Capacity Limit, Disconnect-Cleanup, Admission Timeout, Re-Join Cooldown, Persistenz, Reset-Hook, Logging (/queue stats), Voll-Hinweis, README Abschnitt, Fehlerrobustheit.
-- Offen (P2/P3): ETA, VIP-Prio, AFK-Erkennung, /queue gui, messages.yml, Webhook, Profiler Hook, Clear Command, weiterführende Nice-to-have Features.
+- Erledigt: Auto-Admit Scheduler, Capacity Limit, Disconnect-Cleanup, Admission Timeout, Re-Join Cooldown, Persistenz, Reset-Hook, Logging (/queue stats), Voll-Hinweis, README Abschnitt, Fehlerrobustheit, Verbesserte ETA, AFK-Erkennung (Basis: Activity-Listener + periodisches Pruning über `queue.afk-timeout-seconds`).
+- Offen (P2/P3): VIP-Prio, /queue gui, messages.yml, Webhook, Profiler Hook, Clear Command, weiterführende Nice-to-have Features.
 
 ---
 ## P2 (Wichtig, nach erstem Release)
 
-### 11. Verbesserte ETA Berechnung
-Beschreibung: Dynamische ETA basierend auf letzten N Zulassungen.
-
 ### 12. Prioritäts-Tiers (VIP)
 Beschreibung: Spieler mit Permission haben Vorrang.
-
-### 13. AFK-Erkennung
-Beschreibung: Entfernt inaktive Spieler nach Timeout.
 
 ### 14. GUI für Queue (/queue gui)
 Beschreibung: Inventar mit Position/ETA/Buttons.
@@ -63,4 +57,4 @@ Beschreibung: `/queue clear [admitted|all]` mit Bestätigung.
 
 ---
 ## Nächste Entscheidung
-Wähle 1–2 P2 Features für den nächsten Sprint (Empfehlung: ETA + AFK oder VIP + messages.yml).
+Wähle 1–2 P2 Features für den nächsten Sprint (Empfehlung: VIP + messages.yml oder /queue gui + messages.yml).
