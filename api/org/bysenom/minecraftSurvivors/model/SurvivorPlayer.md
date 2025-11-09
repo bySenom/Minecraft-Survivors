@@ -1,0 +1,129 @@
+# SurvivorPlayer
+
+Package: `org.bysenom.minecraftSurvivors.model`
+
+
+## Public Methods
+
+- `getUuid()`
+- `getKills()`
+- `addKill()`
+- `setKills(int kills)`
+- `getCoins()`
+- `addCoins(int amount)`
+- `setCoins(int coins)`
+- `reset()`
+- `softReset()`
+- `softResetPreserveSkills()`
+- `getSelectedClass()`
+- `setSelectedClass(PlayerClass selectedClass)`
+- `getClassLevel()`
+- `setClassLevel(int classLevel)`
+- `getXp()`
+- `getXpToNext()`
+- `setXp(int xp)`
+- `setXpToNext(int xpToNext)`
+- `addXp(int amount)`
+- `getBonusDamage()`
+- `addBonusDamage(double val)`
+- `setBonusDamage(double bonusDamage)`
+- `getFlatDamage()`
+- `addFlatDamage(double val)`
+- `setFlatDamage(double flatDamage)`
+- `getDamageAddTotal()`
+- `getBonusStrikes()`
+- `addBonusStrikes(int val)`
+- `setBonusStrikes(int bonusStrikes)`
+- `getExtraHearts()`
+- `addExtraHearts(int val)`
+- `setExtraHearts(int extraHearts)`
+- `getRadiusMult()`
+- `addRadiusMult(double delta)`
+- `setRadiusMult(double radiusMult)`
+- `getDamageMult()`
+- `addDamageMult(double delta)`
+- `setDamageMult(double damageMult)`
+- `getIgniteBonusTicks()`
+- `addIgniteBonusTicks(int delta)`
+- `setIgniteBonusTicks(int igniteBonusTicks)`
+- `getKnockbackBonus()`
+- `addKnockbackBonus(double delta)`
+- `setKnockbackBonus(double knockbackBonus)`
+- `getHealBonus()`
+- `addHealBonus(double delta)`
+- `setHealBonus(double healBonus)`
+- `getMoveSpeedMult()`
+- `addMoveSpeedMult(double d)`
+- `setMoveSpeedMult(double v)`
+- `getAttackSpeedMult()`
+- `addAttackSpeedMult(double d)`
+- `setAttackSpeedMult(double v)`
+- `getDamageResist()`
+- `addDamageResist(double d)`
+- `setDamageResist(double v)`
+- `getLuck()`
+- `addLuck(double d)`
+- `setLuck(double v)`
+- `getShopPurchasesRun()`
+- `getShopPurchasesToday()`
+- `getShopLastDay()`
+- `setShopPurchasesToday(int v)`
+- `setShopLastDay(String s)`
+- `incrementShopRun()`
+- `incrementShopToday()`
+- `getPerRunCount(String key)`
+- `getPerDayCount(String key)`
+- `incPerRun(String key)`
+- `incPerDay(String key)`
+- `hasPurchased(String key)`
+- `markPurchased(String key)`
+- `getRangerPierce()`
+- `addRangerPierce(int d)`
+- `isEvoPyroNova()`
+- `setEvoPyroNova(boolean v)`
+- `getMaxSkillSlots()`
+- `setMaxSkillSlots(int v)`
+- `addSkill(String key)`
+- `getSkillLevel(String key)`
+- `removeSkill(String key)`
+- `clearSkills()`
+- `getMaxAbilitySlots()`
+- `setMaxAbilitySlots(int v)`
+- `getAbilityLevel(String key)`
+- `addAbility(String key)`
+- `replaceAbilityAt(int index, String newKey, int newLevel)`
+- `hasAbility(String key)`
+- `addNewAbilityWithLevel(String key, int level)`
+- `addAbilityAtFirstFree(String key, int level)`
+- `addAbilityAtFirstFreeIndex(String key, int level)`
+- `incrementAbilityLevel(String key, int delta)`
+- `setAbilityOrigin(String abilityKey, String origin)`
+- `getAbilityOrigin(String abilityKey)`
+- `getWeaponLevel(String key)`
+- `getMaxWeaponSlots()`
+- `setMaxWeaponSlots(int v)`
+- `addWeapon(String key)`
+- `addGlyph(String abilityKey, String glyphKey)`
+- `replaceGlyph(String abilityKey, int index, String glyphKey)`
+- `getCounter(String key)`
+- `setCounter(String key, int v)`
+- `incCounter(String key, int d)`
+- `removeStatModifier(java.util.UUID id)`
+- `getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType t)`
+- `getEffectiveDamageMult()`
+- `getEffectiveDamageAdd()`
+- `getEffectiveRadiusMult()`
+- `getEffectiveMoveSpeedMult()`
+- `getEffectiveAttackSpeedMult()`
+- `getEffectiveDamageResist()`
+- `getEffectiveLuck()`
+- `getEffectiveExtraHearts()`
+- `hasUnlockedAbility(String abilityKey)`
+- `unlockAbility(String abilityKey)`
+- `lockAbility(String abilityKey)`
+- `hasUnlockedGlyph(String glyphKey)`
+- `unlockGlyph(String glyphKey)`
+- `lockGlyph(String glyphKey)`
+- `isReady()`
+- `setReady(boolean r)`
+- `removeAbility(String key)`
