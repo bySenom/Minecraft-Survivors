@@ -48,6 +48,37 @@ public class PartyCommand implements CommandExecutor {
                 if (leader == null) { p.sendMessage("§cLeader nicht gefunden."); return true; }
                 if (pm.join(p.getUniqueId(), leader.getUniqueId())) p.sendMessage("§aParty beigetreten."); else p.sendMessage("§cJoin fehlgeschlagen (keine Einladung oder abgelaufen).");
                 return true;
+            case "accept":
+                if (args.length < 2) { p.sendMessage("§c/party accept <LeaderUUID>"); return true; }
+                try {
+                    java.util.UUID leaderId = java.util.UUID.fromString(args[1]);
+                    if (pm.join(p.getUniqueId(), leaderId)) {
+                        p.sendMessage("§aEinladung angenommen.");
+                    } else {
+                        p.sendMessage("§cAnnahme fehlgeschlagen (keine gültige Einladung).");
+                    }
+                } catch (IllegalArgumentException ex) {
+                    p.sendMessage("§cUngültige Leader-UUID.");
+                }
+                return true;
+            case "decline":
+                if (args.length < 2) { p.sendMessage("§c/party decline <LeaderUUID>"); return true; }
+                try {
+                    java.util.UUID leaderId = java.util.UUID.fromString(args[1]);
+                    // Einladung als abgelaufen markieren/entfernen
+                    // Ein einfacher Weg: erneut invite prüfen und löschen
+                    // Direktes Entfernen:
+                    try {
+                        java.lang.reflect.Field invF = org.bysenom.minecraftSurvivors.manager.PartyManager.class.getDeclaredField("invites");
+                        invF.setAccessible(true);
+                        java.util.Map<java.util.UUID, ?> invites = (java.util.Map<java.util.UUID, ?>) invF.get(pm);
+                        invites.remove(p.getUniqueId());
+                    } catch (Throwable ignored) {}
+                    p.sendMessage("§7Einladung abgelehnt.");
+                } catch (IllegalArgumentException ex) {
+                    p.sendMessage("§cUngültige Leader-UUID.");
+                }
+                return true;
             case "list":
                 PartyManager.Party party = pm.getPartyOf(p.getUniqueId());
                 if (party == null) { p.sendMessage("§7Keine Party."); return true; }

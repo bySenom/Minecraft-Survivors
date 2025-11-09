@@ -319,11 +319,36 @@ public class LootchestListener implements Listener {
             return base;
         }
         private void setFinal(int center) {
-            clearReelColumns(inv, center);
-            ItemStack finalIcon = iconFor(hit);
-            safeSet(inv, center, finalIcon);
-            safeSet(inv, center-9, fadedIconFor(hit));
-            safeSet(inv, center+9, fadedIconFor(hit));
+            int sz = Math.max(1, symbols.size());
+            ItemStack cur = symbols.get(Math.floorMod(center==11?posA:(center==13?posB:posC), sz));
+            inv.setItem(center, cur);
+        }
+        private void applyReward(Player p, java.util.Map<String,Object> reward) {
+            // Frühzeitiger Knockback bevor Inventar geschlossen wird und Reward angewandt wird
+            try { plugin.getGameManager().getSpawnManager().repelMobsAround(p, 6.0, 1.0, true); } catch (Throwable ignored) {}
+            if (reward == null) { p.sendMessage("§eDie Kiste war leer…"); return; }
+            Object oType = reward.get("type");
+            Object oVal = reward.get("value");
+            Object oName = reward.get("name");
+            String type = (oType == null) ? "UNKNOWN" : String.valueOf(oType);
+            double val = (oVal == null) ? 0.0 : parseDoubleSafe(oVal);
+            String nm = (oName == null) ? type : String.valueOf(oName);
+            SurvivorPlayer sp = plugin.getPlayerManager().get(p.getUniqueId());
+            switch (type.toUpperCase()) {
+                case "DAMAGE_MULT": sp.addDamageMult(val); break;
+                case "DAMAGE_ADD": sp.addBonusDamage(val); break;
+                case "FLAT_DAMAGE": sp.addFlatDamage(val); break;
+                case "RADIUS_MULT": sp.addRadiusMult(val); break;
+                case "PALADIN_HEAL": sp.addHealBonus(val); break;
+                case "SPEED": sp.addMoveSpeedMult(val); break;
+                case "ATTACK_SPEED": sp.addAttackSpeedMult(val); break;
+                case "RESIST": sp.addDamageResist(val); break;
+                case "LUCK": sp.addLuck(val); break;
+                case "HEALTH_HEARTS": sp.addExtraHearts((int)Math.round(val)); break;
+                default: p.sendMessage("§eUnbekannte Belohnung: "+type); return;
+            }
+            try { p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.0f); } catch (Throwable ignored) {}
+            p.sendMessage("§aGewonnen: "+nm+" §7("+val+")");
         }
     }
 

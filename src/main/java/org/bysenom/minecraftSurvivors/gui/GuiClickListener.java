@@ -129,7 +129,27 @@ public class GuiClickListener implements Listener {
                 sp.setReady(nr);
                 player.sendMessage(nr ? "§aBereit gesetzt." : "§eBereitschaft aufgehoben.");
                 try { plugin.getScoreboardManager().forceUpdate(player); } catch (Throwable ignored) {}
-                try { plugin.getGameManager().requestAutoStartIfAllReady(); } catch (Throwable ignored) {}
+                if (nr) {
+                    // Solo Auto-Start oder Party-Vote
+                    try {
+                        var pm = plugin.getPartyManager();
+                        var party = pm != null ? pm.getPartyOf(player.getUniqueId()) : null;
+                        if (party == null) {
+                            // Solo -> sofort Countdown ohne weitere Ready-Anforderung
+                            plugin.getGameManager().trySoloAutoStart(player);
+                        } else if (party.getLeader().equals(player.getUniqueId())) {
+                            // Leader startet Abstimmung
+                            int voteSec = Math.max(5, plugin.getConfigUtil().getInt("lobby.party-vote.seconds", 15));
+                            plugin.getGameManager().beginPartyStartVote(party, voteSec);
+                        } else {
+                            player.sendMessage("§7Warte auf Party-Leader für Start-Abstimmung.");
+                        }
+                    } catch (Throwable ignored) {}
+                }
+                else {
+                    // Ready entfernt -> Countdown abbrechen falls läuft
+                    try { plugin.getGameManager().abortStartCountdown("Player unready"); } catch (Throwable ignored) {}
+                }
                 return;
             }
             default -> {}
@@ -148,12 +168,20 @@ public class GuiClickListener implements Listener {
             var sp = plugin.getPlayerManager().get(player.getUniqueId());
             if (sp != null) {
                 sp.setSelectedClass(chosen);
-                // NICHT automatisch ready setzen; Spieler muss toggle_ready klicken
                 try { plugin.getGameManager().enterSurvivorsContext(player.getUniqueId()); } catch (Throwable ignored) {}
-                player.sendMessage("§aKlasse gewählt: §f" + chosen.name() + " §7(Nutze 'Bereit' um Countdown zu starten)");
+                // Unterscheide Solo vs. Party
+                boolean inParty = false;
+                try { var pm = plugin.getPartyManager(); var party = pm != null ? pm.getPartyOf(player.getUniqueId()) : null; inParty = (party != null); } catch (Throwable ignored) {}
+                if (inParty) {
+                    player.sendMessage("§aKlasse gewählt: §f" + chosen.name() + " §7(Leader startet Start-Abstimmung über 'Bereit')");
+                } else {
+                    player.sendMessage("§aKlasse gewählt: §f" + chosen.name() + " §7(Countdown startet automatisch – kein 'Bereit' nötig)");
+                    // Solo: sofort Countdown versuchen
+                    try { plugin.getGameManager().trySoloAutoStart(player); } catch (Throwable ignored) {}
+                }
                 try { player.playSound(player.getLocation(), org.bukkit.Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.3f); } catch (Throwable ignored) {}
                 try { plugin.getScoreboardManager().forceUpdate(player); } catch (Throwable ignored) {}
-                // Autostart nur wenn alle bereit sind
+                // Für Party-Fall weiterhin AutoStart prüfen, falls Konfiguration all-ready nutzt
                 try { plugin.getGameManager().requestAutoStartIfAllReady(); } catch (Throwable ignored) {}
             }
             guiManager.openMainMenu(player);
@@ -299,6 +327,23 @@ public class GuiClickListener implements Listener {
                 } catch (Throwable t) { plugin.getLogger().warning("cfg_inc/dec failed: " + t.getMessage()); player.sendMessage("§cFehler beim Setzen"); }
                 try { guiManager.openAdminConfigKeyEditor(player, fullPath); } catch (Throwable ignored) {}
             }
+        }
+
+        if (action.startsWith("party_vote_yes:")) {
+            try {
+                String leaderStr = action.substring("party_vote_yes:".length());
+                java.util.UUID leader = java.util.UUID.fromString(leaderStr);
+                plugin.getGameManager().handlePartyVote(leader, player.getUniqueId(), true);
+            } catch (Throwable ignored) {}
+            return;
+        }
+        if (action.startsWith("party_vote_no:")) {
+            try {
+                String leaderStr = action.substring("party_vote_no:".length());
+                java.util.UUID leader = java.util.UUID.fromString(leaderStr);
+                plugin.getGameManager().handlePartyVote(leader, player.getUniqueId(), false);
+            } catch (Throwable ignored) {}
+            return;
         }
     }
 }

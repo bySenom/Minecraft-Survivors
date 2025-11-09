@@ -205,6 +205,7 @@ public class GameManager {
         spawnManager.stopContinuous();
         spawnManager.clearWaveMobs();
         abilityManager.stop();
+        try { plugin.getSkillManager().clearLingeringEffects(); } catch (Throwable ignored) {}
         if (xpHudTask != null) xpHudTask.cancel();
         try { plugin.getShopNpcManager().despawnAll(); } catch (Throwable ignored) {}
         // Scoreboard soll nach Tod bestehen bleiben -> Tasks beenden aber nicht resetten
@@ -494,5 +495,120 @@ public class GameManager {
             int cd = Math.max(3, plugin.getConfigUtil().getInt("lobby.autostart-countdown-seconds", 5));
             startGameWithCountdown(cd);
         }
+    }
+
+    // Party-Start-Abstimmung
+    private static final class PartyVoteState {
+        final java.util.Set<java.util.UUID> members;
+        final java.util.Set<java.util.UUID> yes = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+        final java.util.Set<java.util.UUID> no = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+        org.bukkit.scheduler.BukkitTask timeoutTask;
+        PartyVoteState(java.util.Set<java.util.UUID> members) { this.members = members; }
+    }
+    private final java.util.Map<java.util.UUID, PartyVoteState> partyVotes = new java.util.concurrent.ConcurrentHashMap<>(); // key: leader UUID
+
+    public synchronized void beginPartyStartVote(org.bysenom.minecraftSurvivors.manager.PartyManager.Party party, int seconds) {
+        if (party == null) return;
+        java.util.UUID leader = party.getLeader();
+        if (leader == null) return;
+        if (partyVotes.containsKey(leader)) return; // bereits laufend
+        java.util.Set<java.util.UUID> online = new java.util.HashSet<>(plugin.getPartyManager().onlineMembers(party));
+        if (online.isEmpty()) return;
+        PartyVoteState vs = new PartyVoteState(online);
+        partyVotes.put(leader, vs);
+        int sec = Math.max(5, seconds);
+        // GUI öffnen für alle Mitglieder
+        for (java.util.UUID u : online) {
+            org.bukkit.entity.Player pl = org.bukkit.Bukkit.getPlayer(u);
+            if (pl == null || !pl.isOnline()) continue;
+            try {
+                org.bukkit.inventory.Inventory inv = org.bukkit.Bukkit.createInventory(null, 9, net.kyori.adventure.text.Component.text("Party Start bestätigen"));
+                java.util.List<net.kyori.adventure.text.Component> loreY = java.util.List.of(net.kyori.adventure.text.Component.text("Starte jetzt die Runde").color(net.kyori.adventure.text.format.NamedTextColor.GRAY));
+                java.util.List<net.kyori.adventure.text.Component> loreN = java.util.List.of(net.kyori.adventure.text.Component.text("Abbrechen").color(net.kyori.adventure.text.format.NamedTextColor.GRAY));
+                inv.setItem(3, org.bysenom.minecraftSurvivors.gui.GuiTheme.createAction(plugin, org.bukkit.Material.LIME_WOOL, net.kyori.adventure.text.Component.text("Bestätigen").color(net.kyori.adventure.text.format.NamedTextColor.GREEN), loreY, "party_vote_yes:"+leader, false));
+                inv.setItem(5, org.bysenom.minecraftSurvivors.gui.GuiTheme.createAction(plugin, org.bukkit.Material.RED_WOOL, net.kyori.adventure.text.Component.text("Ablehnen").color(net.kyori.adventure.text.format.NamedTextColor.RED), loreN, "party_vote_no:"+leader, false));
+                pl.openInventory(inv);
+                try { pl.sendMessage(net.kyori.adventure.text.Component.text("Bestätige den Start ("+sec+"s)").color(net.kyori.adventure.text.format.NamedTextColor.YELLOW)); } catch (Throwable ignored) {}
+            } catch (Throwable ignored) {}
+        }
+        // Timeout
+        vs.timeoutTask = org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            PartyVoteState cur = partyVotes.remove(leader);
+            if (cur != null) {
+                for (java.util.UUID u : cur.members) {
+                    org.bukkit.entity.Player pl = org.bukkit.Bukkit.getPlayer(u);
+                    if (pl != null && pl.isOnline()) pl.sendMessage(net.kyori.adventure.text.Component.text("Party-Start abgebrochen (Zeitüberschreitung)").color(net.kyori.adventure.text.format.NamedTextColor.RED));
+                }
+            }
+        }, 20L * sec);
+    }
+
+    public synchronized void handlePartyVote(java.util.UUID leader, java.util.UUID member, boolean accept) {
+        PartyVoteState vs = partyVotes.get(leader);
+        if (vs == null) return;
+        if (!vs.members.contains(member)) return;
+        if (accept) vs.yes.add(member); else vs.no.add(member);
+        // Schließe GUI
+        try { org.bukkit.entity.Player pl = org.bukkit.Bukkit.getPlayer(member); if (pl != null) pl.closeInventory(); } catch (Throwable ignored) {}
+        if (!vs.no.isEmpty()) {
+            // Abbruch
+            partyVotes.remove(leader);
+            if (vs.timeoutTask != null) try { vs.timeoutTask.cancel(); } catch (Throwable ignored) {}
+            for (java.util.UUID u : vs.members) {
+                org.bukkit.entity.Player pl = org.bukkit.Bukkit.getPlayer(u);
+                if (pl != null && pl.isOnline()) pl.sendMessage(net.kyori.adventure.text.Component.text("Party-Start abgelehnt").color(net.kyori.adventure.text.format.NamedTextColor.RED));
+            }
+            return;
+        }
+        if (vs.yes.containsAll(vs.members)) {
+            // Alle bestätigt -> Start erzwingen
+            partyVotes.remove(leader);
+            if (vs.timeoutTask != null) try { vs.timeoutTask.cancel(); } catch (Throwable ignored) {}
+            int cd = Math.max(1, plugin.getConfigUtil().getInt("lobby.party-countdown-seconds", 5));
+            startGameWithCountdownForce(cd);
+        }
+    }
+
+    public synchronized void startGameWithCountdownForce(int seconds) {
+        if (starting || state == GameState.RUNNING) return;
+        starting = true;
+        final int total = Math.max(1, seconds);
+        final int[] remaining = { total };
+        if (countdownTask != null) countdownTask.cancel();
+        countdownTask = org.bukkit.Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            try {
+                java.util.List<org.bukkit.entity.Player> online = new java.util.ArrayList<>(org.bukkit.Bukkit.getOnlinePlayers());
+                for (org.bukkit.entity.Player p : online) {
+                    try {
+                        net.kyori.adventure.title.Title.Times times = net.kyori.adventure.title.Title.Times.times(java.time.Duration.ofMillis(80), java.time.Duration.ofMillis(900), java.time.Duration.ofMillis(20));
+                        net.kyori.adventure.title.Title t = net.kyori.adventure.title.Title.title(
+                                net.kyori.adventure.text.Component.text(String.valueOf(remaining[0]), net.kyori.adventure.text.format.NamedTextColor.GOLD),
+                                net.kyori.adventure.text.Component.text("Spiel startet...", net.kyori.adventure.text.format.NamedTextColor.GRAY), times);
+                        p.showTitle(t);
+                        try { p.playSound(p.getLocation(), org.bukkit.Sound.BLOCK_NOTE_BLOCK_HAT, 0.6f, 1.9f); } catch (Throwable ignored) {}
+                    } catch (Throwable ignored) {}
+                }
+                if (remaining[0] <= 0) {
+                    try { for (org.bukkit.entity.Player p : online) { try { p.playSound(p.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 0.9f, 1.2f); } catch (Throwable ignored) {} } } catch (Throwable ignored) {}
+                    org.bukkit.scheduler.BukkitTask t = countdownTask; if (t != null) t.cancel();
+                    countdownTask = null; starting = false; startGame(); return;
+                }
+                remaining[0]--;
+            } catch (Throwable ignored) {}
+        }, 0L, 20L);
+    }
+
+    // Helfer: Solo Auto-Start
+    public void trySoloAutoStart(org.bukkit.entity.Player starter) {
+        if (starter == null) return;
+        try {
+            org.bysenom.minecraftSurvivors.manager.PartyManager pm = plugin.getPartyManager();
+            org.bysenom.minecraftSurvivors.manager.PartyManager.Party party = pm != null ? pm.getPartyOf(starter.getUniqueId()) : null;
+            boolean enabled = plugin.getConfigUtil().getBoolean("lobby.solo-autostart.enabled", true);
+            if (party == null && enabled) {
+                int cd = Math.max(1, plugin.getConfigUtil().getInt("lobby.solo-countdown-seconds", 3));
+                startGameWithCountdownForce(cd);
+            }
+        } catch (Throwable ignored) {}
     }
 }

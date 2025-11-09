@@ -36,6 +36,7 @@ public class PlayerDeathListener implements Listener {
             } catch (Throwable ignored) {}
             // Coins reset per Run
             if (sp != null) sp.setCoins(0);
+            try { org.bysenom.minecraftSurvivors.MinecraftSurvivors.getInstance().getSkillManager().clearLingeringEffects(); } catch (Throwable ignored) {}
             // Multiplayer: Run-Ende für alle, und Skills nicht behalten
             try {
                 for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {

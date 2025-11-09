@@ -32,6 +32,11 @@ public class SkillManager {
     public void start() { stop(); task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 0L, 20L); }
     public void stop() { if (task != null) { task.cancel(); task = null; } }
 
+    public void clearLingeringEffects() {
+        lingeringVoidFields.clear();
+        temporalAnchors.clear();
+    }
+
     private void tick() {
         long now = System.currentTimeMillis();
         org.bysenom.minecraftSurvivors.model.GameState gs = null;

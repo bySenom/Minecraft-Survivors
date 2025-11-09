@@ -27,6 +27,10 @@ public class LevelUpMenuListener implements Listener {
         ItemStack display = e.getCurrentItem();
         if (display == null) return;
 
+        Player player = (Player) e.getWhoClicked();
+        // Früh Knockback (leicht reduziert Radius/Stärke)
+        try { guiManager.getGameManager().getSpawnManager().repelMobsAround(player, 6.0, 1.0, true); } catch (Throwable ignored) {}
+
         // Versuche die Level-Nummer aus dem Titel zu parsen: "... (Level X)"
         int level = 1;
         try {
@@ -40,8 +44,6 @@ public class LevelUpMenuListener implements Listener {
             }
         } catch (Exception ignored) {
         }
-
-        Player player = (Player) e.getWhoClicked();
 
         if (display.getItemMeta() != null && display.getItemMeta().hasDisplayName()) {
             guiManager.handleLevelChoice(player, display, level);
@@ -58,7 +60,8 @@ public class LevelUpMenuListener implements Listener {
             if (guiManager != null && guiManager.getGameManager() != null) {
                 java.util.UUID uuid = e.getPlayer().getUniqueId();
                 org.bukkit.entity.Player p = (org.bukkit.entity.Player) e.getPlayer();
-                try { guiManager.getGameManager().getSpawnManager().repelMobsAround(p, 8.0, 1.2, true); } catch (Throwable ignored) {}
+                // Späterer Knockback abgeschwächt oder ganz entfernt; hier entfernt um Doppel-Effekt zu vermeiden
+                // guiManager.getGameManager().getSpawnManager().repelMobsAround(p, 8.0, 1.2, true);
                 guiManager.getGameManager().resumeForPlayer(uuid);
                 guiManager.getGameManager().tryOpenNextQueued(uuid);
             }
