@@ -232,4 +232,7 @@ public class QueueManager {
             plugin.getLogger().info("Queue persist loaded: " + queue.size() + " queued, " + admitted.size() + " admitted");
         } catch (Throwable t) { plugin.getLogger().warning("Queue persist load failed: " + t.getMessage()); }
     }
+
+    public int getMaxAdmitted() { return maxAdmitted(); }
+    public boolean isFull() { int m = maxAdmitted(); return m > 0 && admitted.size() >= m; }
 }

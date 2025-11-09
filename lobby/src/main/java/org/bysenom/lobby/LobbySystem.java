@@ -102,6 +102,24 @@ public final class LobbySystem extends JavaPlugin {
         setupBossBar();
         setupAutoOpenOnJoin();
         setupAutoStartLoop();
+        // Poll for Survivors game end to reset admission
+        Bukkit.getScheduler().runTaskTimer(this, () -> {
+            try {
+                org.bukkit.plugin.Plugin pl = getServer().getPluginManager().getPlugin("MinecraftSurvivors");
+                if (pl == null || !pl.isEnabled()) return;
+                Object gm = pl.getClass().getMethod("getGameManager").invoke(pl);
+                Object state = gm.getClass().getMethod("getState").invoke(gm);
+                String s = String.valueOf(state);
+                if ("ENDED".equalsIgnoreCase(s)) {
+                    queueManager.resetAdmission();
+                    // BossBar neu synchronisieren
+                    for (java.util.UUID id : queueManager.snapshot()) {
+                        Player p = Bukkit.getPlayer(id);
+                        if (p != null && p.isOnline()) addToBossBar(p);
+                    }
+                }
+            } catch (Throwable ignored) {}
+        }, 40L, 40L);
         // Entfernt: sofortiger spawnAllForOnlineViewers(); (nun verzögert oben)
         getLogger().info("LobbySystem enabled.");
     }
@@ -236,6 +254,24 @@ public final class LobbySystem extends JavaPlugin {
         setupBossBar();
         setupAutoOpenOnJoin();
         setupAutoStartLoop();
+        // Poll for Survivors game end to reset admission
+        Bukkit.getScheduler().runTaskTimer(this, () -> {
+            try {
+                org.bukkit.plugin.Plugin pl = getServer().getPluginManager().getPlugin("MinecraftSurvivors");
+                if (pl == null || !pl.isEnabled()) return;
+                Object gm = pl.getClass().getMethod("getGameManager").invoke(pl);
+                Object state = gm.getClass().getMethod("getState").invoke(gm);
+                String s = String.valueOf(state);
+                if ("ENDED".equalsIgnoreCase(s)) {
+                    queueManager.resetAdmission();
+                    // BossBar neu synchronisieren
+                    for (java.util.UUID id : queueManager.snapshot()) {
+                        Player p = Bukkit.getPlayer(id);
+                        if (p != null && p.isOnline()) addToBossBar(p);
+                    }
+                }
+            } catch (Throwable ignored) {}
+        }, 40L, 40L);
     }
 
     private boolean canStartWithCurrentAdmission(int minNeeded) {

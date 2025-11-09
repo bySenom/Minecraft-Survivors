@@ -32,7 +32,14 @@ public class QueueCommand implements CommandExecutor, TabCompleter {
                 boolean admitted = qm.isAdmitted(p.getUniqueId());
                 int interval = Math.max(1, LobbySystem.get().getConfig().getInt("admission.interval-seconds", 3));
                 int eta = pos > 0 ? (pos - 1) * interval : -1;
-                p.sendMessage("§bQueue-Status: §7Pos §e" + pos + " §7• Zugelassen: " + (admitted ? "§aJa" : "§cNein") + (eta >= 0 ? " §7• ETA ~§e" + eta + "s" : ""));
+                String fullHint = qm.isFull() && !admitted ? " §c(Volle Zugangs-Slots)" : "";
+                p.sendMessage("§bQueue-Status: §7Pos §e" + pos + " §7• Zugelassen: " + (admitted ? "§aJa" : "§cNein") + (eta >= 0 ? " §7• ETA ~§e" + eta + "s" : "") + fullHint);
+                return true;
+            }
+            case "stats": {
+                if (!p.hasPermission("lobby.admin")) { p.sendMessage("§cKeine Berechtigung."); return true; }
+                double avg = qm.getAverageWaitSeconds();
+                p.sendMessage("§eQueue Stats: §7Queued=" + qm.size() + " Admitted=" + qm.admittedCount() + " MaxAdmitted=" + qm.getMaxAdmitted() + " AvgWait=" + String.format(java.util.Locale.ROOT, "%.1fs", avg));
                 return true;
             }
             case "next":
@@ -41,7 +48,7 @@ public class QueueCommand implements CommandExecutor, TabCompleter {
                 p.sendMessage(id == null ? "§eNiemand in der Queue." : "§aNächster Spieler zugelassen.");
                 return true;
             default:
-                sender.sendMessage("Usage: /queue join|leave|status|next");
+                sender.sendMessage("Usage: /queue join|leave|status|stats|next");
                 return true;
         }
     }

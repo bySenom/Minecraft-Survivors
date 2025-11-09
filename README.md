@@ -64,6 +64,26 @@ Wichtige config‑Keys (siehe `plugins/MinecraftSurvivors/config.yml`):
 
 ---
 
+## LobbySystem Quickstart
+
+Das optionale `LobbySystem` Plugin steuert Warteschlange & gestaffelten Eintritt in Minecraft Survivors.
+
+1. JAR in denselben Server laden (Plugins: MinecraftSurvivors + LobbySystem).
+2. Wichtige Config-Keys (`plugins/LobbySystem/config.yml`):
+   - `admission.enabled` (true/false) – aktiviert Auto-Zulassung.
+   - `admission.interval-seconds` – Sekunden zwischen Zulassungen.
+   - `admission.max-admitted` – maximale parallele zugelassene Spieler (0 = unbegrenzt).
+   - `admission.timeout-seconds` – Zeit bis Admission verfällt, wenn Spieler nicht startet.
+   - `admission.timeout-action` – `remove` oder `recycle` (zurück ans Ende).
+   - `queue.rejoin-cooldown-seconds` – Anti-Spam Cooldown für /queue join.
+   - `queue.persist-enabled` – Queue beim Server-Neustart erhalten.
+   - `queue.debug` – ausführliche Logausgaben.
+3. Spieler nutzen `/queue join` → Auto-Zulassung in Wellen. Status mit `/queue status`.
+4. Admins: `/queue stats`, `/queue next`.
+5. Auto-Start Survivors nach Mindestanzahl via `survivors.auto-dispatch-enabled=true` in LobbySystem Config.
+
+---
+
 ## Architektur (Kurz)
 
 Wichtige Pakete:
