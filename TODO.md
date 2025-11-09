@@ -10,15 +10,15 @@ Dies ist die Aufgabenliste für das Kernspiel (Minecraft Survivors). Das LobbySy
 
 ---
 Status-Update (2025-11-09)
-- Erledigt: MAX_HEALTH Reset; CombatEngine zentralisiert.
-- Endboss (100% Enrage): Grundgerüst aktiv – Meteor Block Cleanup noch OFFEN.
+- Erledigt: MAX_HEALTH Reset; CombatEngine zentralisiert; Endboss Meteor-Cleanup (FallingBlock Blockplacement verhindert, forceEnd bei Stop).
+- Endboss: Phase-/Ability-Telegraphs Feintuning OFFEN.
 - FX-Throttling: TEILWEISE (Spieler-FX Toggle vorhanden), Rate-Limiter noch OFFEN.
 - Persistenz/Reset neuer Stats: TEILWEISE (Speicher vorhanden), Reset-Logik für neue Stats konsolidieren OFFEN.
 - Wellen/Continuous Stabilität: LAUFEND; Monitor für Zombie-Tasks noch OFFEN.
 - Doku: OFFEN.
 
 ## P1 (Release-kritisch)
-
+- Fix Commit und Push sometimes failing (only generate commit I will push it by myself)
 
 ### 1. Endboss (100% Enrage) fertigstellen
 Beschreibung: Custom Boss mit Phasen (P1/P2/P3), Mechaniken (Meteor Barrage, Lightning Beam, Summons), klaren Telegraphs.
@@ -26,7 +26,7 @@ Akzeptanzkriterien:
 - Boss spawnt verlässlich, Phasenwechsel funktionieren.
 - Telegraphs (Particles/Sounds) + Angriffsschaden/Tempo ausgewogen.
 - Kein Wither-Placeholder mehr.
-- Remove placed blocks from meteo on Playerdeath/Round end or after killed the boss
+- Meteor-FallingBlocks hinterlassen keine Blöcke (DONE)
 
 ### 2. Neue Stats in UI/Progression verfügbar
 Beschreibung: LevelUp/Shop/Loot bieten und zeigen neue Stats (Max Health, HP Regen, Shield, Armor, Evasion, Lifesteal, Thorns, Crit Chance, Crit Damage, Projectile Count, Attack Speed, Projectile Bounce, Size, Duration, Damage vs. Elites/Bosses, Knockback, Jump Height, XP Gain, Elite Spawn Increase, Powerup Multiplier).

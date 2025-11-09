@@ -29,6 +29,7 @@ public class BossManager {
     private BossBar bossbar;
     private BukkitTask task;
     private final Set<UUID> holograms = new HashSet<>();
+    private final java.util.Set<java.util.UUID> meteorEntities = new java.util.HashSet<>();
 
     private int abilityTick = 0; // counts ticks for ability cadence
     private java.util.Random rnd = new java.util.Random();
@@ -248,6 +249,7 @@ public class BossManager {
             try { org.bukkit.entity.Entity e = Bukkit.getEntity(id); if (e != null) e.remove(); } catch (Throwable ignored) {}
         }
         holograms.clear();
+        cleanupProjectiles();
     }
 
     private void updateHologram() {
@@ -342,15 +344,13 @@ public class BossManager {
         int delayStep = 10; // 0.5s zwischen Einschlägen
         for (int i=0;i<targets.size();i++) {
             final Location strike = targets.get(i).clone();
-            // Warnring
+            // Warnringe in zwei Stufen
             try {
                 int pts = 28; double warnR = 2.2;
-                for (int k=0;k<pts;k++) {
-                    double a = 2*Math.PI*k/pts;
-                    double x = strike.getX()+Math.cos(a)*warnR;
-                    double z = strike.getZ()+Math.sin(a)*warnR;
-                    strike.getWorld().spawnParticle(Particle.ASH, new Location(strike.getWorld(), x, strike.getY()+0.1, z), 1,0,0,0,0);
-                }
+                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRing(strike.getWorld(), strike.clone().add(0,0.1,0), warnR, pts, Particle.ASH);
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRing(strike.getWorld(), strike.clone().add(0,0.1,0), warnR, pts, Particle.CRIT);
+                }, Math.max(1L, delayStep/2L));
             } catch (Throwable ignored) {}
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 // Spawn falling block meteor entity briefly for impact visual
@@ -359,8 +359,10 @@ public class BossManager {
                         f.setBlockData(org.bukkit.Material.MAGMA_BLOCK.createBlockData());
                         f.setDropItem(false); f.setHurtEntities(false); f.setGravity(true);
                     });
+                    try { fb.setMetadata("ms_boss_meteor", new org.bukkit.metadata.FixedMetadataValue(plugin, true)); } catch (Throwable ignored) {}
+                    meteorEntities.add(fb.getUniqueId());
                     fb.setVelocity(new org.bukkit.util.Vector(0, -1.2, 0));
-                    Bukkit.getScheduler().runTaskLater(plugin, () -> { try { fb.remove(); } catch (Throwable ignored) {} }, 30L);
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> { try { fb.remove(); } catch (Throwable ignored) {} meteorEntities.remove(fb.getUniqueId()); }, 30L);
                 } catch (Throwable ignored) {}
                 try { strike.getWorld().playSound(strike, org.bukkit.Sound.ENTITY_GENERIC_EXPLODE, 0.9f, 0.8f);} catch (Throwable ignored) {}
                 try { strike.getWorld().spawnParticle(Particle.EXPLOSION, strike.clone().add(0,0.6,0), 1); } catch (Throwable ignored) {}
@@ -381,17 +383,16 @@ public class BossManager {
                 .max(java.util.Comparator.comparingDouble(p -> p.getLocation().distanceSquared(boss.getLocation()))).orElse(null);
         if (target == null) return;
         Location strike = target.getLocation().clone();
-        strike.getWorld().playSound(strike, org.bukkit.Sound.ENTITY_PHANTOM_SWOOP, 0.8f, 0.5f);
-        // Vorwarn-Ring
+        try { strike.getWorld().playSound(strike, org.bukkit.Sound.BLOCK_BEACON_AMBIENT, 0.5f, 1.6f);} catch (Throwable ignored) {}
+        // Vorwarn-Ringe in zwei Stufen
         try {
             int pts = 32;
             double warnR = 2.5;
-            for (int i=0;i<pts;i++) {
-                double a = 2*Math.PI*i/pts;
-                double x = strike.getX()+Math.cos(a)*warnR;
-                double z = strike.getZ()+Math.sin(a)*warnR;
-                strike.getWorld().spawnParticle(Particle.END_ROD, new Location(strike.getWorld(), x, strike.getY()+0.1, z), 1,0,0,0,0);
-            }
+            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRing(strike.getWorld(), strike.clone().add(0,0.1,0), warnR, pts, Particle.END_ROD);
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRing(strike.getWorld(), strike.clone().add(0,0.1,0), warnR, pts, Particle.CRIT);
+                try { strike.getWorld().playSound(strike, org.bukkit.Sound.BLOCK_NOTE_BLOCK_HAT, 0.5f, 1.9f);} catch (Throwable ignored) {}
+            }, 20L);
         } catch (Throwable ignored) {}
         // Einschlag nach Delay
         double dmg = Math.max(8.0, 8.0 + Math.log1p(power)*4.0);
@@ -402,8 +403,10 @@ public class BossManager {
                     f.setBlockData(org.bukkit.Material.MAGMA_BLOCK.createBlockData());
                     f.setDropItem(false); f.setHurtEntities(false); f.setGravity(true);
                 });
+                try { fb.setMetadata("ms_boss_meteor", new org.bukkit.metadata.FixedMetadataValue(plugin, true)); } catch (Throwable ignored) {}
+                meteorEntities.add(fb.getUniqueId());
                 fb.setVelocity(new org.bukkit.util.Vector(0, -1.25, 0));
-                Bukkit.getScheduler().runTaskLater(plugin, () -> { try { fb.remove(); } catch (Throwable ignored) {} }, 40L);
+                Bukkit.getScheduler().runTaskLater(plugin, () -> { try { fb.remove(); } catch (Throwable ignored) {} meteorEntities.remove(fb.getUniqueId()); }, 40L);
             } catch (Throwable ignored) {}
             try { strike.getWorld().playSound(strike, org.bukkit.Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 0.9f);} catch (Throwable ignored) {}
             try { strike.getWorld().spawnParticle(Particle.EXPLOSION, strike.clone().add(0,0.6,0), 1); } catch (Throwable ignored) {}
@@ -486,23 +489,36 @@ public class BossManager {
         double radius = plugin.getConfigUtil().getDouble("endgame.boss.shockwave.radius", 8.0);
         double dmg = Math.max(5.0, 5.0 + Math.log1p(power)*2.5);
         Location c = boss.getLocation();
-        try { boss.getWorld().playSound(c, org.bukkit.Sound.ENTITY_WARDEN_ROAR, 1.0f, 0.5f);} catch (Throwable ignored) {}
-        try {
-            int pts = 48;
-            for (int i=0;i<pts;i++) {
-                double a = 2*Math.PI*i/pts;
-                double x = c.getX()+Math.cos(a)*radius;
-                double z = c.getZ()+Math.sin(a)*radius;
-                boss.getWorld().spawnParticle(Particle.CRIT, new Location(boss.getWorld(), x, c.getY()+0.2, z), 1,0.02,0.02,0.02,0.0);
-            }
-        } catch (Throwable ignored) {}
-        for (Player pl : boss.getWorld().getPlayers()) {
-            double d2 = pl.getLocation().distanceSquared(c);
-            if (d2 <= radius*radius) {
-                try { pl.damage(dmg); } catch (Throwable ignored) {}
-                try { org.bukkit.util.Vector knock = pl.getLocation().toVector().subtract(c.toVector()).normalize().multiply(1.0).setY(0.6); pl.setVelocity(knock);} catch (Throwable ignored) {}
-            }
+        // Telegraph: 1s Pulsringe, dann Effekt
+        try { boss.getWorld().playSound(c, org.bukkit.Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 0.8f, 1.6f);} catch (Throwable ignored) {}
+        for (int t=0; t<20; t+=5) {
+            final int tt = t;
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                try {
+                    org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRing(c.getWorld(), c.clone().add(0,0.2,0), radius, 48, org.bukkit.Particle.CRIT);
+                    c.getWorld().spawnParticle(org.bukkit.Particle.END_ROD, c.clone().add(0,0.3,0), 6, 0.2,0.2,0.2, 0.01);
+                } catch (Throwable ignored2) {}
+            }, tt);
         }
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            try { boss.getWorld().playSound(c, org.bukkit.Sound.ENTITY_WARDEN_ROAR, 1.0f, 0.5f);} catch (Throwable ignored) {}
+            try {
+                int pts = 48;
+                for (int i=0;i<pts;i++) {
+                    double a = 2*Math.PI*i/pts;
+                    double x = c.getX()+Math.cos(a)*radius;
+                    double z = c.getZ()+Math.sin(a)*radius;
+                    boss.getWorld().spawnParticle(Particle.CRIT, new Location(boss.getWorld(), x, c.getY()+0.2, z), 1,0.02,0.02,0.02,0.0);
+                }
+            } catch (Throwable ignored) {}
+            for (Player pl : boss.getWorld().getPlayers()) {
+                double d2 = pl.getLocation().distanceSquared(c);
+                if (d2 <= radius*radius) {
+                    try { pl.damage(dmg); } catch (Throwable ignored) {}
+                    try { org.bukkit.util.Vector knock = pl.getLocation().toVector().subtract(c.toVector()).normalize().multiply(1.0).setY(0.6); pl.setVelocity(knock);} catch (Throwable ignored) {}
+                }
+            }
+        }, 20L);
     }
 
     private void broadcastSpawn() {
@@ -529,5 +545,22 @@ public class BossManager {
                 a.getWorld().spawnParticle(type, new Location(a.getWorld(), p.getX(), p.getY(), p.getZ()), 1, 0.01,0.01,0.01, 0.0);
             }
         } catch (Throwable ignored) {}
+    }
+
+    private void cleanupProjectiles() {
+        for (java.util.UUID id : new java.util.HashSet<>(meteorEntities)) {
+            try { org.bukkit.entity.Entity e = org.bukkit.Bukkit.getEntity(id); if (e != null) e.remove(); } catch (Throwable ignored) {}
+            meteorEntities.remove(id);
+        }
+    }
+
+    public void forceEnd() {
+        try {
+            if (boss != null) {
+                try { boss.remove(); } catch (Throwable ignored) {}
+                boss = null;
+            }
+        } catch (Throwable ignored) {}
+        try { clearUi(); } catch (Throwable ignored) {}
     }
 }
