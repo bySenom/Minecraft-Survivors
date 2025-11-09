@@ -31,6 +31,7 @@ public class PaladinAbility implements Ability {
 
         double baseRadius = plugin.getConfigUtil().getDouble("paladin.radius", 7.0);
         double radius = baseRadius * (1.0 + (sp != null ? sp.getRadiusMult() : 0.0));
+        if (sp != null) radius *= (1.0 + sp.getEffectiveSizeMult());
         double baseDamage = plugin.getConfigUtil().getDouble("paladin.base-damage", 2.5);
         double healBase = plugin.getConfigUtil().getDouble("paladin.heal", 1.0);
         double heal = healBase + (sp != null ? sp.getHealBonus() : 0.0);
@@ -45,7 +46,7 @@ public class PaladinAbility implements Ability {
         int repeats = Math.max(1, (int) Math.floor(1.0 + as));
 
         // spawn one pulse visual scaled to actual radius
-        try { spawnPulse(player, radius); } catch (Throwable ignored) {}
+        try { if (sp == null || sp.isFxEnabled()) spawnPulse(player, radius); } catch (Throwable ignored) {}
 
         for (int rep = 0; rep < repeats; rep++) {
             List<LivingEntity> mobs = spawnManager.getNearbyWaveMobs(loc, radius);

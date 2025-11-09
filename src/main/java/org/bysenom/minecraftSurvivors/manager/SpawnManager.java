@@ -914,6 +914,17 @@ public class SpawnManager {
             double extraPerMin = plugin.getConfigUtil().getDouble("spawn.elite.extra-chance-per-minute", 0.0);
             double minutes = getElapsedMinutes();
             double chanceF = Math.min(100.0, Math.max(0.0, baseChance + Math.max(0.0, minutes) * extraPerMin));
+            // New: add player stat ELITE_SPAWN_INCREASE within 24 blocks
+            try {
+                double add = 0.0;
+                for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
+                    if (p.getWorld() != mob.getWorld()) continue;
+                    if (p.getLocation().distanceSquared(mob.getLocation()) > 24*24) continue;
+                    var sp = plugin.getPlayerManager().get(p.getUniqueId());
+                    if (sp != null) add += Math.max(0.0, sp.getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.ELITE_SPAWN_INCREASE));
+                }
+                if (add > 0.0) chanceF = Math.min(100.0, chanceF * (1.0 + add));
+            } catch (Throwable ignored) {}
             int chance = (int) Math.round(chanceF);
             if (chance <= 0) return;
             if (random.nextInt(100) >= chance) return;
@@ -930,13 +941,11 @@ public class SpawnManager {
                     maxHp.setBaseValue(newBase);
                     mob.setHealth(Math.min(newBase, mob.getHealth()));
                 }
-            } catch (Throwable ignored) {
-            }
+            } catch (Throwable ignored) {}
             try {
                 mob.customName(net.kyori.adventure.text.Component.text("Elite " + mob.getType().name()).color(net.kyori.adventure.text.format.NamedTextColor.LIGHT_PURPLE));
                 mob.setCustomNameVisible(true);
-            } catch (Throwable ignored) {
-            }
+            } catch (Throwable ignored) {}
             // Prefer explicit Attribute SCALE if available in this server version, fallback to reflection setScale
             double scaleCfg = Math.max(1.0, plugin.getConfigUtil().getDouble("spawn.elite.size-scale", 1.5));
             try {
@@ -945,21 +954,12 @@ public class SpawnManager {
                     org.bukkit.attribute.AttributeInstance ai = mob.getAttribute(scaleAttr);
                     if (ai != null) ai.setBaseValue(scaleCfg);
                 } else {
-                    try {
-                        java.lang.reflect.Method m = mob.getClass().getMethod("setScale", float.class);
-                        m.invoke(mob, (float) scaleCfg);
-                    } catch (Throwable ignored) {
-                    }
+                    try { java.lang.reflect.Method m = mob.getClass().getMethod("setScale", float.class); m.invoke(mob, (float) scaleCfg); } catch (Throwable ignored) {}
                 }
             } catch (Throwable outerScaleEx) {
-                try {
-                    java.lang.reflect.Method m = mob.getClass().getMethod("setScale", float.class);
-                    m.invoke(mob, (float) scaleCfg);
-                } catch (Throwable ignoredScale2) {
-                }
+                try { java.lang.reflect.Method m = mob.getClass().getMethod("setScale", float.class); m.invoke(mob, (float) scaleCfg); } catch (Throwable ignoredScale2) {}
             }
-        } catch (Throwable ignored) {
-        }
+        } catch (Throwable ignored) {}
     }
 
     private static class Weighted {

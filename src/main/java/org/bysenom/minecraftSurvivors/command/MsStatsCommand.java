@@ -112,7 +112,7 @@ public class MsStatsCommand implements CommandExecutor {
         double pb = Math.max(0.0, sp.getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.PROJECTILE_BOUNCE));
         viewer.sendMessage(String.format(" §fProjectiles: §a+%.0f §7| Bounces: §a+%.0f", pc, pb));
         // Kontrolle/Größe
-        viewer.sendMessage(String.format(" §fRadius mult: §a+%.0f%%%%  §7| Duration: §a+%.0f%%%%", sp.getEffectiveRadiusMult()*100.0, Math.max(0.0, sp.getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.DURATION))*100.0));
+        viewer.sendMessage(String.format(" §fRadius mult: §a+%.0f%%%%  §7| Duration: §a+%.0f%%%%  §7| Size: §a+%.0f%%%%", sp.getEffectiveRadiusMult()*100.0, Math.max(0.0, sp.getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.DURATION))*100.0, sp.getEffectiveSizeMult()*100.0));
         // Defensiv
         viewer.sendMessage(String.format(" §fArmor: §a%.0f%%%%  §7| Evasion: §a%.0f%%%%  §7| Thorns: §a+%.0f%%%%", sp.getArmor()*100.0, sp.getEvasion()*100.0, sp.getThorns()*100.0));
         viewer.sendMessage(String.format(" §fShield: §a%.1f  §7| HP-Regen: §a%.2f/s  §7| Lifesteal: §a%.0f%%%%", sp.getShieldMax(), sp.getHpRegen(), sp.getLifesteal()*100.0));

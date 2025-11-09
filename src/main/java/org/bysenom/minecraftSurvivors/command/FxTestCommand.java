@@ -15,15 +15,23 @@ public class FxTestCommand implements CommandExecutor {
             sender.sendMessage("Nur im Spiel nutzbar.");
             return true;
         }
+        MinecraftSurvivors plugin = MinecraftSurvivors.getInstance();
+        var sp = plugin.getPlayerManager().get(p.getUniqueId());
         if (args.length == 0) {
+            p.sendMessage("§e/fx toggle §7- Fancy FX an/aus");
             p.sendMessage("§e/fx testgenkidama §7- Zeigt einen Meteor/Genkidama Effekt");
             p.sendMessage("§e/fx meteor <height> <speed> <radius> <damage> §7- Custom Meteor");
             p.sendMessage("§e/fx lightning | holy | venom | ranged | fire §7- Demo der FX-Visuals");
             return true;
         }
         String sub = args[0].toLowerCase();
-        MinecraftSurvivors plugin = MinecraftSurvivors.getInstance();
         switch (sub) {
+            case "toggle" -> {
+                boolean cur = sp != null && sp.isFxEnabled();
+                if (sp != null) sp.setFxEnabled(!cur);
+                p.sendMessage("§aFancy FX: " + (!cur ? "AN" : "AUS"));
+                return true;
+            }
             case "testgenkidama" -> {
                 Location target = p.getTargetBlockExact(25) != null ? p.getTargetBlockExact(25).getLocation() : p.getLocation();
                 target = target.clone().add(0, 1.0, 0);

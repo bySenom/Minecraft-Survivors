@@ -33,6 +33,7 @@ public class RangerAbility implements Ability {
         double radiusMult = sp != null ? sp.getRadiusMult() : 0.0;
         double minRange = minRangeBase * (1.0 + radiusMult * 0.5); // min leicht mitwachsen
         double maxRange = maxRangeBase * (1.0 + radiusMult);
+        if (sp != null) { double size = sp.getEffectiveSizeMult(); minRange *= (1.0 + size*0.5); maxRange *= (1.0 + size); }
         double baseDamage = plugin.getConfigUtil().getDouble("ranger.base-damage", 7.0);
         int level = Math.max(1, sp != null ? sp.getClassLevel() : 1);
 
@@ -44,14 +45,16 @@ public class RangerAbility implements Ability {
 
         // wind-up sparkles
         try {
-            for (int i = 0; i < 6; i++) {
-                double ang = 2 * Math.PI * i / 6.0;
-                double r = 0.5;
-                double x = loc.getX() + Math.cos(ang) * r;
-                double z = loc.getZ() + Math.sin(ang) * r;
-                loc.getWorld().spawnParticle(Particle.CRIT, new Location(loc.getWorld(), x, loc.getY() + 1.5, z), 1, 0.01, 0.01, 0.01, 0.0);
+            if (sp == null || sp.isFxEnabled()) {
+                for (int i = 0; i < 6; i++) {
+                    double ang = 2 * Math.PI * i / 6.0;
+                    double r = 0.5;
+                    double x = loc.getX() + Math.cos(ang) * r;
+                    double z = loc.getZ() + Math.sin(ang) * r;
+                    loc.getWorld().spawnParticle(Particle.CRIT, new Location(loc.getWorld(), x, loc.getY() + 1.5, z), 1, 0.01, 0.01, 0.01, 0.0);
+                }
+                loc.getWorld().playSound(loc, Sound.ENTITY_ARROW_SHOOT, 0.35f, 1.7f);
             }
-            loc.getWorld().playSound(loc, Sound.ENTITY_ARROW_SHOOT, 0.35f, 1.7f);
         } catch (Throwable ignored) {}
 
         List<LivingEntity> mobs = spawnManager.getNearbyWaveMobs(loc, maxRange);
@@ -74,7 +77,7 @@ public class RangerAbility implements Ability {
             // Für jeden „Pfeil“ leicht andere Richtung (Fächer)
             for (int j = 0; j < multi; j++) {
                 double spread = (j - (multi - 1) / 2.0) * 0.06; // sanfter Fächer
-                shootPiercing(loc, target, damage, pierce, spread, player);
+                shootPiercing(loc, target, damage, pierce, spread, player, sp);
                 fired++;
                 if (fired >= multi) break;
             }
@@ -82,7 +85,7 @@ public class RangerAbility implements Ability {
         }
     }
 
-    private void shootPiercing(Location fromBase, LivingEntity first, double damage, int pierce, double spreadYaw, Player src) {
+    private void shootPiercing(Location fromBase, LivingEntity first, double damage, int pierce, double spreadYaw, Player src, SurvivorPlayer sp) {
         Location from = fromBase.clone().add(0, 1.5, 0);
         Location to = first.getLocation().clone().add(0, 1.0, 0);
         Vector dir = to.toVector().subtract(from.toVector()).normalize();
@@ -106,6 +109,12 @@ public class RangerAbility implements Ability {
                 try { e.damage(damage, src); } catch (Throwable ignored) {}
                 // knockback
                 try { e.setVelocity(e.getVelocity().add(dir.clone().multiply(0.2))); } catch (Throwable ignored) {}
+                // sonic ring at hit
+                try {
+                    if (sp == null || sp.isFxEnabled()) {
+                        org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRing(from.getWorld(), e.getLocation().add(0,0.2,0), 0.6, 18, org.bukkit.Particle.CRIT);
+                    }
+                } catch (Throwable ignored) {}
                 hit++;
             }
         }

@@ -55,6 +55,10 @@ public class SurvivorPlayer {
     private final java.util.List<String> skills = new java.util.ArrayList<>(); // keys like "shockwave", "dash"
     private final java.util.Map<String, Integer> skillLevels = new java.util.HashMap<>();
     private boolean ready = false;
+    // Visual preferences
+    private boolean fxEnabled = true;
+    public boolean isFxEnabled() { return fxEnabled; }
+    public void setFxEnabled(boolean enabled) { this.fxEnabled = enabled; }
 
     // Weapons (passive), ähnlich wie Skills
     private int maxWeaponSlots = 6;
@@ -155,6 +159,7 @@ public class SurvivorPlayer {
         this.abilityGlyphs.clear();
         this.glyphCounters.clear();
         this.ready = false;
+        this.fxEnabled = true;
     }
 
     public void softReset() {
@@ -194,6 +199,7 @@ public class SurvivorPlayer {
         this.abilityGlyphs.clear();
         this.glyphCounters.clear();
         this.ready = false;
+        this.fxEnabled = true;
     }
 
     public void softResetPreserveSkills() {
@@ -253,6 +259,7 @@ public class SurvivorPlayer {
         this.abilityGlyphs.clear();
         this.glyphCounters.clear();
         this.ready = false;
+        this.fxEnabled = true;
     }
 
     // Neue Methoden zur Klassenverwaltung
