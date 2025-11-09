@@ -3,27 +3,84 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>MinecraftSurvivors</title>
+  <title>Minecraft Survivors — bySenom</title>
   <style>
-    body{font-family:Inter,Segoe UI,Arial,sans-serif;background:#0b1220;color:#e6eef8;margin:0;padding:32px}
-    .card{max-width:880px;margin:40px auto;padding:28px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));box-shadow:0 6px 30px rgba(2,6,23,0.6)}
-    h1{color:#7ee0a3;margin:0 0 8px}
-    p{color:#c6d7ea}
-    a{color:#8ad1ff}
-    footer{margin-top:22px;color:#9fb6d1;font-size:13px}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#0b1220;color:#e6eef8}
+    header{background:linear-gradient(90deg,#0f1724 0%,#142033 100%);padding:40px 20px;text-align:center}
+    h1{margin:0;font-weight:700;letter-spacing:-1px}
+    p.lead{color:#9fb4d6;margin:8px 0 20px}
+    .wrap{max-width:980px;margin:28px auto;padding:0 16px}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.04);padding:18px;border-radius:8px;margin-bottom:12px}
+    a.btn{display:inline-block;padding:10px 14px;border-radius:6px;background:#1f6feb;color:white;text-decoration:none;font-weight:600;margin-right:8px}
+    footer{color:#7b90b0;text-align:center;padding:30px 10px;font-size:13px}
+    ul.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:12px 0;padding:0;list-style:none}
+    .feature h4{margin:0 0 6px}
+    code{background:#071526;padding:2px 6px;border-radius:4px}
+    .meta{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
+    .badge{background:#062033;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.03)}
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>MinecraftSurvivors</h1>
-    <p>Willkommen zur Projekt‑Seite für das <strong>MinecraftSurvivors</strong> Plugin. Diese Seite wird per GitHub Pages bereitgestellt.</p>
-    <p>Kurze Links:</p>
-    <ul>
-      <li><a href="https://github.com/bySenom/Minecraft-Survivors">Projekt-Repository</a></li>
-      <li><a href="https://bySenom.github.io/Minecraft-Survivors/">GitHub Pages (nach Deploy)</a></li>
-    </ul>
-    <p>Hinweis: Die Seite wird automatisch bei jedem Push auf <code>main</code> deployed (Action publishts <code>docs/</code> nach <code>gh-pages</code>).</p>
-    <footer>Erstellt am 2025-11-04 · bySenom</footer>
-  </div>
+  <header>
+    <h1>Minecraft Survivors</h1>
+    <p class="lead">A Vampire‑Survivors‑style minigame for Paper/Spigot — continuous spawns, classes, glyphs & loot.</p>
+    <div class="meta">
+      <a class="btn" href="https://github.com/bySenom/Minecraft-Survivors">Repository</a>
+      <a class="btn" href="/README.md">README</a>
+      <a class="btn" href="https://github.com/bySenom/Minecraft-Survivors/actions">CI Status</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="card">
+      <h2>Kurzfassung</h2>
+      <p>Minecraft Survivors ist ein erweiterbares Minigame-Plugin, das das Spielgefühl von Vampire Survivors in Minecraft bringt: kontinuierliche Gegner‑Spawns, Klassen mit einzigartigen Fähigkeiten, Level‑Ups mit Raritäten und ein Party/Shop/Stats System.</p>
+    </section>
+
+    <section class="card">
+      <h3>Highlights</h3>
+      <ul class="features">
+        <li class="feature"><h4>Klassen</h4><div>Shaman, Pyromancer, Ranger, Paladin — jede mit eigenen Fähigkeiten.</div></li>
+        <li class="feature"><h4>Continuous Spawns</h4><div>Gegner wie in Vampire Survivors, dynamisch skaliert mit Enrage und Elite‑Spawns.</div></li>
+        <li class="feature"><h4>Glyphen & Loot</h4><div>Sockelbare Glyphen, Level‑Ups mit Raritäten (Common / Rare / Epic).</div></li>
+        <li class="feature"><h4>Party & Ready Flow</h4><div>Party‑System mit Leader‑Votes und Ready‑Checks, in‑GUI Einladungen.</div></li>
+        <li class="feature"><h4>Stats & Meter</h4><div>DPS/HPS Meter, Anzeige per ActionBar/BossBar/Scoreboard.</div></li>
+        <li class="feature"><h4>Shop & Progression</h4><div>Daily Offers, Limits, Meta‑Progression.</div></li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h3>Install</h3>
+      <ol>
+        <li>Build: <code>./gradlew.bat clean build</code> (Windows) or <code>./gradlew clean build</code></li>
+        <li>Copy <code>build/libs/*.jar</code> to <code>&lt;paper-server&gt;/plugins/</code></li>
+        <li>Start server (Paper 1.21.4 recommended)</li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h3>Schnellbefehle</h3>
+      <div><code>/msmenu</code> – Hauptmenü</div>
+      <div><code>/msstart</code> – Admin: Spiel starten</div>
+      <div><code>/party</code> – Party‑Befehle</div>
+    </section>
+
+    <section class="card">
+      <h3>Weitere Links</h3>
+      <ul>
+        <li><a href="https://github.com/bySenom/Minecraft-Survivors">Code & Issues</a></li>
+        <li><a href="https://github.com/bySenom/Minecraft-Survivors/actions">CI / Releases</a></li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h3>Kontakt</h3>
+      <p>Author: bySenom — für Feedback & Issues bitte das GitHub‑Repository verwenden.</p>
+    </section>
+  </main>
+
+  <footer>
+    © 2025 bySenom — MIT License
+  </footer>
 </body>
 </html>
