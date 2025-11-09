@@ -30,6 +30,7 @@ public class BossManager {
     private BukkitTask task;
     private final Set<UUID> holograms = new HashSet<>();
     private final java.util.Set<java.util.UUID> meteorEntities = new java.util.HashSet<>();
+    private java.util.UUID nameStandId = null; // ArmorStand für sichtbaren Namen über dem Boss
 
     private int abilityTick = 0; // counts ticks for ability cadence
     private java.util.Random rnd = new java.util.Random();
@@ -92,6 +93,8 @@ public class BossManager {
         } catch (Throwable ignored) {}
         this.boss = le;
         try { le.getPersistentDataContainer().set(new org.bukkit.NamespacedKey(plugin, "ms_boss_tag"), org.bukkit.persistence.PersistentDataType.BYTE, (byte)1); } catch (Throwable ignored) {}
+        // Optional: separater Namens-ArmorStand über dem Boss
+        try { if (plugin.getConfigUtil().getBoolean("endgame.boss.name-armorstand.enabled", true)) spawnOrUpdateNameStand(); } catch (Throwable ignored) {}
         abilityTick = 0;
         phase = Phase.P1;
         broadcastSpawn();
@@ -126,6 +129,8 @@ public class BossManager {
         updateUi();
         // Phase aus HP ableiten und ggf. Phasenwechsel-Effekte auslösen
         try { updatePhaseFromHp(); } catch (Throwable ignored) {}
+        // Namens-Stand folgen lassen
+        try { updateNameStandPosition(); } catch (Throwable ignored) {}
         double power = spawnManager.getEnemyPowerIndex();
         double baseRadius = plugin.getConfigUtil().getDouble("endgame.boss.aura.base-radius", 4.0);
         double auraScale = plugin.getConfigUtil().getDouble("endgame.boss.aura.power-scale", 1.5);
@@ -237,7 +242,10 @@ public class BossManager {
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.showBossBar(bar);
         }
-        updateHologram();
+        // Optionales Hologramm (standardmäßig deaktiviert, um Doppel-HP-Anzeigen zu vermeiden)
+        boolean holoEnabled = false;
+        try { holoEnabled = plugin.getConfigUtil().getBoolean("endgame.boss.hologram.enabled", false); } catch (Throwable ignored) {}
+        if (holoEnabled) updateHologram();
     }
 
     private void clearUi() {
@@ -250,6 +258,11 @@ public class BossManager {
             try { org.bukkit.entity.Entity e = Bukkit.getEntity(id); if (e != null) e.remove(); } catch (Throwable ignored) {}
         }
         holograms.clear();
+        // Namens-ArmorStand entfernen
+        if (nameStandId != null) {
+            try { org.bukkit.entity.Entity e = Bukkit.getEntity(nameStandId); if (e != null) e.remove(); } catch (Throwable ignored) {}
+            nameStandId = null;
+        }
         cleanupProjectiles();
     }
 
@@ -553,6 +566,56 @@ public class BossManager {
             try { org.bukkit.entity.Entity e = org.bukkit.Bukkit.getEntity(id); if (e != null) e.remove(); } catch (Throwable ignored) {}
             meteorEntities.remove(id);
         }
+    }
+
+    // ===== Namens-ArmorStand (sichtbarer Name über dem Boss) =====
+    private void spawnOrUpdateNameStand() {
+        if (!isBossActive() || boss.getWorld() == null) return;
+        // Falls bereits vorhanden, nur updaten
+        org.bukkit.entity.ArmorStand as = null;
+        if (nameStandId != null) {
+            org.bukkit.entity.Entity e = org.bukkit.Bukkit.getEntity(nameStandId);
+            if (e instanceof org.bukkit.entity.ArmorStand) as = (org.bukkit.entity.ArmorStand) e;
+        }
+        if (as == null) {
+            double yOff = 2.2;
+            try { yOff = plugin.getConfigUtil().getDouble("endgame.boss.name-armorstand.y-offset", 2.2); } catch (Throwable ignored) {}
+            org.bukkit.Location base = boss.getLocation().clone().add(0, yOff, 0);
+            as = boss.getWorld().spawn(base, org.bukkit.entity.ArmorStand.class, a -> {
+                try { a.setMarker(true); } catch (Throwable ignored) {}
+                try { a.setInvisible(true); } catch (Throwable ignored) {}
+                try { a.setGravity(false); } catch (Throwable ignored) {}
+                try { a.setSmall(true); } catch (Throwable ignored) {}
+                try { a.setSilent(true); } catch (Throwable ignored) {}
+                try { a.setInvulnerable(true); } catch (Throwable ignored) {}
+                try { a.getPersistentDataContainer().set(new org.bukkit.NamespacedKey(plugin, "ms_boss_name"), org.bukkit.persistence.PersistentDataType.BYTE, (byte)1);} catch (Throwable ignored) {}
+            });
+            nameStandId = as.getUniqueId();
+            try { boss.addPassenger(as); } catch (Throwable ignored) {}
+        }
+        // Name setzen/aktualisieren
+        try {
+            String name = plugin.getConfigUtil().getString("endgame.boss.display-name", null);
+            if (name == null && boss.customName() != null) {
+                // Adventure Component -> Plain
+                String plain = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(boss.customName());
+                name = plain != null && !plain.isBlank() ? plain : "BOSS";
+            }
+            if (name == null) name = "BOSS";
+            as.customName(net.kyori.adventure.text.Component.text(name).color(net.kyori.adventure.text.format.NamedTextColor.RED));
+            as.setCustomNameVisible(true);
+        } catch (Throwable ignored) {}
+        updateNameStandPosition();
+    }
+
+    private void updateNameStandPosition() {
+        if (!isBossActive() || boss.getWorld() == null || nameStandId == null) return;
+        org.bukkit.entity.Entity e = org.bukkit.Bukkit.getEntity(nameStandId);
+        if (!(e instanceof org.bukkit.entity.ArmorStand as)) return;
+        double yOff = 2.2;
+        try { yOff = plugin.getConfigUtil().getDouble("endgame.boss.name-armorstand.y-offset", 2.2); } catch (Throwable ignored) {}
+        org.bukkit.Location target = boss.getLocation().clone().add(0, yOff, 0);
+        try { as.teleport(target); } catch (Throwable ignored) {}
     }
 
     public void forceEnd() {
