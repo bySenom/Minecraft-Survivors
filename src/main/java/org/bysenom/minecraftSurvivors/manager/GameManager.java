@@ -271,6 +271,7 @@ public class GameManager {
             }
         } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "remove MAX_HEALTH lootchest modifiers failed: ", t); }
         // survivorsContext NICHT löschen, damit Scoreboard sichtbar bleibt bis Spieler bewusst zurückkehrt
+        try { bossManager.forceEnd(); } catch (Throwable ignored) {}
         plugin.getLogger().info("Game stopped");
     }
 
