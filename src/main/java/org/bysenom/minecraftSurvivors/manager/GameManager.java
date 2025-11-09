@@ -126,6 +126,31 @@ public class GameManager {
                     if (isPlayerPaused(p.getUniqueId())) continue;
                     org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = playerManager.get(p.getUniqueId());
                     if (sp == null) continue;
+
+                    // Periodic regeneration (HP + Shield)
+                    try {
+                        double hpRegenPerSec = sp.getHpRegen();
+                        if (hpRegenPerSec > 0.0) {
+                            double perTick = hpRegenPerSec / (plugin.getConfigUtil().getInt("combat.ticks-per-second", 20));
+                            if (perTick > 0.0) {
+                                double max = p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH) != null ? p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getBaseValue() : 20.0;
+                                p.setHealth(Math.min(max, p.getHealth() + perTick));
+                            }
+                        }
+                    } catch (Throwable ignored) {}
+                    try {
+                        double shieldMax = sp.getShieldMax();
+                        if (shieldMax > 0.0) {
+                            long delayMs = (long) (plugin.getConfigUtil().getDouble("combat.shield.regen-delay-seconds", 3.0) * 1000.0);
+                            double perSec = plugin.getConfigUtil().getDouble("combat.shield.regen-percentage-per-second", 0.15) * shieldMax;
+                            long dt = System.currentTimeMillis() - sp.getLastDamagedAtMillis();
+                            if (dt >= Math.max(0L, delayMs) && perSec > 0.0) {
+                                double add = perSec / (plugin.getConfigUtil().getInt("combat.ticks-per-second", 20));
+                                sp.setShieldCurrent(Math.min(shieldMax, sp.getShieldCurrent() + add));
+                            }
+                        }
+                    } catch (Throwable ignored) {}
+
                     int currentXp = sp.getXp();
                     int xpToNext = sp.getXpToNext();
                     p.sendActionBar(Component.text("XP: " + currentXp + "/" + xpToNext + " • Lvl " + sp.getClassLevel()));

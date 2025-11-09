@@ -74,6 +74,16 @@ public class SurvivorPlayer {
     // Zähler/Trigger (z.B. Lightning-Hits)
     private final java.util.Map<String, Integer> glyphCounters = new java.util.HashMap<>();
 
+    // --- Combat stat runtime state ---
+    private double shieldCurrent = 0.0; // current shield value (absorbs damage first)
+    private long lastDamagedAtMillis = 0L; // for shield regen delay
+
+    public double getShieldCurrent() { return Math.max(0.0, shieldCurrent); }
+    public void setShieldCurrent(double v) { this.shieldCurrent = Math.max(0.0, v); }
+    public void addShield(double d) { this.shieldCurrent = Math.max(0.0, this.shieldCurrent + d); }
+    public long getLastDamagedAtMillis() { return lastDamagedAtMillis; }
+    public void markDamagedNow() { this.lastDamagedAtMillis = System.currentTimeMillis(); }
+
     public SurvivorPlayer(UUID uuid) {
         this.uuid = uuid;
     }
@@ -859,21 +869,18 @@ public class SurvivorPlayer {
 
     public int getEffectiveExtraHearts() { return this.extraHearts + (int)Math.round(getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.HEALTH_HEARTS)); }
 
-    // Unlock API: abilities and glyphs must be unlocked (purchased) before they appear in level-up choices.
-    public boolean hasUnlockedAbility(String abilityKey) { return abilityKey != null && (unlockedAbilities.contains(abilityKey) || abilities.contains(abilityKey)); }
-    public boolean unlockAbility(String abilityKey) { if (abilityKey == null) return false; if (unlockedAbilities.contains(abilityKey)) return false; unlockedAbilities.add(abilityKey); return true; }
-    public boolean lockAbility(String abilityKey) { if (abilityKey == null) return false; return unlockedAbilities.remove(abilityKey); }
+    // --- Combat stat runtime state ---
+    // (duplicate definitions removed below)
 
-    public boolean hasUnlockedGlyph(String glyphKey) { return glyphKey != null && unlockedGlyphs.contains(glyphKey); }
-    public boolean unlockGlyph(String glyphKey) { if (glyphKey == null) return false; if (unlockedGlyphs.contains(glyphKey)) return false; unlockedGlyphs.add(glyphKey); return true; }
-    public boolean lockGlyph(String glyphKey) { if (glyphKey == null) return false; return unlockedGlyphs.remove(glyphKey); }
-
-    // Expose unlocked sets for persistence
-    public java.util.Set<String> getUnlockedAbilities() { return java.util.Collections.unmodifiableSet(unlockedAbilities); }
-    public java.util.Set<String> getUnlockedGlyphs() { return java.util.Collections.unmodifiableSet(unlockedGlyphs); }
-
-    public boolean isReady() { return ready; }
-    public void setReady(boolean r) { this.ready = r; }
+    // --- Effective combat stat getters (from StatModifiers) ---
+    public double getArmor() { return Math.max(0.0, getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.ARMOR)); }
+    public double getEvasion() { return Math.max(0.0, Math.min(0.90, getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.EVASION))); }
+    public double getLifesteal() { return Math.max(0.0, getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.LIFESTEAL)); }
+    public double getThorns() { return Math.max(0.0, getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.THORNS)); }
+    public double getCritChance() { return Math.max(0.0, Math.min(1.0, getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.CRIT_CHANCE))); }
+    public double getCritDamage() { return Math.max(0.0, getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.CRIT_DAMAGE)); } // e.g. 0.5 = +50%
+    public double getShieldMax() { return Math.max(0.0, getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.SHIELD)); }
+    // shield regen rate will be handled by GameManager using config percent of max per second
 
     public boolean removeAbility(String key) {
         if (key == null) return false;
@@ -893,4 +900,19 @@ public class SurvivorPlayer {
     private double hpRegen = 0.0; // regen pro Sekunde
     public void addHpRegen(double v){ this.hpRegen = Math.max(0.0, this.hpRegen + v); }
     public double getHpRegen(){ return Math.max(0.0, this.hpRegen + getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.HP_REGEN)); }
+
+    // --- Readiness & Unlock APIs (restored) ---
+    public boolean isReady() { return ready; }
+    public void setReady(boolean r) { this.ready = r; }
+
+    public java.util.Set<String> getUnlockedAbilities() { return java.util.Collections.unmodifiableSet(unlockedAbilities); }
+    public java.util.Set<String> getUnlockedGlyphs() { return java.util.Collections.unmodifiableSet(unlockedGlyphs); }
+
+    public boolean hasUnlockedAbility(String abilityKey) { return abilityKey != null && unlockedAbilities.contains(abilityKey); }
+    public boolean unlockAbility(String abilityKey) { if (abilityKey == null) return false; if (unlockedAbilities.contains(abilityKey)) return false; unlockedAbilities.add(abilityKey); return true; }
+    public boolean lockAbility(String abilityKey) { if (abilityKey == null) return false; return unlockedAbilities.remove(abilityKey); }
+
+    public boolean hasUnlockedGlyph(String glyphKey) { return glyphKey != null && unlockedGlyphs.contains(glyphKey); }
+    public boolean unlockGlyph(String glyphKey) { if (glyphKey == null) return false; if (unlockedGlyphs.contains(glyphKey)) return false; unlockedGlyphs.add(glyphKey); return true; }
+    public boolean lockGlyph(String glyphKey) { if (glyphKey == null) return false; return unlockedGlyphs.remove(glyphKey); }
 }

@@ -44,7 +44,8 @@ public class ShopManager {
         switch (type.toUpperCase()) {
             case "DAMAGE_MULT": sp.addDamageMult(value); return true;
             case "RADIUS_MULT": sp.addRadiusMult(value); return true;
-            case "PALADIN_HEAL": sp.addHealBonus(value); return true;
+            case "PALADIN_HEAL": sp.addHpRegen(value); return true;
+            case "HP_REGEN": sp.addHpRegen(value); return true;
             default: return false;
         }
     }

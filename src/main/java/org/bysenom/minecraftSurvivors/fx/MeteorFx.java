@@ -48,7 +48,7 @@ public final class MeteorFx {
                     cur.subtract(0, dy, 0);
                     if (meteor != null) meteor.teleport(cur);
                     // trail
-                    w.spawnParticle(Particle.SMOKE, cur, 4, 0.15, 0.15, 0.15, 0.01);
+                    w.spawnParticle(Particle.LARGE_SMOKE, cur, 4, 0.15, 0.15, 0.15, 0.01);
                     w.spawnParticle(Particle.FLAME, cur, 4, 0.15, 0.15, 0.15, 0.01);
                     // impact check
                     if (cur.getY() <= dest.getY() + 0.5) {
