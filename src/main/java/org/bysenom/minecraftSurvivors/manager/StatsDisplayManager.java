@@ -140,6 +140,15 @@ public class StatsDisplayManager {
     }
 
     private void updateBossbars(Player p, double dps, double hps) {
+        // If a global Endboss is active, do not show per-player DPS/HPS bossbars (avoid duplicate top bars)
+        try {
+            var gm = plugin.getGameManager();
+            if (gm != null && gm.getBossManager() != null && gm.getBossManager().isBossActive()) {
+                clearBossbarsFor(p);
+                return;
+            }
+        } catch (Throwable ignored) {}
+
         boolean dyn = plugin.getConfigUtil().getBoolean(org.bysenom.minecraftSurvivors.util.ConfigUtil.Keys.STATS_DYNAMIC_CAP_ENABLED, false);
         double dCap = Math.max(1.0, plugin.getConfigUtil().getDouble(org.bysenom.minecraftSurvivors.util.ConfigUtil.Keys.STATS_AUTO_CAP_DPS, 50.0));
         double hCap = Math.max(1.0, plugin.getConfigUtil().getDouble(org.bysenom.minecraftSurvivors.util.ConfigUtil.Keys.STATS_AUTO_CAP_HPS, 30.0));
