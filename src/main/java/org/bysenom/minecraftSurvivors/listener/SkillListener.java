@@ -94,7 +94,7 @@ public class SkillListener implements Listener {
             } catch (Throwable ignored) {}
         }
         try {
-            p.getWorld().spawnParticle(Particle.SWEEP_ATTACK, loc.add(0,1.0,0), 20, 1.0, 0.2, 1.0, 0.0);
+            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(p.getWorld(), Particle.SWEEP_ATTACK, loc.clone().add(0,1.0,0), 20, 1.0, 0.2, 1.0, 0.0);
             p.playSound(loc, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.8f, 1.0f);
         } catch (Throwable ignored) {}
     }
@@ -133,9 +133,9 @@ public class SkillListener implements Listener {
                     double th = (i/(double)points) * Math.PI*2;
                     double x = Math.cos(th) * r;
                     double z = Math.sin(th) * r;
-                    p.getWorld().spawnParticle(Particle.END_ROD, head.clone().add(x, 0, z), 0, 0,0,0, 0);
+                    org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(p.getWorld(), Particle.END_ROD, head.clone().add(x, 0, z), 0, 0,0,0, 0);
                 }
-                p.getWorld().spawnParticle(Particle.SOUL_FIRE_FLAME, head, 2, 0.15, 0.15, 0.15, 0.0);
+                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(p.getWorld(), Particle.SOUL_FIRE_FLAME, head, 2, 0.15, 0.15, 0.15, 0.0);
                 try { p.playSound(head, Sound.BLOCK_BEACON_AMBIENT, 0.15f, 1.8f); } catch (Throwable ignored) {}
                 p.sendActionBar(net.kyori.adventure.text.Component.text("Genkidama lädt: "+(int)(pct*100)+"%"));
             }, 0L, 2L);
@@ -185,9 +185,9 @@ public class SkillListener implements Listener {
                             double rr = Math.max(0.2, radius*0.25);
                             double x = Math.cos(th)*rr;
                             double z = Math.sin(th)*rr;
-                            cur.getWorld().spawnParticle(Particle.SOUL_FIRE_FLAME, cur.clone().add(x, 0, z), 0, 0,0,0, 0);
+                            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(cur.getWorld(), Particle.SOUL_FIRE_FLAME, cur.clone().add(x, 0, z), 0, 0,0,0, 0);
                         }
-                        cur.getWorld().spawnParticle(Particle.END_ROD, cur, 4, 0.05,0.05,0.05, 0.0);
+                        org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(cur.getWorld(), Particle.END_ROD, cur, 4, 0.05,0.05,0.05, 0.0);
                         if (cur.getBlock().getType().isSolid()) { explode(cur, radius, damage, p); cancel(); return; }
                         java.util.List<org.bukkit.entity.LivingEntity> mobs = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(cur, hitRadius);
                         if (!mobs.isEmpty()) { explode(cur, radius, damage, p); cancel(); return; }
@@ -202,9 +202,9 @@ public class SkillListener implements Listener {
 
     private void explode(org.bukkit.Location at, double radius, double damage, Player owner) {
         try {
-            at.getWorld().spawnParticle(Particle.EXPLOSION, at, 1, 0,0,0, 0.0);
-            at.getWorld().spawnParticle(Particle.CLOUD, at, 20, 1.2, 0.6, 1.2, 0.01);
-            at.getWorld().spawnParticle(Particle.SONIC_BOOM, at, 1, 0,0,0, 0.0);
+            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(at.getWorld(), Particle.EXPLOSION, at, 1, 0,0,0, 0.0);
+            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(at.getWorld(), Particle.CLOUD, at, 20, 1.2, 0.6, 1.2, 0.01);
+            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(at.getWorld(), Particle.SONIC_BOOM, at, 1, 0,0,0, 0.0);
             at.getWorld().playSound(at, Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 1.2f);
         } catch (Throwable ignored) {}
         java.util.List<org.bukkit.entity.LivingEntity> mobs = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(at, radius);

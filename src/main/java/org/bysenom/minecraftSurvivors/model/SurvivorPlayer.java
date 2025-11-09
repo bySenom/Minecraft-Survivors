@@ -950,4 +950,19 @@ public class SurvivorPlayer {
     public double getXpGain() { return Math.max(0.0, amp(getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.XP_GAIN))); }
     public double getDamageEliteBoss() { return Math.max(0.0, amp(getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ELITE_BOSS))); }
     public double getKnockbackEffective() { return Math.max(0.0, this.knockbackBonus + amp(getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.KNOCKBACK))); }
+
+    public java.util.Map<String, Integer> getPerRunCounts() { return java.util.Collections.unmodifiableMap(perRunCounts); }
+    public java.util.Map<String, Integer> getPerDayCounts() { return java.util.Collections.unmodifiableMap(perDayCounts); }
+    public void setPerRunCount(String key, int val) { if (key == null) return; perRunCounts.put(key, Math.max(0, val)); }
+    public void setPerDayCount(String key, int val) { if (key == null) return; perDayCounts.put(key, Math.max(0, val)); }
+
+    public void setShopPurchasesRun(int v) { this.shopPurchasesRun = Math.max(0, v); }
+
+    public java.util.Map<String, Integer> getAbilityLevelsMap() { return java.util.Collections.unmodifiableMap(abilityLevels); }
+    public java.util.Map<String, Integer> getSkillLevelsMap() { return java.util.Collections.unmodifiableMap(skillLevels); }
+    public java.util.Map<String, Integer> getWeaponLevelsMap() { return java.util.Collections.unmodifiableMap(weaponLevels); }
+
+    public void setAbilityLevel(String key, int level) { if (key == null) return; abilityLevels.put(key, Math.max(1, level)); }
+    public void setSkillLevel(String key, int level) { if (key == null) return; skillLevels.put(key, Math.max(1, level)); }
+    public void setWeaponLevel(String key, int level) { if (key == null) return; weaponLevels.put(key, Math.max(1, level)); }
 }

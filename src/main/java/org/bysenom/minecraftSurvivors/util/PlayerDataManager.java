@@ -46,6 +46,22 @@ public class PlayerDataManager {
         // unlocked abilities and glyphs
         cfg.set("unlockedAbilities", new java.util.ArrayList<>(sp.getUnlockedAbilities()));
         cfg.set("unlockedGlyphs", new java.util.ArrayList<>(sp.getUnlockedGlyphs()));
+        // Preferences & counters
+        cfg.set("fxEnabled", sp.isFxEnabled());
+        cfg.set("shopPurchasesRun", sp.getShopPurchasesRun());
+        cfg.set("shopPurchasesToday", sp.getShopPurchasesToday());
+        cfg.set("shopLastDay", sp.getShopLastDay());
+        cfg.set("perRunCounts", sp.getPerRunCounts());
+        cfg.set("perDayCounts", sp.getPerDayCounts());
+        // Abilities/Skills/Weapons
+        cfg.set("abilities", new java.util.ArrayList<>(sp.getAbilities()));
+        cfg.set("abilityLevels", sp.getAbilityLevelsMap());
+        cfg.set("skills", new java.util.ArrayList<>(sp.getSkills()));
+        cfg.set("skillLevels", sp.getSkillLevelsMap());
+        cfg.set("weapons", new java.util.ArrayList<>(sp.getWeapons()));
+        cfg.set("weaponLevels", sp.getWeaponLevelsMap());
+        // Runtime shields
+        cfg.set("shieldCurrent", sp.getShieldCurrent());
         try {
             cfg.save(f);
         } catch (IOException e) {
@@ -85,6 +101,32 @@ public class PlayerDataManager {
             for (String a : uas) { try { if (a != null && !a.isEmpty()) sp.unlockAbility(a); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "Failed to unlock ability for player " + uuid + ": ", t); } }
             java.util.List<String> ugs = cfg.getStringList("unlockedGlyphs");
             for (String g : ugs) { try { if (g != null && !g.isEmpty()) sp.unlockGlyph(g); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "Failed to unlock glyph for player " + uuid + ": ", t); } }
+            // Preferences & counters
+            try { sp.setFxEnabled(cfg.getBoolean("fxEnabled", true)); } catch (Throwable ignored) {}
+            try { sp.setShopPurchasesRun(cfg.getInt("shopPurchasesRun", sp.getShopPurchasesRun())); } catch (Throwable ignored) {}
+            try { sp.setShopPurchasesToday(cfg.getInt("shopPurchasesToday", sp.getShopPurchasesToday())); } catch (Throwable ignored) {}
+            try { sp.setShopLastDay(cfg.getString("shopLastDay", sp.getShopLastDay())); } catch (Throwable ignored) {}
+            try {
+                java.util.Map<String,Object> pr = cfg.getConfigurationSection("perRunCounts") != null ? cfg.getConfigurationSection("perRunCounts").getValues(false) : null;
+                if (pr != null) {
+                    for (var e : pr.entrySet()) {
+                        try { sp.setPerRunCount(e.getKey(), Integer.parseInt(String.valueOf(e.getValue()))); } catch (Throwable ignored) {}
+                    }
+                }
+            } catch (Throwable ignored) {}
+            try {
+                java.util.Map<String,Object> pd = cfg.getConfigurationSection("perDayCounts") != null ? cfg.getConfigurationSection("perDayCounts").getValues(false) : null;
+                if (pd != null) {
+                    for (var e : pd.entrySet()) {
+                        try { sp.setPerDayCount(e.getKey(), Integer.parseInt(String.valueOf(e.getValue()))); } catch (Throwable ignored) {}
+                    }
+                }
+            } catch (Throwable ignored) {}
+            // Abilities/levels
+            try { java.util.List<String> ab = cfg.getStringList("abilities"); if (ab != null) for (String k : ab) if (k != null && !k.isEmpty()) sp.addAbilityAtFirstFree(k, cfg.getInt("abilityLevels." + k, 1)); } catch (Throwable ignored) {}
+            try { java.util.List<String> sk = cfg.getStringList("skills"); if (sk != null) for (String k : sk) if (k != null && !k.isEmpty()) { sp.addSkill(k); sp.setSkillLevel(k, cfg.getInt("skillLevels." + k, sp.getSkillLevel(k))); } } catch (Throwable ignored) {}
+            try { java.util.List<String> wp = cfg.getStringList("weapons"); if (wp != null) for (String k : wp) if (k != null && !k.isEmpty()) { sp.addWeapon(k); sp.setWeaponLevel(k, cfg.getInt("weaponLevels." + k, sp.getWeaponLevel(k))); } } catch (Throwable ignored) {}
+            try { sp.setShieldCurrent(cfg.getDouble("shieldCurrent", sp.getShieldCurrent())); } catch (Throwable ignored) {}
             return sp;
         } catch (Throwable t) {
             plugin.getLogger().warning("Failed to load player data for " + uuid + ": " + t.getMessage());

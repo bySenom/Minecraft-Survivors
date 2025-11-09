@@ -10,56 +10,50 @@ Dies ist die Aufgabenliste für das Kernspiel (Minecraft Survivors). Das LobbySy
 
 ---
 Status-Update (2025-11-09)
-- Erledigt: MAX_HEALTH Reset; CombatEngine zentralisiert; Endboss Meteor-Cleanup + Telegraphs; Boss-Debug /msboss.
-- FX-Throttling: Basis-Helfer (ParticleUtil throttle) hinzugefügt, Rate-Limiter Feintuning OFFEN.
-- Persistenz/Reset neuer Stats: TEILWEISE (Speicher vorhanden), Reset-Logik für neue Stats konsolidieren OFFEN.
-- Wellen/Continuous Stabilität: LAUFEND; Monitor für Zombie-Tasks noch OFFEN.
-- Doku: OFFEN.
+- Erledigt (Code): MAX_HEALTH Reset; CombatEngine zentralisiert; Endboss: Meteor-Cleanup, Telegraphs, ArmorStand-Name Fixes; Persistenz: `PlayerDataManager` & `SurvivorPlayer` (Grundlegende Felder + save/load) implemented; viele Particle-Aufrufe wurden auf `ParticleUtil` umgestellt.
+- In Arbeit: FX-Throttling Rate-Limiter Feintuning; Wellen/Continuous Stabilität (Monitor/cleanup für Runnables); Dokumentation (README/Docs).
 
 ## P1 (Release-kritisch)
-- Fix Commit und Push sometimes failing (only generate commit I will push it by myself)
 
 ### 1. Endboss (100% Enrage) fertigstellen
 Beschreibung: Custom Boss mit Phasen (P1/P2/P3), Mechaniken (Meteor Barrage, Lightning Beam, Summons), klare Telegraphs.
-Akzeptanzkriterien:
-- Boss spawnt verlässlich, Phasenwechsel funktionieren.
-- Angriffsschaden/Tempo pro Phase balanciert (OFFEN Balancing-Feinschliff).
-- Kein Wither-Placeholder mehr.
-- Meteor-FallingBlocks hinterlassen keine Blöcke (DONE)
-- Telegraphs (Warnringe/Sound-Cues) (DONE)
+Akzeptanzkriterien (aktuell offen/teilweise):
+- Boss spawnt verlässlich, Phasenwechsel funktionieren.  # (Teilweise implementiert: Phasen & Wechsel-Logik vorhanden)
+- Angriffsschaden/Tempo pro Phase balanciert (OFFEN: Balancing-Feinschliff).
+- Balancing & Final QA (OFFEN).
 
 ### 2. Neue Stats in UI/Progression verfügbar
 Beschreibung: LevelUp/Shop/Loot bieten und zeigen neue Stats (Max Health, HP Regen, Shield, Armor, Evasion, Lifesteal, Thorns, Crit Chance, Crit Damage, Projectile Count, Attack Speed, Projectile Bounce, Size, Duration, Damage vs. Elites/Bosses, Knockback, Jump Height, XP Gain, Elite Spawn Increase, Powerup Multiplier).
 Akzeptanzkriterien:
 - Anzeigen im LevelUp-/Shop-Menü.
-- Persistenz in PlayerData.
+- Persistenz in PlayerData.  # (Grundlegende Persistenz implementiert; UI noch offen)
 - Tooltips kurz und verständlich.
+- Statistics after each round: Chat summary + GUI mit Details (Damage breakdown, Kills, Coins, Lootchests).
 
 ### 3. Performance & FX-Throttling
 Beschreibung: FX abhängig von Distanz/FX-Setting drosseln.
 Akzeptanzkriterien:
-- Globaler Regler / Spieler-FX Toggle (vorhanden) ergänzt um Rate-Limiter.
+- Globaler Regler / Spieler-FX Toggle ergänzt um Rate-Limiter.  # (Basis: `ParticleUtil.shouldThrottle` implementiert — Feintuning offen)
 - Große Kämpfe verursachen keine Lags.
 
 ### 4. Persistenz & Reset der neuen Stats
 Beschreibung: Sicheres Laden/Speichern aller neuen Stats + Reset bei Run-Beginn.
 Akzeptanzkriterien:
-- PlayerData migriert (Backward-Compat).
-- Start eines Runs setzt temporäre Boni korrekt zurück.
-- Besserer Glyphen check, wenn alle Slots belegt sind, dann levelup der Fähigkeit
-- Nur Glyphen anzeigen die man noch nicht gesockelt hat
+- PlayerData migriert (Backward-Compat).  # (Grundlegende Migration & Backwards-Compat-Handling implementiert)
+- Start eines Runs setzt temporäre Boni korrekt zurück.  # (softReset / softResetPreserveSkills vorhanden und genutzt)
+- Bessere Glyphen-Logik: wenn alle Slots belegt, dann Levelup der Fähigkeit; nur Glyphen anzeigen, die noch nicht gesockelt sind. (OFFEN)
 
 ### 5. Stabilität Wellen/Continuous Mode
 Beschreibung: Keine Zombie-Tasks; Start/Stop räumt sauber auf.
 Akzeptanzkriterien:
-- Alle BukkitRunnable werden bei Stop gecancelt.
+- Alle BukkitRunnable werden bei Stop gecancelt.  # (Teilweise: viele Tasks gecancelt; Audit & gezielte Cancels noch offen)
 - Continuous und Wave-Mode laufen ohne Deadlocks.
-- Spieler sollen Solo und im Party-Modus spielen können. Spiel/Wave start müsste daher darauf konzipiert werden
+- Spieler sollen Solo und im Party-Modus spielen können.
 
 ### 6. Doku (README/Docs)
 Beschreibung: Installation, Konfiguration, neue Stats, FX-Commands (/fx …) kurz dokumentiert.
 Akzeptanzkriterien:
-- README Abschnitt „Getting Started“ + „Config cheatsheet“.
+- README Abschnitt „Getting Started" + „Config cheatsheet".
 
 ## P2 (Wichtig, nach erstem Release)
 

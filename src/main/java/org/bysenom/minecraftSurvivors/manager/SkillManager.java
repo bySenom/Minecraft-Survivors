@@ -63,14 +63,14 @@ public class SkillManager {
                     // kompletter Schaden vom Schild absorbiert
                     aegisShields.put(id, shield - dmg);
                     e.setCancelled(true);
-                    try { pl.getWorld().spawnParticle(org.bukkit.Particle.END_ROD, pl.getLocation().add(0,1.0,0), 6, 0.3,0.3,0.3, 0.01); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "Aegis particle spawn failed for " + id + ": ", t); }
+                    try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(pl.getWorld(), org.bukkit.Particle.END_ROD, pl.getLocation().add(0,1.0,0), 6, 0.3,0.3,0.3, 0.01); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "Aegis particle spawn failed for " + id + ": ", t); }
                     updateAegisVisual(id);
                 } else {
                     // Teilabsorption
                     double remain = dmg - shield;
                     aegisShields.put(id, 0.0);
                     e.setDamage(remain);
-                    try { pl.getWorld().spawnParticle(org.bukkit.Particle.END_ROD, pl.getLocation().add(0,1.0,0), 10, 0.4,0.4,0.4, 0.02); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "Aegis particle spawn failed for " + id + ": ", t); }
+                    try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(pl.getWorld(), org.bukkit.Particle.END_ROD, pl.getLocation().add(0,1.0,0), 10, 0.4,0.4,0.4, 0.02); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "Aegis particle spawn failed for " + id + ": ", t); }
                     updateAegisVisual(id);
                 }
             }
@@ -206,7 +206,7 @@ public class SkillManager {
         try {
             target.getWorld().strikeLightningEffect(target.getLocation());
             target.damage(damage * (1.0 + sp.getDamageMult()), p);
-            target.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, target.getLocation().add(0,1.0,0), 14, 0.3,0.3,0.3, 0.02);
+            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(target.getWorld(), Particle.ELECTRIC_SPARK, target.getLocation().add(0,1.0,0), 14, 0.3,0.3,0.3, 0.02);
             p.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.2f, 2.0f);
             if (fancyAll && fancyLightning) {
                 // Chain beams to a few additional nearby mobs
@@ -230,7 +230,7 @@ public class SkillManager {
                 try {
                     for (org.bukkit.entity.LivingEntity le : mobs) {
                         le.damage(damage * 3.0 * (1.0 + sp.getDamageMult()), p);
-                        le.getWorld().spawnParticle(Particle.CRIT, le.getLocation().add(0,1.0,0), 8, 0.3,0.3,0.3, 0.02);
+                        org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(le.getWorld(), Particle.CRIT, le.getLocation().add(0,1.0,0), 8, 0.3,0.3,0.3, 0.02);
                     }
                     p.playSound(p.getLocation(), Sound.ITEM_TRIDENT_THUNDER, 0.6f, 0.6f);
                 } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWLightning overcharge effect failed for player " + p.getUniqueId() + ": ", t); }
@@ -255,7 +255,7 @@ public class SkillManager {
             if (glyphs.contains("ab_lightning:storm_chain") && mobs.size() > 1) {
                 org.bukkit.entity.LivingEntity extra = mobs.get(java.util.concurrent.ThreadLocalRandom.current().nextInt(mobs.size()));
                 if (!extra.equals(target)) {
-                    try { extra.damage(damage * 0.6 * (1.0 + sp.getDamageMult()), p); extra.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, extra.getLocation().add(0,1.0,0), 10, 0.2,0.2,0.2, 0.02);} catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWLightning storm_chain extra hit failed for player " + p.getUniqueId() + ": ", t); }
+                    try { extra.damage(damage * 0.6 * (1.0 + sp.getDamageMult()), p); org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(extra.getWorld(), Particle.ELECTRIC_SPARK, extra.getLocation().add(0,1.0,0), 10, 0.2,0.2,0.2, 0.02);} catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWLightning storm_chain extra hit failed for player " + p.getUniqueId() + ": ", t); }
                 }
                 glyphProcNotify(p, "ab_lightning:storm_chain", target.getLocation());
             }
@@ -280,7 +280,7 @@ public class SkillManager {
             try {
                 le.setFireTicks(Math.max(le.getFireTicks(), 40 + sp.getIgniteBonusTicks()));
                 le.damage(damage * (1.0 + sp.getDamageMult()), p);
-                le.getWorld().spawnParticle(Particle.FLAME, le.getLocation().add(0,1.0,0), 6, 0.25,0.25,0.25, 0.01);
+                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(le.getWorld(), Particle.FLAME, le.getLocation().add(0,1.0,0), 6, 0.25,0.25,0.25, 0.01);
             } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWFire effect failed for player " + p.getUniqueId() + ": ", t); }
         }
         if (fancyAll && fancyFire && !mobs.isEmpty()) {
@@ -332,7 +332,7 @@ public class SkillManager {
             @Override public void run() {
                 if (!p.isOnline()) { cancel(); return; }
                 cur.add(dir.clone().multiply(speed));
-                try { cur.getWorld().spawnParticle(org.bukkit.Particle.CRIT, cur, 2, 0.02,0.02,0.02, 0.0); } catch (Throwable ignored) {}
+                try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(cur.getWorld(), org.bukkit.Particle.CRIT, cur, 2, 0.02,0.02,0.02, 0.0); } catch (Throwable ignored) {}
                 if (fancyAll && fancyRanged) {
                     try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSpiral(cur.getWorld(), cur.clone().add(0,-0.2,0), 0.35, 0.6, 10, org.bukkit.Particle.END_ROD, 1.0); } catch (Throwable ignored) {}
                     if (sonicTrail && t % sonicEvery == 0) {
@@ -380,7 +380,7 @@ public class SkillManager {
             try { le.damage(damage * (1.0 + sp.getDamageMult()), p); } catch (Throwable ignored) {}
         }
         try {
-            p.getWorld().spawnParticle(Particle.END_ROD, loc.add(0,1.0,0), 28, radius/2, 0.3, radius/2, 0.0);
+            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(p.getWorld(), Particle.END_ROD, loc.clone().add(0,1.0,0), 28, radius/2, 0.3, radius/2, 0.0);
             p.playSound(loc, Sound.BLOCK_BEACON_POWER_SELECT, 0.7f, 1.8f);
             if (fancyAll && fancyHoly) {
                 int ringPts = plugin.getConfigUtil().getInt("visuals.holy.ring-points", 48);
@@ -408,7 +408,7 @@ public class SkillManager {
             } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runShockwave hit failed for player " + p.getUniqueId() + ": ", t); }
         }
         try {
-            p.getWorld().spawnParticle(Particle.SWEEP_ATTACK, loc.add(0,1.0,0), 18, 1.0, 0.2, 1.0, 0.0);
+            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(p.getWorld(), Particle.SWEEP_ATTACK, loc.clone().add(0,1.0,0), 18, 1.0, 0.2, 1.0, 0.0);
             p.playSound(loc, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.6f, 1.0f);
         } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runShockwave visual/sound failed for player " + p.getUniqueId() + ": ", t); }
     }
@@ -436,7 +436,7 @@ public class SkillManager {
                     if (aegis && java.util.concurrent.ThreadLocalRandom.current().nextDouble() < aegisChance) {
                         double shieldAmount = heal * aegisMultiplier;
                         addAegisShield(other.getUniqueId(), shieldAmount);
-                        other.getWorld().spawnParticle(Particle.INSTANT_EFFECT, other.getLocation().add(0,1.0,0), 8, 0.3, 0.4, 0.3, 0.01);
+                        org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(other.getWorld(), Particle.INSTANT_EFFECT, other.getLocation().add(0,1.0,0), 8, 0.3, 0.4, 0.3, 0.01);
                         other.playSound(other.getLocation(), org.bukkit.Sound.ITEM_TOTEM_USE, 0.5f, 1.2f);
                         if (other.equals(p)) glyphProcNotify(p, "ab_heal_totem:aegis", p.getLocation());
                     } else {
@@ -487,7 +487,7 @@ public class SkillManager {
             try {
                 le.damage(damage, p);
                 le.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS, 40 + lvl*10, 1, false, false, true));
-                le.getWorld().spawnParticle(org.bukkit.Particle.SNOWFLAKE, le.getLocation().add(0,1.0,0), 8, 0.2, 0.4, 0.2, 0.01);
+                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(le.getWorld(), org.bukkit.Particle.SNOWFLAKE, le.getLocation().add(0,1.0,0), 8, 0.2, 0.4, 0.2, 0.01);
             } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runFrostNova effect failed for player " + p.getUniqueId() + ": ", t); }
         }
         try { p.playSound(p.getLocation(), org.bukkit.Sound.BLOCK_GLASS_BREAK, 0.5f, 1.6f); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runFrostNova sound failed for player " + p.getUniqueId() + ": ", t); }
@@ -614,7 +614,7 @@ public class SkillManager {
                     double x = center.getX()+Math.cos(ang)*radius;
                     double z = center.getZ()+Math.sin(ang)*radius;
                     org.bukkit.Location l = new org.bukkit.Location(center.getWorld(), x, center.getY()+0.2, z);
-                    try { center.getWorld().spawnParticle(org.bukkit.Particle.PORTAL, l, 1, 0.05,0.05,0.05,0.0); } catch (Throwable ignored) {}
+                    try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(center.getWorld(), org.bukkit.Particle.PORTAL, l, 1, 0.05,0.05,0.05,0.0); } catch (Throwable ignored) {}
                 }
                 // Effekte auf Mobs: Slowness verstärkt durch slowField
                 for (org.bukkit.entity.LivingEntity le : plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(center, radius)) {
@@ -715,7 +715,7 @@ public class SkillManager {
                 double x = f.center.getX()+Math.cos(ang)*f.radius;
                 double z = f.center.getZ()+Math.sin(ang)*f.radius;
                 org.bukkit.Location l = new org.bukkit.Location(f.center.getWorld(), x, f.center.getY()+0.1, z);
-                try { f.center.getWorld().spawnParticle(org.bukkit.Particle.ASH, l, 1, 0.02,0.02,0.02,0.0); } catch (Throwable ignored) {}
+                try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(f.center.getWorld(), org.bukkit.Particle.ASH, l, 1, 0.02,0.02,0.02,0.0); } catch (Throwable ignored) {}
             }
             // Schaden anwenden (mit Attribution an Owner für DPS)
             org.bukkit.entity.Player ownerPl = f.owner == null ? null : org.bukkit.Bukkit.getPlayer(f.owner);
@@ -766,8 +766,8 @@ public class SkillManager {
             }
             // final fallback: ensure the particle can actually be spawned
             org.bukkit.Location l = where != null ? where : p.getLocation();
-            try { l.getWorld().spawnParticle(particle, l.clone().add(0,1.0,0), 12, 0.5,0.5,0.5, 0.02); } catch (Throwable ex) {
-                try { l.getWorld().spawnParticle(org.bukkit.Particle.END_ROD, l.clone().add(0,1.0,0), 8, 0.4,0.4,0.4, 0.02); } catch (Throwable ignored) {}
+            try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(l.getWorld(), particle, l.clone().add(0,1.0,0), 12, 0.5,0.5,0.5, 0.02); } catch (Throwable ex) {
+                try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(l.getWorld(), org.bukkit.Particle.END_ROD, l.clone().add(0,1.0,0), 8, 0.4,0.4,0.4, 0.02); } catch (Throwable ignored) {}
             }
         } catch (Throwable ignored) {}
     }
@@ -796,7 +796,7 @@ public class SkillManager {
         // kleine Partikel-Visualisierung wenn Schild vorhanden
         if (val > 0.0) {
             try {
-                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnBurst(p.getWorld(), p.getLocation().add(0,1.0,0), Particle.END_ROD, 10, 0.2);
+                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnBurstThrottled(p.getWorld(), p.getLocation().add(0,1.0,0), Particle.END_ROD, 10, 0.2);
              } catch (Throwable ignored) {}
          }
     }

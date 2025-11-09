@@ -286,10 +286,10 @@ public class SpawnManager {
                             int r = plugin.getConfigUtil().getInt("spawn.redstone-r", 255);
                             int g = plugin.getConfigUtil().getInt("spawn.redstone-g", 255);
                             int b = plugin.getConfigUtil().getInt("spawn.redstone-b", 255);
-                            org.bukkit.Particle.DustOptions dust = new org.bukkit.Particle.DustOptions(org.bukkit.Color.fromRGB(r, g, b), 1.0f);
-                            world.spawnParticle(particle, p, Math.max(1, count), 0.0, 0.0, 0.0, dust);
+                            // Spawn dust via ParticleUtil.spawnDust (fallbacks handled), throttled
+                            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnDust(world, p, Math.max(1, count), r/255.0, g/255.0, b/255.0, 1.0f);
                         } else {
-                            world.spawnParticle(particle, p, count, spread, spread, spread, 0.0);
+                            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(world, particle, p, count, spread, spread, spread, 0.0);
                         }
                     } catch (Throwable ignored) {
                     }
@@ -1068,10 +1068,7 @@ public class SpawnManager {
                         le.getWorld().playSound(le.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_ATTACK_KNOCKBACK, 0.8f, 1.0f);
                     } catch (Throwable ignored) {
                     }
-                    try {
-                        le.getWorld().spawnParticle(org.bukkit.Particle.CLOUD, le.getLocation().add(0, 0.2, 0), 6, 0.25, 0.1, 0.25, 0.01);
-                    } catch (Throwable ignored) {
-                    }
+                    try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(le.getWorld(), org.bukkit.Particle.CLOUD, le.getLocation().add(0, 0.2, 0), 6, 0.25, 0.1, 0.25, 0.01); } catch (Throwable ignored) {}
                 } catch (Throwable ignored) {
                 }
             }
