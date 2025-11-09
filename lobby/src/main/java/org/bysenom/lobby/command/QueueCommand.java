@@ -30,16 +30,16 @@ public class QueueCommand implements CommandExecutor, TabCompleter {
             case "status": {
                 int pos = qm.getPosition(p.getUniqueId());
                 boolean admitted = qm.isAdmitted(p.getUniqueId());
-                int interval = Math.max(1, LobbySystem.get().getConfig().getInt("admission.interval-seconds", 3));
-                int eta = pos > 0 ? (pos - 1) * interval : -1;
+                double etaSec = pos > 0 ? qm.getRollingEtaSeconds(pos) : -1;
                 String fullHint = qm.isFull() && !admitted ? " §c(Volle Zugangs-Slots)" : "";
-                p.sendMessage("§bQueue-Status: §7Pos §e" + pos + " §7• Zugelassen: " + (admitted ? "§aJa" : "§cNein") + (eta >= 0 ? " §7• ETA ~§e" + eta + "s" : "") + fullHint);
+                p.sendMessage("§bQueue-Status: §7Pos §e" + pos + " §7• Zugelassen: " + (admitted ? "§aJa" : "§cNein") + (etaSec >= 0 ? " §7• ETA ~§e" + String.format(java.util.Locale.ROOT, "%.0fs", etaSec) : "") + fullHint);
                 return true;
             }
             case "stats": {
                 if (!p.hasPermission("lobby.admin")) { p.sendMessage("§cKeine Berechtigung."); return true; }
                 double avg = qm.getAverageWaitSeconds();
-                p.sendMessage("§eQueue Stats: §7Queued=" + qm.size() + " Admitted=" + qm.admittedCount() + " MaxAdmitted=" + qm.getMaxAdmitted() + " AvgWait=" + String.format(java.util.Locale.ROOT, "%.1fs", avg));
+                double eta2 = qm.getRollingEtaSeconds(2);
+                p.sendMessage("§eQueue Stats: §7Queued=" + qm.size() + " Admitted=" + qm.admittedCount() + " MaxAdmitted=" + qm.getMaxAdmitted() + " AvgWait=" + String.format(java.util.Locale.ROOT, "%.1fs", avg) + " ETA(next)=" + String.format(java.util.Locale.ROOT, "%.0fs", eta2));
                 return true;
             }
             case "next":

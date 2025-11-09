@@ -22,6 +22,9 @@ public class QueueManager {
     private long totalWaitMillis = 0L;
     private long totalAdmittedCount = 0L;
 
+    // Rolling ETA samples (timestamps of admissions)
+    private final Deque<Long> admitTimestamps = new ArrayDeque<>();
+
     public QueueManager(LobbySystem plugin) { this.plugin = plugin; }
 
     private void debug(String msg) { if (plugin.getConfig().getBoolean("queue.debug", false)) plugin.getLogger().info("[Queue] " + msg); }
@@ -41,6 +44,7 @@ public class QueueManager {
     private int rejoinCooldownSec() { return Math.max(0, plugin.getConfig().getInt("queue.rejoin-cooldown-seconds", 0)); }
     private int timeoutSeconds() { return Math.max(0, plugin.getConfig().getInt("admission.timeout-seconds", 0)); }
     private String timeoutAction() { return plugin.getConfig().getString("admission.timeout-action", "remove").toLowerCase(Locale.ROOT); }
+    private int etaSampleSize() { return Math.max(3, plugin.getConfig().getInt("admission.eta-sample-size", 6)); }
 
     // Individueller Beitritt: unabhängig von Party/Leader
     public boolean join(Player p) {
@@ -128,6 +132,9 @@ public class QueueManager {
             }
             admitted.add(next);
             admittedAt.put(next, System.currentTimeMillis());
+            // Rolling ETA tracking
+            admitTimestamps.addLast(System.currentTimeMillis());
+            while (admitTimestamps.size() > etaSampleSize()) admitTimestamps.removeFirst();
             // Wartezeit registrieren
             Long st = joinAt.get(next);
             if (st != null) {
@@ -235,4 +242,20 @@ public class QueueManager {
 
     public int getMaxAdmitted() { return maxAdmitted(); }
     public boolean isFull() { int m = maxAdmitted(); return m > 0 && admitted.size() >= m; }
+    public double getRollingEtaSeconds(int positionIndex) {
+        // positionIndex: 1-based position in queue (excluding already admitted)
+        int intervalCfg = Math.max(1, plugin.getConfig().getInt("admission.interval-seconds", 3));
+        if (admitTimestamps.size() < 2) {
+            return (positionIndex - 1) * intervalCfg; // fallback
+        }
+        // Compute average actual interval between last samples
+        long prev = -1; int count = 0; long sum = 0;
+        for (Long ts : admitTimestamps) {
+            if (prev >= 0) { sum += (ts - prev); count++; }
+            prev = ts;
+        }
+        double avgMillis = count > 0 ? (double) sum / count : (double) intervalCfg * 1000.0;
+        double base = avgMillis / 1000.0;
+        return Math.max(0.0, (positionIndex - 1) * base);
+    }
 }

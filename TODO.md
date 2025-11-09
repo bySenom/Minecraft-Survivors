@@ -9,13 +9,8 @@
 Dies ist die Aufgabenliste für das Kernspiel (Minecraft Survivors). Das LobbySystem hat eine eigene TODO unter `lobby/TODO.md`.
 
 ---
-Allerhöchste Priorität
-- MAX_HEALTH durch Lootchest sollten nach Runden Ende verschwinden
--
-
----
 Status-Update (2025-11-09)
-- Höchste Prio bestätigt: MAX_HEALTH (Lootchest) muss beim Rundenende zurückgesetzt werden. Aktuell OFFEN.
+- Erledigt: MAX_HEALTH (Lootchest) wird beim Rundenende zurückgesetzt.
 - Combat-Pipeline: IN ARBEIT/TEILWEISE (einige Stats wirken bereits), zentrale Engine noch OFFEN.
 - Endboss (100% Enrage): GERÜST VORHANDEN, Finalisierung OFFEN.
 - FX-Throttling: TEILWEISE (Spieler-FX Toggle vorhanden), Rate-Limiter noch OFFEN.
