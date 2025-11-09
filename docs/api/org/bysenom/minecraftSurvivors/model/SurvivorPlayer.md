@@ -5,6 +5,8 @@ Package: `org.bysenom.minecraftSurvivors.model`
 
 ## Public Methods
 
+- `isFxEnabled()`
+- `setFxEnabled(boolean enabled)`
 - `getShieldCurrent()`
 - `setShieldCurrent(double v)`
 - `addShield(double d)`
