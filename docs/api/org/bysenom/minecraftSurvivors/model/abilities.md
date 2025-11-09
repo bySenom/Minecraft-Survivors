@@ -126,3 +126,8 @@ Package: `org.bysenom.minecraftSurvivors.model`
 - `hasUnlockedGlyph(String glyphKey)`
 - `unlockGlyph(String glyphKey)`
 - `lockGlyph(String glyphKey)`
+- `getPowerupMult()`
+- `getMaxHealthBonusHearts()`
+- `getXpGain()`
+- `getDamageEliteBoss()`
+- `getKnockbackEffective()`
