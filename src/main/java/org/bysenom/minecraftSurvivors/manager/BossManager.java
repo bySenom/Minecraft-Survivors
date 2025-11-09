@@ -33,6 +33,10 @@ public class BossManager {
     private int abilityTick = 0; // counts ticks for ability cadence
     private java.util.Random rnd = new java.util.Random();
 
+    // Phasensteuerung (P1: >66%, P2: >33%, P3: <=33%)
+    private enum Phase { P1, P2, P3 }
+    private Phase phase = Phase.P1;
+
     public BossManager(MinecraftSurvivors plugin, SpawnManager spawnManager) {
         this.plugin = plugin;
         this.spawnManager = spawnManager;
@@ -87,6 +91,7 @@ public class BossManager {
         } catch (Throwable ignored) {}
         this.boss = le;
         abilityTick = 0;
+        phase = Phase.P1;
         broadcastSpawn();
         ensureTask();
     }
@@ -117,14 +122,17 @@ public class BossManager {
     private void tickBoss() {
         if (!isBossActive()) { clearUi(); return; }
         updateUi();
+        // Phase aus HP ableiten und ggf. Phasenwechsel-Effekte auslösen
+        try { updatePhaseFromHp(); } catch (Throwable ignored) {}
         double power = spawnManager.getEnemyPowerIndex();
         double baseRadius = plugin.getConfigUtil().getDouble("endgame.boss.aura.base-radius", 4.0);
         double auraScale = plugin.getConfigUtil().getDouble("endgame.boss.aura.power-scale", 1.5);
-        double radius = Math.min(plugin.getConfigUtil().getDouble("endgame.boss.aura.max-radius", 12.0), baseRadius + Math.log1p(power) * auraScale);
+        double phaseAuraMult = switch (phase) { case P1 -> 1.0; case P2 -> 1.15; case P3 -> 1.3; };
+        double radius = Math.min(plugin.getConfigUtil().getDouble("endgame.boss.aura.max-radius", 12.0), (baseRadius + Math.log1p(power) * auraScale) * phaseAuraMult);
         if (boss.getWorld() == null) return;
         double auraDmgBase = plugin.getConfigUtil().getDouble("endgame.boss.aura.damage-base", 2.0);
         double auraDmgScale = plugin.getConfigUtil().getDouble("endgame.boss.aura.damage-log-scale", 1.0);
-        double auraDmg = Math.max(auraDmgBase, auraDmgBase + Math.log1p(power) * auraDmgScale);
+        double auraDmg = Math.max(auraDmgBase, auraDmgBase + Math.log1p(power) * auraDmgScale) * (phase == Phase.P3 ? 1.25 : (phase == Phase.P2 ? 1.1 : 1.0));
         for (Player pl : boss.getWorld().getPlayers()) {
             if (!pl.isOnline()) continue;
             if (pl.getLocation().distanceSquared(boss.getLocation()) <= radius*radius) {
@@ -145,7 +153,9 @@ public class BossManager {
         } catch (Throwable ignored) {}
         // Fähigkeitencadence
         abilityTick += 10; // tickBoss läuft alle 10 Ticks
-        int abilityInterval = Math.max(40, plugin.getConfigUtil().getInt("endgame.boss.ability.interval-ticks", 120));
+        int baseInterval = Math.max(40, plugin.getConfigUtil().getInt("endgame.boss.ability.interval-ticks", 120));
+        double phaseMul = switch (phase) { case P1 -> 1.0; case P2 -> 0.8; case P3 -> 0.6; };
+        int abilityInterval = Math.max(30, (int) Math.round(baseInterval * phaseMul));
         if (abilityTick >= abilityInterval) {
             abilityTick = 0;
             performRandomAbility(power);
@@ -153,6 +163,60 @@ public class BossManager {
         if (boss.isDead() || boss.getHealth() <= 0.0) {
             onBossDeath();
         }
+    }
+
+    private void updatePhaseFromHp() {
+        if (!isBossActive()) return;
+        double hp = Math.max(0.0, boss.getHealth());
+        double max = boss.getAttribute(Attribute.MAX_HEALTH) != null ? Math.max(1.0, boss.getAttribute(Attribute.MAX_HEALTH).getBaseValue()) : Math.max(1.0, hp);
+        double ratio = hp / max;
+        Phase newPhase = ratio > 0.66 ? Phase.P1 : (ratio > 0.33 ? Phase.P2 : Phase.P3);
+        if (newPhase != phase) {
+            phase = newPhase;
+            onPhaseEnter(newPhase);
+        }
+    }
+
+    private void onPhaseEnter(Phase ph) {
+        if (!isBossActive()) return;
+        switch (ph) {
+            case P2 -> {
+                broadcastPhase("§6Phase II: Der Boss wird wütender – schnellere Fähigkeiten, grössere Aura!");
+                tryPhaseBuffs(1.08, 1.10);
+                // Kleiner Minion-Impuls
+                abilitySummonMinions(spawnManager.getEnemyPowerIndex());
+                ringEffect(org.bukkit.Particle.SOUL_FIRE_FLAME, 10, 7.0, 0.3f);
+            }
+            case P3 -> {
+                broadcastPhase("§cPhase III: Tödliche Raserei – Vorsicht vor Meteorschauern!");
+                tryPhaseBuffs(1.15, 1.25);
+                // Sofortige Schockwelle als Phase-Start
+                abilityShockwave(spawnManager.getEnemyPowerIndex());
+                ringEffect(org.bukkit.Particle.FLAME, 14, 8.5, 0.45f);
+            }
+            case P1 -> {
+                broadcastPhase("§ePhase I: Der Kampf beginnt!");
+            }
+        }
+        try { boss.getWorld().playSound(boss.getLocation(), org.bukkit.Sound.ENTITY_WITHER_SPAWN, 0.6f, 1.8f);} catch (Throwable ignored) {}
+    }
+
+    private void tryPhaseBuffs(double speedMult, double damageMult) {
+        try { AttributeInstance spd = boss.getAttribute(Attribute.MOVEMENT_SPEED); if (spd != null) spd.setBaseValue(spd.getBaseValue() * speedMult);} catch (Throwable ignored) {}
+        try { AttributeInstance dmg = boss.getAttribute(Attribute.ATTACK_DAMAGE); if (dmg != null) dmg.setBaseValue(dmg.getBaseValue() * damageMult);} catch (Throwable ignored) {}
+    }
+
+    private void ringEffect(Particle type, int points, double radius, float pitch) {
+        try {
+            Location c = boss.getLocation();
+            for (int i=0;i<Math.max(8, points);i++) {
+                double a = 2*Math.PI*i/points;
+                double x = c.getX()+Math.cos(a)*radius;
+                double z = c.getZ()+Math.sin(a)*radius;
+                boss.getWorld().spawnParticle(type, new Location(boss.getWorld(), x, c.getY()+0.3, z), 1,0.02,0.02,0.02,0.0);
+            }
+            boss.getWorld().playSound(c, org.bukkit.Sound.BLOCK_BEACON_POWER_SELECT, 0.7f, pitch);
+        } catch (Throwable ignored) {}
     }
 
     private void updateUi() {
@@ -242,6 +306,10 @@ public class BossManager {
         for (String k : new String[]{"meteor","lightning_chain","summon_minions","shockwave"}) {
             if (plugin.getConfigUtil().getBoolean("endgame.boss.ability."+k, true)) enabled.add(k);
         }
+        // In Phase 3: Meteor-Schauer bevorzugen (falls aktiviert)
+        if (phase == Phase.P3 && plugin.getConfigUtil().getBoolean("endgame.boss.ability.meteor_barrage", true)) {
+            enabled.add("meteor_barrage"); enabled.add("meteor_barrage"); // doppeltes Gewicht
+        }
         if (enabled.isEmpty()) return;
         String pick = enabled.get(rnd.nextInt(enabled.size()));
         switch (pick) {
@@ -249,7 +317,53 @@ public class BossManager {
             case "lightning_chain" -> abilityLightningChain(power);
             case "summon_minions" -> abilitySummonMinions(power);
             case "shockwave" -> abilityShockwave(power);
+            case "meteor_barrage" -> abilityMeteorBarrage(power);
         }
+    }
+
+    private void abilityMeteorBarrage(double power) {
+        // Mehrere schnelle Einschläge rund um Boss/Spieler
+        int count = Math.max(3, plugin.getConfigUtil().getInt("endgame.boss.meteor_barrage.count", 5));
+        double spread = plugin.getConfigUtil().getDouble("endgame.boss.meteor_barrage.spread", 6.0);
+        java.util.List<Location> targets = new java.util.ArrayList<>();
+        java.util.List<Player> players = boss.getWorld().getPlayers().stream().filter(Player::isOnline).toList();
+        for (int i=0;i<count;i++) {
+            Location base;
+            if (!players.isEmpty() && rnd.nextBoolean()) {
+                Player p = players.get(rnd.nextInt(players.size()));
+                base = p.getLocation().clone();
+            } else {
+                base = boss.getLocation().clone();
+            }
+            Location strike = base.add((rnd.nextDouble()-0.5)*spread, 0, (rnd.nextDouble()-0.5)*spread);
+            targets.add(strike);
+        }
+        double dmg = Math.max(7.0, 7.0 + Math.log1p(power)*3.5);
+        int delayStep = 10; // 0.5s zwischen Einschlägen
+        for (int i=0;i<targets.size();i++) {
+            final Location strike = targets.get(i).clone();
+            // Warnring
+            try {
+                int pts = 28; double warnR = 2.2;
+                for (int k=0;k<pts;k++) {
+                    double a = 2*Math.PI*k/pts;
+                    double x = strike.getX()+Math.cos(a)*warnR;
+                    double z = strike.getZ()+Math.sin(a)*warnR;
+                    strike.getWorld().spawnParticle(Particle.ASH, new Location(strike.getWorld(), x, strike.getY()+0.1, z), 1,0,0,0,0);
+                }
+            } catch (Throwable ignored) {}
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                try { strike.getWorld().playSound(strike, org.bukkit.Sound.ENTITY_GENERIC_EXPLODE, 0.9f, 0.8f);} catch (Throwable ignored) {}
+                try { strike.getWorld().spawnParticle(Particle.EXPLOSION, strike.clone().add(0,0.6,0), 1); } catch (Throwable ignored) {}
+                for (Player pl : strike.getWorld().getPlayers()) {
+                    if (pl.getLocation().distanceSquared(strike) <= 5.5) {
+                        try { pl.damage(dmg); } catch (Throwable ignored) {}
+                        try { pl.setVelocity(pl.getLocation().toVector().subtract(strike.toVector()).normalize().multiply(1.0).setY(0.5)); } catch (Throwable ignored) {}
+                    }
+                }
+            }, (long) (i * delayStep));
+        }
+        try { boss.getWorld().playSound(boss.getLocation(), org.bukkit.Sound.ENTITY_BLAZE_SHOOT, 0.6f, 0.6f);} catch (Throwable ignored) {}
     }
 
     private void abilityMeteor(double power) {
@@ -303,6 +417,8 @@ public class BossManager {
                 double d2 = pl.getLocation().distanceSquared(current.getLocation());
                 if (d2 <= chainRange*chainRange && d2 < best) { best=d2; next=pl; }
             }
+            // Visual Beam zwischen current und next
+            if (next != null) try { drawBeam(current.getLocation().add(0,1.0,0), next.getLocation().add(0,1.0,0), Particle.ELECTRIC_SPARK, 16); } catch (Throwable ignored) {}
             current = next;
         }
         try { boss.getWorld().playSound(boss.getLocation(), org.bukkit.Sound.ITEM_TRIDENT_THUNDER, 1.0f, 1.6f);} catch (Throwable ignored) {}
@@ -378,5 +494,22 @@ public class BossManager {
 
     private void broadcastDefeat() {
         Bukkit.broadcast(Component.text("§aDer Endboss wurde besiegt!"));
+    }
+
+    private void broadcastPhase(String msg) {
+        try { Bukkit.broadcast(Component.text(msg)); } catch (Throwable ignored) {}
+    }
+
+    private void drawBeam(Location a, Location b, Particle type, int steps) {
+        try {
+            if (a.getWorld() != b.getWorld()) return;
+            steps = Math.max(4, steps);
+            org.bukkit.util.Vector v = b.toVector().subtract(a.toVector());
+            for (int i=0;i<=steps;i++) {
+                double f = i/(double)steps;
+                org.bukkit.util.Vector p = a.toVector().add(v.clone().multiply(f));
+                a.getWorld().spawnParticle(type, new Location(a.getWorld(), p.getX(), p.getY(), p.getZ()), 1, 0.01,0.01,0.01, 0.0);
+            }
+        } catch (Throwable ignored) {}
     }
 }
