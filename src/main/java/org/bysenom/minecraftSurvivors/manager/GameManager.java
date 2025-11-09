@@ -258,6 +258,13 @@ public class GameManager {
         // Scoreboard soll nach Tod bestehen bleiben -> Tasks beenden aber nicht resetten
         try { plugin.getScoreboardManager().forceUpdateAll(); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "scoreboardManager.forceUpdateAll failed: ", t); }
         try { plugin.getStatsDisplayManager().clearAllBossbarsNow(); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "statsDisplayManager.clearAllBossbarsNow failed: ", t); }
+        // Reset transient MAX_HEALTH (lootchest) modifiers so hearts do not persist to next run
+        try {
+            for (var sp : playerManager.getAll()) {
+                if (sp == null) continue;
+                sp.removeStatModifiersIf(m -> m.type == org.bysenom.minecraftSurvivors.model.StatType.MAX_HEALTH && m.source != null && m.source.startsWith("lootchest:"));
+            }
+        } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "remove MAX_HEALTH lootchest modifiers failed: ", t); }
         // survivorsContext NICHT löschen, damit Scoreboard sichtbar bleibt bis Spieler bewusst zurückkehrt
         plugin.getLogger().info("Game stopped");
     }
