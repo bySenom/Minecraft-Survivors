@@ -342,9 +342,9 @@ public class LootchestListener implements Listener {
                     switch (type.toUpperCase()) {
                         case "DAMAGE_MULT": st = org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_MULT; break;
                         case "DAMAGE_ADD": st = org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ADD; break;
-                        case "FLAT_DAMAGE": st = org.bysenom.minecraftSurvivors.model.StatType.FLAT_DAMAGE; break;
+                        case "FLAT_DAMAGE": st = org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ADD; break;
                         case "RADIUS_MULT": st = org.bysenom.minecraftSurvivors.model.StatType.RADIUS_MULT; break;
-                        case "PALADIN_HEAL": st = org.bysenom.minecraftSurvivors.model.StatType.PALADIN_HEAL; break;
+                        case "PALADIN_HEAL": st = org.bysenom.minecraftSurvivors.model.StatType.HP_REGEN; break;
                         case "SPEED": st = org.bysenom.minecraftSurvivors.model.StatType.SPEED; break;
                         case "ATTACK_SPEED": st = org.bysenom.minecraftSurvivors.model.StatType.ATTACK_SPEED; break;
                         case "RESIST": st = org.bysenom.minecraftSurvivors.model.StatType.RESIST; break;
@@ -365,9 +365,9 @@ public class LootchestListener implements Listener {
                     switch (type.toUpperCase()) {
                         case "DAMAGE_MULT": sp.addDamageMult(val); break;
                         case "DAMAGE_ADD": sp.addBonusDamage(val); break;
-                        case "FLAT_DAMAGE": sp.addFlatDamage(val); break;
+                        case "FLAT_DAMAGE": sp.addBonusDamage(val); break;
                         case "RADIUS_MULT": sp.addRadiusMult(val); break;
-                        case "PALADIN_HEAL": sp.addHealBonus(val); break;
+                        case "PALADIN_HEAL": sp.addHpRegen(val); break;
                         case "SPEED": sp.addMoveSpeedMult(val); break;
                         case "ATTACK_SPEED": sp.addAttackSpeedMult(val); break;
                         case "RESIST": sp.addDamageResist(val); break;
@@ -447,9 +447,9 @@ public class LootchestListener implements Listener {
         switch (type.toUpperCase()) {
             case "DAMAGE_MULT": sp.addDamageMult(val); break;
             case "DAMAGE_ADD": sp.addBonusDamage(val); break;
-            case "FLAT_DAMAGE": sp.addFlatDamage(val); break;
+            case "FLAT_DAMAGE": sp.addBonusDamage(val); break;
             case "RADIUS_MULT": sp.addRadiusMult(val); break;
-            case "PALADIN_HEAL": sp.addHealBonus(val); break;
+            case "PALADIN_HEAL": sp.addHpRegen(val); break;
             case "SPEED": sp.addMoveSpeedMult(val); break;
             case "ATTACK_SPEED": sp.addAttackSpeedMult(val); break;
             case "RESIST": sp.addDamageResist(val); break;

@@ -834,7 +834,6 @@ public class SurvivorPlayer {
     public double getEffectiveDamageAdd() {
         double add = this.flatDamage + this.bonusDamage;
         add += getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ADD);
-        add += getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.FLAT_DAMAGE);
         return Math.max(0.0, add);
     }
 
@@ -890,4 +889,8 @@ public class SurvivorPlayer {
         }
         return true;
     }
+
+    private double hpRegen = 0.0; // regen pro Sekunde
+    public void addHpRegen(double v){ this.hpRegen = Math.max(0.0, this.hpRegen + v); }
+    public double getHpRegen(){ return Math.max(0.0, this.hpRegen + getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.HP_REGEN)); }
 }

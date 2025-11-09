@@ -108,7 +108,7 @@ public final class GlyphCatalog {
             case "ab_ranged:headshot": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_MULT, 0.10, "glyph:headshot"));
             case "ab_ranged:ricochet": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.RADIUS_MULT, 0.08, "glyph:ricochet"));
             // Holy
-            case "ab_holy:consecration": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.PALADIN_HEAL, 0.5, "glyph:consecration"));
+            case "ab_holy:consecration": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.HP_REGEN, 0.5, "glyph:consecration"));
             case "ab_holy:divine_shield": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.RESIST, 0.08, "glyph:divine_shield"));
             case "ab_holy:penance": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_MULT, 0.08, "glyph:penance"));
             // Shockwave
@@ -120,9 +120,9 @@ public final class GlyphCatalog {
             case "ab_frost_nova:shatter": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_MULT, 0.07, "glyph:shatter"));
             case "ab_frost_nova:glacier": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.RADIUS_MULT, 0.10, "glyph:glacier"));
             // Heal Totem
-            case "ab_heal_totem:aegis": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.PALADIN_HEAL, 1.0, "glyph:aegis"));
+            case "ab_heal_totem:aegis": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.HP_REGEN, 1.0, "glyph:aegis"));
             case "ab_heal_totem:pulse": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.HEALTH_HEARTS, 1.0, "glyph:pulse"));
-            case "ab_heal_totem:beacon": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.PALADIN_HEAL, 0.8, "glyph:beacon"));
+            case "ab_heal_totem:beacon": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.HP_REGEN, 0.8, "glyph:beacon"));
             // Void Nova
             case "ab_void_nova:gravity_well": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.RADIUS_MULT, 0.12, "glyph:gravity_well"));
             case "ab_void_nova:rupture": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ADD, 3.0, "glyph:rupture"));
