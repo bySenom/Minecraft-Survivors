@@ -8,6 +8,34 @@ import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
 
 public class ConfigUtil {
 
+    public static final class Keys {
+        // Stats
+        public static final String STATS_MODE = "stats.mode";
+        public static final String STATS_UPDATE_INTERVAL_TICKS = "stats.update-interval-ticks";
+        public static final String STATS_BROADCAST_TOP_ENABLED = "stats.broadcast-top.enabled";
+        public static final String STATS_BROADCAST_TOP_INTERVAL_SECONDS = "stats.broadcast-top.interval-seconds";
+        public static final String STATS_BROADCAST_TOP_N = "stats.broadcast-top.n";
+        public static final String STATS_DYNAMIC_CAP_ENABLED = "stats.dynamic-cap-enabled";
+        public static final String STATS_AUTO_CAP_DPS = "stats.auto-cap.dps";
+        public static final String STATS_AUTO_CAP_HPS = "stats.auto-cap.hps";
+        public static final String STATS_DYNAMIC_CAP_SMOOTHING = "stats.dynamic-cap-smoothing";
+        public static final String STATS_WINDOW_SECONDS = "stats.window-seconds";
+        // Levelup / HUD
+        public static final String LEVELUP_HUD_INTERVAL_TICKS = "levelup.hud-interval-ticks";
+        public static final String LEVELUP_CHOICE_MAX_SECONDS = "levelup.choice-max-seconds";
+        // Spawn
+        public static final String SPAWN_CONTINUOUS_ENABLED = "spawn.continuous.enabled";
+        public static final String SPAWN_FREEZE_RADIUS = "spawn.freeze-radius";
+        // Data
+        public static final String DATA_AUTOSAVE_INTERVAL_SECONDS = "data.autosave-interval-seconds";
+        // Tablist
+        public static final String TABLIST_ENABLED = "tablist.enabled";
+        public static final String TABLIST_UPDATE_INTERVAL_TICKS = "tablist.update-interval-ticks";
+        public static final String TABLIST_SHOW_ENEMY_POWER = "tablist.show-enemy-power";
+        public static final String TABLIST_SHOW_PARTY_HP = "tablist.show-party-hp";
+        public static final String TABLIST_HEADER_TITLE = "tablist.header-title";
+    }
+
     private final MinecraftSurvivors plugin;
     private FileConfiguration cfg;
 

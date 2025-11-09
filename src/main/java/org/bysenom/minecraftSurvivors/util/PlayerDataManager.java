@@ -82,9 +82,9 @@ public class PlayerDataManager {
             sp.setDamageResist(cfg.getDouble("damageResist", 0.0));
             sp.setLuck(cfg.getDouble("luck", 0.0));
             java.util.List<String> uas = cfg.getStringList("unlockedAbilities");
-            for (String a : uas) { try { if (a != null && !a.isEmpty()) sp.unlockAbility(a); } catch (Throwable ignored) {} }
+            for (String a : uas) { try { if (a != null && !a.isEmpty()) sp.unlockAbility(a); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "Failed to unlock ability for player " + uuid + ": ", t); } }
             java.util.List<String> ugs = cfg.getStringList("unlockedGlyphs");
-            for (String g : ugs) { try { if (g != null && !g.isEmpty()) sp.unlockGlyph(g); } catch (Throwable ignored) {} }
+            for (String g : ugs) { try { if (g != null && !g.isEmpty()) sp.unlockGlyph(g); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "Failed to unlock glyph for player " + uuid + ": ", t); } }
             return sp;
         } catch (Throwable t) {
             plugin.getLogger().warning("Failed to load player data for " + uuid + ": " + t.getMessage());
@@ -123,11 +123,11 @@ public class PlayerDataManager {
         // schedule asynchronous save using Bukkit scheduler
         try {
             org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-                try { save(sp); } catch (Throwable t) { plugin.getLogger().warning("Async save failed for " + sp.getUuid() + ": " + t.getMessage()); }
+                try { save(sp); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.WARNING, "Async save failed for " + sp.getUuid() + ": ", t); }
             });
         } catch (Throwable t) {
             // Fallback: do synchronous save if scheduling not possible
-            try { save(sp); } catch (Throwable ignored) {}
+            try { save(sp); } catch (Throwable t2) { plugin.getLogger().log(java.util.logging.Level.WARNING, "Fallback sync save failed for " + sp.getUuid() + ": ", t2); }
         }
     }
 }

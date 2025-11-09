@@ -738,7 +738,7 @@ public class SurvivorPlayer {
                 java.util.UUID id = addStatModifier(m);
                 if (id != null) ids.add(id);
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable t) { org.bysenom.minecraftSurvivors.util.LogUtil.logFine("applyGlyphModifiers failed for glyph " + glyphKey + ": ", t); }
     }
 
     private void removeGlyphModifiers(String glyphKey) {
@@ -747,9 +747,9 @@ public class SurvivorPlayer {
             java.util.List<java.util.UUID> ids = glyphModifierIds.remove(glyphKey);
             if (ids == null) return;
             for (java.util.UUID id : ids) {
-                try { removeStatModifier(id); } catch (Throwable ignored) {}
+                try { removeStatModifier(id); } catch (Throwable t) { org.bysenom.minecraftSurvivors.util.LogUtil.logFine("removeStatModifier failed for id " + id + ": ", t); }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable t) { org.bysenom.minecraftSurvivors.util.LogUtil.logFine("removeGlyphModifiers failed for glyph " + glyphKey + ": ", t); }
     }
 
     public boolean addGlyph(String abilityKey, String glyphKey) {
@@ -886,7 +886,7 @@ public class SurvivorPlayer {
         // remove any glyph modifiers tied to glyphs of this ability
         java.util.List<String> glyphs = abilityGlyphs.remove(key);
         if (glyphs != null) {
-            for (String g : glyphs) try { removeGlyphModifiers(g); } catch (Throwable ignored) {}
+            for (String g : glyphs) try { removeGlyphModifiers(g); } catch (Throwable t) { org.bysenom.minecraftSurvivors.util.LogUtil.logFine("removeGlyphModifiers failed during removeAbility for glyph " + g + ": ", t); }
         }
         return true;
     }

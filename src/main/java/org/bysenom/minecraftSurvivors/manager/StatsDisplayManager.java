@@ -27,7 +27,7 @@ public class StatsDisplayManager {
     public StatsDisplayManager(org.bysenom.minecraftSurvivors.MinecraftSurvivors plugin, StatsMeterManager meter) {
         this.plugin = plugin;
         this.meter = meter;
-        this.mode = parseMode(plugin.getConfigUtil().getString("stats.mode", "actionbar"));
+        this.mode = parseMode(plugin.getConfigUtil().getString(org.bysenom.minecraftSurvivors.util.ConfigUtil.Keys.STATS_MODE, "actionbar"));
     }
 
     public synchronized void setMode(Mode m) {
@@ -61,12 +61,12 @@ public class StatsDisplayManager {
         if (broadcastTask != null) { broadcastTask.cancel(); broadcastTask = null; }
         clearBossbars();
         if (mode == Mode.OFF) return;
-        int period = Math.max(10, plugin.getConfigUtil().getInt("stats.update-interval-ticks", 20));
+        int period = Math.max(10, plugin.getConfigUtil().getInt(org.bysenom.minecraftSurvivors.util.ConfigUtil.Keys.STATS_UPDATE_INTERVAL_TICKS, 20));
         task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 0L, period);
         // periodic broadcast of top
-        boolean enableBroadcast = plugin.getConfigUtil().getBoolean("stats.broadcast-top.enabled", false);
+        boolean enableBroadcast = plugin.getConfigUtil().getBoolean(org.bysenom.minecraftSurvivors.util.ConfigUtil.Keys.STATS_BROADCAST_TOP_ENABLED, false);
         if (enableBroadcast) {
-            int everySec = Math.max(5, plugin.getConfigUtil().getInt("stats.broadcast-top.interval-seconds", 30));
+            int everySec = Math.max(5, plugin.getConfigUtil().getInt(org.bysenom.minecraftSurvivors.util.ConfigUtil.Keys.STATS_BROADCAST_TOP_INTERVAL_SECONDS, 30));
             broadcastTask = Bukkit.getScheduler().runTaskTimer(plugin, this::broadcastTop, 20L * everySec, 20L * everySec);
         }
     }
@@ -102,7 +102,9 @@ public class StatsDisplayManager {
                             } else {
                                 clearBossbarsFor(p); // keine generischen Bossbars wenn Klasse schon gewählt aber Spiel noch nicht läuft
                             }
-                        } catch (Throwable ignored) {}
+                        } catch (Throwable t) {
+                            org.bysenom.minecraftSurvivors.util.LogUtil.logFine("Bossbar hint setup failed for " + p.getUniqueId() + ": ", t);
+                        }
                         break;
                     }
                     if (!running || !inCtx) { clearBossbarsFor(p); continue; }
@@ -120,7 +122,7 @@ public class StatsDisplayManager {
         java.util.List<Player> players = Bukkit.getOnlinePlayers().stream().collect(Collectors.toList());
         if (players.isEmpty()) return;
         class Pair { final String n; final double v; Pair(String n,double v){this.n=n;this.v=v;} }
-        int n = Math.max(1, plugin.getConfigUtil().getInt("stats.broadcast-top.n", 3));
+        int n = Math.max(1, plugin.getConfigUtil().getInt(org.bysenom.minecraftSurvivors.util.ConfigUtil.Keys.STATS_BROADCAST_TOP_N, 3));
         java.util.List<Pair> topDps = players.stream()
                 .map(pl -> new Pair(pl.getName(), meter.getDps(pl.getUniqueId())))
                 .sorted(java.util.Comparator.comparingDouble((Pair a) -> a.v).reversed())
@@ -138,17 +140,17 @@ public class StatsDisplayManager {
     }
 
     private void updateBossbars(Player p, double dps, double hps) {
-        boolean dyn = plugin.getConfigUtil().getBoolean("stats.dynamic-cap-enabled", false);
-        double dCap = Math.max(1.0, plugin.getConfigUtil().getDouble("stats.auto-cap.dps", 50.0));
-        double hCap = Math.max(1.0, plugin.getConfigUtil().getDouble("stats.auto-cap.hps", 30.0));
+        boolean dyn = plugin.getConfigUtil().getBoolean(org.bysenom.minecraftSurvivors.util.ConfigUtil.Keys.STATS_DYNAMIC_CAP_ENABLED, false);
+        double dCap = Math.max(1.0, plugin.getConfigUtil().getDouble(org.bysenom.minecraftSurvivors.util.ConfigUtil.Keys.STATS_AUTO_CAP_DPS, 50.0));
+        double hCap = Math.max(1.0, plugin.getConfigUtil().getDouble(org.bysenom.minecraftSurvivors.util.ConfigUtil.Keys.STATS_AUTO_CAP_HPS, 30.0));
         if (dyn) {
             try {
                 double dMax = meter.getDpsMax(p.getUniqueId());
                 double hMax = meter.getHpsMax(p.getUniqueId());
-                double alpha = Math.min(1.0, Math.max(0.0, plugin.getConfigUtil().getDouble("stats.dynamic-cap-smoothing", 0.2)));
+                double alpha = Math.min(1.0, Math.max(0.0, plugin.getConfigUtil().getDouble(org.bysenom.minecraftSurvivors.util.ConfigUtil.Keys.STATS_DYNAMIC_CAP_SMOOTHING, 0.2)));
                 dCap = smoothSticky(stickyDpsCap, p.getUniqueId(), Math.max(dCap, dMax), alpha);
                 hCap = smoothSticky(stickyHpsCap, p.getUniqueId(), Math.max(hCap, hMax), alpha);
-            } catch (Throwable ignored) {}
+            } catch (Throwable t) { org.bysenom.minecraftSurvivors.util.LogUtil.logFine("StatsDisplayManager dynamic cap calc failed for " + p.getUniqueId() + ": ", t); }
         }
         double dProg = Math.min(1.0, dps / dCap);
         double hProg = Math.min(1.0, hps / hCap);
@@ -173,9 +175,9 @@ public class StatsDisplayManager {
             double prog = Math.tanh(Math.log10(Math.max(1.0, power)));
             e.progress((float) Math.max(0.0, Math.min(1.0, prog)));
             BossBar.Color col = enrage >= 1.0 ? BossBar.Color.RED : (enrage > 0.0 ? BossBar.Color.PINK : BossBar.Color.PURPLE);
-            try { e.color(col); } catch (Throwable ignored) {}
+            try { e.color(col); } catch (Throwable t) { org.bysenom.minecraftSurvivors.util.LogUtil.logFine("Bossbar color update failed: ", t); }
             p.showBossBar(e);
-        } catch (Throwable ignored) {}
+        } catch (Throwable t) { org.bysenom.minecraftSurvivors.util.LogUtil.logFine("updateEnemyBossbar failed for " + p.getUniqueId() + ": ", t); }
     }
 
     private double smoothSticky(java.util.Map<java.util.UUID, Double> map, java.util.UUID id, double target, double alpha) {
@@ -191,9 +193,9 @@ public class StatsDisplayManager {
             BossBar d = bossbarsDps.remove(p.getUniqueId());
             BossBar h = bossbarsHps.remove(p.getUniqueId());
             BossBar e = bossbarsEnemy.remove(p.getUniqueId());
-            try { if (d != null) p.hideBossBar(d); } catch (Throwable ignored) {}
-            try { if (h != null) p.hideBossBar(h); } catch (Throwable ignored) {}
-            try { if (e != null) p.hideBossBar(e); } catch (Throwable ignored) {}
+            try { if (d != null) p.hideBossBar(d); } catch (Throwable t) { org.bysenom.minecraftSurvivors.util.LogUtil.logFine("hideBossBar failed: ", t); }
+            try { if (h != null) p.hideBossBar(h); } catch (Throwable t) { org.bysenom.minecraftSurvivors.util.LogUtil.logFine("hideBossBar failed: ", t); }
+            try { if (e != null) p.hideBossBar(e); } catch (Throwable t) { org.bysenom.minecraftSurvivors.util.LogUtil.logFine("hideBossBar failed: ", t); }
         }
     }
 
@@ -201,9 +203,9 @@ public class StatsDisplayManager {
         BossBar d = bossbarsDps.remove(p.getUniqueId());
         BossBar h = bossbarsHps.remove(p.getUniqueId());
         BossBar e = bossbarsEnemy.remove(p.getUniqueId());
-        try { if (d != null) p.hideBossBar(d); } catch (Throwable ignored) {}
-        try { if (h != null) p.hideBossBar(h); } catch (Throwable ignored) {}
-        try { if (e != null) p.hideBossBar(e); } catch (Throwable ignored) {}
+        try { if (d != null) p.hideBossBar(d); } catch (Throwable t) { org.bysenom.minecraftSurvivors.util.LogUtil.logFine("hideBossBar failed: ", t); }
+        try { if (h != null) p.hideBossBar(h); } catch (Throwable t) { org.bysenom.minecraftSurvivors.util.LogUtil.logFine("hideBossBar failed: ", t); }
+        try { if (e != null) p.hideBossBar(e); } catch (Throwable t) { org.bysenom.minecraftSurvivors.util.LogUtil.logFine("hideBossBar failed: ", t); }
     }
 
     // Neu: sofortiges Leeren auf Anforderung (z.B. beim Moduswechsel)

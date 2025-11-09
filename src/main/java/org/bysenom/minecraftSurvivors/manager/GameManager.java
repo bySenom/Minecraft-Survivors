@@ -58,10 +58,10 @@ public class GameManager {
         if (req == null) return;
         switch (req.type) {
             case LEVEL_UP -> {
-                try { if (plugin.getGuiManager() != null) plugin.getGuiManager().openLevelUpMenu(p, Math.max(1, req.level)); } catch (Throwable ignored) {}
+                try { if (plugin.getGuiManager() != null) plugin.getGuiManager().openLevelUpMenu(p, Math.max(1, req.level)); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "openLevelUpMenu failed for " + uuid + ": ", t); }
             }
             case LOOT_CHEST -> {
-                try { LootchestListener.openQueued(p); } catch (Throwable ignored) {}
+                try { LootchestListener.openQueued(p); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "openQueued lootchest failed for " + uuid + ": ", t); }
             }
         }
     }
@@ -94,12 +94,12 @@ public class GameManager {
         Player p = Bukkit.getPlayer(uuid);
         if (p != null && p.isOnline()) {
             // Scoreboard sichtbar halten
-            try { plugin.getScoreboardManager().forceUpdateAll(); } catch (Throwable ignored) {}
+            try { plugin.getScoreboardManager().forceUpdateAll(); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "forceUpdateAll failed on enterSurvivorsContext for " + uuid + ": ", t); }
             // Klassenfähigkeit nur erzwingen, falls Spiel bereits läuft (RUNNING) und Klasse gewählt ist
             if (state == GameState.RUNNING) {
-                try { ensureClassAbility(uuid); } catch (Throwable ignored) {}
+                try { ensureClassAbility(uuid); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "ensureClassAbility failed for " + uuid + ": ", t); }
             }
-            try { giveInitialKit(p); } catch (Throwable ignored) {}
+            try { giveInitialKit(p); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "giveInitialKit failed for " + uuid + ": ", t); }
         }
     }
     public void exitSurvivorsContext(java.util.UUID uuid) {
@@ -129,10 +129,10 @@ public class GameManager {
                     int currentXp = sp.getXp();
                     int xpToNext = sp.getXpToNext();
                     p.sendActionBar(Component.text("XP: " + currentXp + "/" + xpToNext + " • Lvl " + sp.getClassLevel()));
-                } catch (Throwable ignored) {}
+                } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "HUD update failed for player: " + (p == null ? "null" : p.getUniqueId()) + ": ", t); }
             }
             // BossManager tick
-            try { bossManager.tick(); } catch (Throwable ignored) {}
+            try { bossManager.tick(); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "bossManager.tick failed: ", t); }
         }, 0L, hudIntervalTicks);
     }
 
@@ -160,7 +160,7 @@ public class GameManager {
             int idx = sp.addAbilityAtFirstFreeIndex(correct, 1);
             if (idx >= 0) {
                 sp.setAbilityOrigin(correct, "class");
-                try { plugin.getPlayerDataManager().saveAsync(sp); } catch (Throwable ignored) {}
+                try { plugin.getPlayerDataManager().saveAsync(sp); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "saveAsync failed for " + uuid + ": ", t); }
             }
         }
     }
@@ -173,8 +173,8 @@ public class GameManager {
         try {
             org.bukkit.inventory.PlayerInventory inv = p.getInventory();
             for (int i = 0; i < 5; i++) { inv.setItem(i, null); }
-        } catch (Throwable ignored) {}
-        try { p.updateInventory(); } catch (Throwable ignored) {}
+        } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "giveInitialKit inventory clear failed for player " + (p == null ? "null" : p.getUniqueId()) + ": ", t); }
+        try { p.updateInventory(); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "giveInitialKit updateInventory failed for player " + (p == null ? "null" : p.getUniqueId()) + ": ", t); }
     }
 
     public synchronized void startGame() {
@@ -190,7 +190,7 @@ public class GameManager {
                 plugin.getMetaManager().applyMetaOnRunStart(p, sp);
                 // Beim Start sicherstellen, dass alle aktiven Spieler im Kontext sind
                 enterSurvivorsContext(p.getUniqueId());
-            } catch (Throwable ignored) {}
+            } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "applyMetaOnRunStart/enterContext failed for player: " + p.getUniqueId() + ": ", t); }
         }
         this.currentWaveNumber = 1;
         boolean continuous = plugin.getConfigUtil().getBoolean("spawn.continuous.enabled", true);
@@ -201,9 +201,9 @@ public class GameManager {
         }
         abilityManager.start();
         startHudTask();
-        try { plugin.getShopNpcManager().spawnConfigured(); } catch (Throwable ignored) {}
+        try { plugin.getShopNpcManager().spawnConfigured(); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "shopNpcManager.spawnConfigured failed: ", t); }
         // Survivors-HUD einschalten: Scoreboard-Update triggern, Bossbars werden im StatsDisplayManager-Tick nur bei RUNNING gezeigt
-        try { plugin.getScoreboardManager().forceUpdateAll(); } catch (Throwable ignored) {}
+        try { plugin.getScoreboardManager().forceUpdateAll(); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "scoreboardManager.forceUpdateAll failed: ", t); }
         plugin.getLogger().info("Game started");
     }
 
@@ -214,12 +214,12 @@ public class GameManager {
         spawnManager.stopContinuous();
         spawnManager.clearWaveMobs();
         abilityManager.stop();
-        try { plugin.getSkillManager().clearLingeringEffects(); } catch (Throwable ignored) {}
+        try { plugin.getSkillManager().clearLingeringEffects(); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "skillManager.clearLingeringEffects failed: ", t); }
         if (xpHudTask != null) xpHudTask.cancel();
-        try { plugin.getShopNpcManager().despawnAll(); } catch (Throwable ignored) {}
+        try { plugin.getShopNpcManager().despawnAll(); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "shopNpcManager.despawnAll failed: ", t); }
         // Scoreboard soll nach Tod bestehen bleiben -> Tasks beenden aber nicht resetten
-        try { plugin.getScoreboardManager().forceUpdateAll(); } catch (Throwable ignored) {}
-        try { plugin.getStatsDisplayManager().clearAllBossbarsNow(); } catch (Throwable ignored) {}
+        try { plugin.getScoreboardManager().forceUpdateAll(); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "scoreboardManager.forceUpdateAll failed: ", t); }
+        try { plugin.getStatsDisplayManager().clearAllBossbarsNow(); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "statsDisplayManager.clearAllBossbarsNow failed: ", t); }
         // survivorsContext NICHT löschen, damit Scoreboard sichtbar bleibt bis Spieler bewusst zurückkehrt
         plugin.getLogger().info("Game stopped");
     }

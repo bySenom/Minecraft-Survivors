@@ -117,9 +117,9 @@ public final class MinecraftSurvivors extends JavaPlugin {
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.GlyphPickupListener(this), this);
 
             this.scoreboardManager.start();
-            try { this.statsDisplayManager.start(); } catch (Throwable ignored) {}
-            try { this.skillManager.start(); } catch (Throwable ignored) {}
-            try { this.tablistManager.start(); } catch (Throwable ignored) {}
+            try { this.statsDisplayManager.start(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "statsDisplayManager.start failed: ", t); }
+            try { this.skillManager.start(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "skillManager.start failed: ", t); }
+            try { this.tablistManager.start(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "tablistManager.start failed: ", t); }
 
             // Autosave Spieler-Daten asynchron in konfigurierbarem Intervall
             int autosaveSec = this.configUtil.getInt("data.autosave-interval-seconds", 120);
@@ -148,16 +148,16 @@ public final class MinecraftSurvivors extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        try { if (this.scoreboardManager != null) this.scoreboardManager.stop(); } catch (Throwable ignored) {}
-        try { if (this.statsDisplayManager != null) this.statsDisplayManager.stop(); } catch (Throwable ignored) {}
-        try { if (this.tablistManager != null) this.tablistManager.stop(); } catch (Throwable ignored) {}
-        try { if (this.metaManager != null) this.metaManager.saveAll(); } catch (Throwable ignored) {}
-        try { if (this.shopNpcManager != null) this.shopNpcManager.despawnAll(); } catch (Throwable ignored) {}
-        try { if (this.skillManager != null) this.skillManager.stop(); } catch (Throwable ignored) {}
+        try { if (this.scoreboardManager != null) this.scoreboardManager.stop(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "scoreboardManager.stop failed: ", t); }
+        try { if (this.statsDisplayManager != null) this.statsDisplayManager.stop(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "statsDisplayManager.stop failed: ", t); }
+        try { if (this.tablistManager != null) this.tablistManager.stop(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "tablistManager.stop failed: ", t); }
+        try { if (this.metaManager != null) this.metaManager.saveAll(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "metaManager.saveAll failed: ", t); }
+        try { if (this.shopNpcManager != null) this.shopNpcManager.despawnAll(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "shopNpcManager.despawnAll failed: ", t); }
+        try { if (this.skillManager != null) this.skillManager.stop(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "skillManager.stop failed: ", t); }
         // Autosave Task beenden
-        try { if (this.autosaveTask != null) this.autosaveTask.cancel(); } catch (Throwable ignored) {}
+        try { if (this.autosaveTask != null) this.autosaveTask.cancel(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "autosaveTask.cancel failed: ", t); }
         // Final alle Spieler-Daten speichern
-        try { if (this.playerDataManager != null) this.playerDataManager.saveAll(); } catch (Throwable ignored) {}
+        try { if (this.playerDataManager != null) this.playerDataManager.saveAll(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "playerDataManager.saveAll failed: ", t); }
         getLogger().info("MinecraftSurvivors disabled.");
     }
 

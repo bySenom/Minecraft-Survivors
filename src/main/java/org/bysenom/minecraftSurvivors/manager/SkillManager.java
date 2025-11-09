@@ -63,14 +63,14 @@ public class SkillManager {
                     // kompletter Schaden vom Schild absorbiert
                     aegisShields.put(id, shield - dmg);
                     e.setCancelled(true);
-                    try { pl.getWorld().spawnParticle(org.bukkit.Particle.END_ROD, pl.getLocation().add(0,1.0,0), 6, 0.3,0.3,0.3, 0.01); } catch (Throwable ignored) {}
+                    try { pl.getWorld().spawnParticle(org.bukkit.Particle.END_ROD, pl.getLocation().add(0,1.0,0), 6, 0.3,0.3,0.3, 0.01); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "Aegis particle spawn failed for " + id + ": ", t); }
                     updateAegisVisual(id);
                 } else {
                     // Teilabsorption
                     double remain = dmg - shield;
                     aegisShields.put(id, 0.0);
                     e.setDamage(remain);
-                    try { pl.getWorld().spawnParticle(org.bukkit.Particle.END_ROD, pl.getLocation().add(0,1.0,0), 10, 0.4,0.4,0.4, 0.02); } catch (Throwable ignored) {}
+                    try { pl.getWorld().spawnParticle(org.bukkit.Particle.END_ROD, pl.getLocation().add(0,1.0,0), 10, 0.4,0.4,0.4, 0.02); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "Aegis particle spawn failed for " + id + ": ", t); }
                     updateAegisVisual(id);
                 }
             }
@@ -157,7 +157,7 @@ public class SkillManager {
 
                 lore.add(net.kyori.adventure.text.Component.text("§8———"));
                 meta.lore(lore);
-                try { meta.addEnchant(org.bukkit.enchantments.Enchantment.LURE, 1, true); meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);} catch (Throwable ignored) {}
+                try { meta.addEnchant(org.bukkit.enchantments.Enchantment.LURE, 1, true); meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);} catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "Failed to add meta enchant/hide flag for player " + p.getUniqueId() + " ability " + def.key + ": ", t); }
                 it.setItemMeta(meta);
             }
             // Hotbar Slots 0..4 reservieren
@@ -206,7 +206,7 @@ public class SkillManager {
             target.damage(damage * (1.0 + sp.getDamageMult()), p);
             target.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, target.getLocation().add(0,1.0,0), 14, 0.3,0.3,0.3, 0.02);
             p.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.2f, 2.0f);
-        } catch (Throwable ignored) {}
+        } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWLightning primary effect failed for player " + p.getUniqueId() + ": ", t); }
         // Glyph-Trigger
         int hits = sp.incCounter("glc_lightning_hits", 1);
         java.util.List<String> glyphs = sp.getGlyphs("ab_lightning");
@@ -219,7 +219,7 @@ public class SkillManager {
                         le.getWorld().spawnParticle(Particle.CRIT, le.getLocation().add(0,1.0,0), 8, 0.3,0.3,0.3, 0.02);
                     }
                     p.playSound(p.getLocation(), Sound.ITEM_TRIDENT_THUNDER, 0.6f, 0.6f);
-                } catch (Throwable ignored) {}
+                } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWLightning overcharge effect failed for player " + p.getUniqueId() + ": ", t); }
                 glyphProcNotify(p, "ab_lightning:overcharge", target.getLocation());
             }
             // Genkidama: kleine Chance, großen Meteor zu rufen
@@ -234,14 +234,14 @@ public class SkillManager {
                         le.damage(damage * 2.2 * (1.0 + sp.getDamageMult()), p);
                     }
                 }
-                try { p.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 0.7f, 0.8f);} catch (Throwable ignored) {}
+                try { p.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 0.7f, 0.8f);} catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWLightning genkidama sound failed: ", t); }
                 glyphProcNotify(p, "ab_lightning:genkidama", target.getLocation());
             }
             // Sturmkette
             if (glyphs.contains("ab_lightning:storm_chain") && mobs.size() > 1) {
                 org.bukkit.entity.LivingEntity extra = mobs.get(java.util.concurrent.ThreadLocalRandom.current().nextInt(mobs.size()));
                 if (!extra.equals(target)) {
-                    try { extra.damage(damage * 0.6 * (1.0 + sp.getDamageMult()), p); extra.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, extra.getLocation().add(0,1.0,0), 10, 0.2,0.2,0.2, 0.02);} catch (Throwable ignored) {}
+                    try { extra.damage(damage * 0.6 * (1.0 + sp.getDamageMult()), p); extra.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, extra.getLocation().add(0,1.0,0), 10, 0.2,0.2,0.2, 0.02);} catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWLightning storm_chain extra hit failed for player " + p.getUniqueId() + ": ", t); }
                 }
                 glyphProcNotify(p, "ab_lightning:storm_chain", target.getLocation());
             }
@@ -249,7 +249,7 @@ public class SkillManager {
         // synergy: lightning + fire -> ignite
         if (sp.getWeapons().contains("w_fire")) {
             int igniteTicks = 40 + sp.getIgniteBonusTicks();
-            try { target.setFireTicks(Math.max(target.getFireTicks(), igniteTicks)); } catch (Throwable ignored) {}
+            try { target.setFireTicks(Math.max(target.getFireTicks(), igniteTicks)); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "Failed to set fire ticks on target for player " + p.getUniqueId() + ": ", t); }
         }
     }
 
@@ -265,9 +265,9 @@ public class SkillManager {
                 le.setFireTicks(Math.max(le.getFireTicks(), 40 + sp.getIgniteBonusTicks()));
                 le.damage(damage * (1.0 + sp.getDamageMult()), p);
                 le.getWorld().spawnParticle(Particle.FLAME, le.getLocation().add(0,1.0,0), 6, 0.25,0.25,0.25, 0.01);
-            } catch (Throwable ignored) {}
+            } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWFire effect failed for player " + p.getUniqueId() + ": ", t); }
         }
-        try { p.playSound(p.getLocation(), Sound.ITEM_FLINTANDSTEEL_USE, 0.3f, 1.6f); } catch (Throwable ignored) {}
+        try { p.playSound(p.getLocation(), Sound.ITEM_FLINTANDSTEEL_USE, 0.3f, 1.6f); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWFire sound failed for player " + p.getUniqueId() + ": ", t); }
     }
 
     private void runWRanged(Player p, SurvivorPlayer sp, int lvl) {
@@ -289,8 +289,8 @@ public class SkillManager {
                 cur.add(dir.clone().multiply(speed));
                 cur.getWorld().spawnParticle(Particle.CRIT, cur, 2, 0.02,0.02,0.02, 0.0);
                 if (cur.distanceSquared(target.getLocation()) < 1.0) {
-                    try { target.damage(damage * (1.0 + sp.getDamageMult()), p); } catch (Throwable ignored) {}
-                    try { p.playSound(cur, Sound.ENTITY_ARROW_HIT_PLAYER, 0.5f, 1.6f); } catch (Throwable ignored) {}
+                    try { target.damage(damage * (1.0 + sp.getDamageMult()), p); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWRanged hit damage failed for player " + p.getUniqueId() + ": ", t); }
+                    try { p.playSound(cur, Sound.ENTITY_ARROW_HIT_PLAYER, 0.5f, 1.6f); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWRanged hit sound failed for player " + p.getUniqueId() + ": ", t); }
                     cancel(); return;
                 }
                 if (++t > 40) cancel();
@@ -311,7 +311,7 @@ public class SkillManager {
         try {
             p.getWorld().spawnParticle(Particle.END_ROD, loc.add(0,1.0,0), 28, radius/2, 0.3, radius/2, 0.0);
             p.playSound(loc, Sound.BLOCK_BEACON_POWER_SELECT, 0.7f, 1.8f);
-        } catch (Throwable ignored) {}
+        } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWHoly failed for player " + p.getUniqueId() + ": ", t); }
         // synergy: holy burst on kill handled in EntityDeathListener optional (future)
     }
 
@@ -329,12 +329,12 @@ public class SkillManager {
                 le.damage(damage, p);
                 org.bukkit.util.Vector v = le.getLocation().toVector().subtract(loc.toVector()).normalize().multiply(0.6).setY(0.25);
                 le.setVelocity(v);
-            } catch (Throwable ignored) {}
+            } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runShockwave hit failed for player " + p.getUniqueId() + ": ", t); }
         }
         try {
             p.getWorld().spawnParticle(Particle.SWEEP_ATTACK, loc.add(0,1.0,0), 18, 1.0, 0.2, 1.0, 0.0);
             p.playSound(loc, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.6f, 1.0f);
-        } catch (Throwable ignored) {}
+        } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runShockwave visual/sound failed for player " + p.getUniqueId() + ": ", t); }
     }
 
     private void runHealTotem(Player p, int lvl) {
@@ -375,7 +375,7 @@ public class SkillManager {
                 } catch (Throwable ignored) {}
             }
         }
-        try { p.playSound(p.getLocation(), org.bukkit.Sound.BLOCK_BEACON_POWER_SELECT, 0.5f, 1.2f); } catch (Throwable ignored) {}
+        try { p.playSound(p.getLocation(), org.bukkit.Sound.BLOCK_BEACON_POWER_SELECT, 0.5f, 1.2f); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runHealTotem sound failed for player " + p.getUniqueId() + ": ", t); }
     }
 
     private void runFrostNova(Player p, int lvl) {
@@ -391,9 +391,9 @@ public class SkillManager {
                 le.damage(damage, p);
                 le.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS, 40 + lvl*10, 1, false, false, true));
                 le.getWorld().spawnParticle(org.bukkit.Particle.SNOWFLAKE, le.getLocation().add(0,1.0,0), 8, 0.2, 0.4, 0.2, 0.01);
-            } catch (Throwable ignored) {}
+            } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runFrostNova effect failed for player " + p.getUniqueId() + ": ", t); }
         }
-        try { p.playSound(p.getLocation(), org.bukkit.Sound.BLOCK_GLASS_BREAK, 0.5f, 1.6f); } catch (Throwable ignored) {}
+        try { p.playSound(p.getLocation(), org.bukkit.Sound.BLOCK_GLASS_BREAK, 0.5f, 1.6f); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runFrostNova sound failed for player " + p.getUniqueId() + ": ", t); }
     }
 
     private void runVoidNova(Player p, SurvivorPlayer sp, int lvl) {
@@ -489,7 +489,7 @@ public class SkillManager {
         try { p.playSound(center, org.bukkit.Sound.BLOCK_ENCHANTMENT_TABLE_USE, 0.6f, 0.3f); } catch (Throwable ignored) {}
         // Haste Burst -> kurzer effekt
         if (hasteBurst) {
-            try { p.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.HASTE, Math.max(40, ticks), 1, false, false, true)); } catch (Throwable ignored) {}
+            try { p.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.HASTE, Math.max(40, ticks), 1, false, false, true)); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runTimeRift haste application failed for player " + p.getUniqueId() + ": ", t); }
         }
         final int[] t = {0};
         org.bukkit.scheduler.BukkitRunnable task = new org.bukkit.scheduler.BukkitRunnable() {

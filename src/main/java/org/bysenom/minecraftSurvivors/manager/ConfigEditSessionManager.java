@@ -38,7 +38,7 @@ public class ConfigEditSessionManager {
                 Session ss = sessions.get(player);
                 if (ss != null && ss.awaitingChatInput) sessions.remove(player);
             }, 20L * 60L);
-        } catch (Throwable ignored) {}
+        } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "Failed to schedule config edit session cleanup: ", t); }
         return s;
     }
 

@@ -70,12 +70,12 @@ public class TablistManager {
                         p.sendPlayerListHeaderAndFooter(headerComp, footerComp);
                         lastHeader.put(p.getUniqueId(), headerPlain);
                         lastFooter.put(p.getUniqueId(), footerPlain);
-                    } catch (Throwable ignored) {}
+                    } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "sendPlayerListHeaderAndFooter failed for " + p.getUniqueId() + ": ", t); }
                 }
 
                 // Optional: List Name – Klasse & Level (only update when changed)
                 updatePlayerListNameIfNeeded(p);
-            } catch (Throwable ignored) {}
+            } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "Tablist tick failed for player " + p.getUniqueId() + ": ", t); }
         }
     }
 
@@ -129,8 +129,8 @@ public class TablistManager {
         if (name == null) name = memberId.toString().substring(0, 8);
         double hp = 0.0, max = 20.0;
         if (pl != null && pl.isOnline()) {
-            try { org.bukkit.attribute.AttributeInstance ai = pl.getAttribute(Attribute.MAX_HEALTH); if (ai != null) max = ai.getBaseValue(); } catch (Throwable ignored) {}
-            try { hp = pl.getHealth(); } catch (Throwable ignored) {}
+            try { org.bukkit.attribute.AttributeInstance ai = pl.getAttribute(Attribute.MAX_HEALTH); if (ai != null) max = ai.getBaseValue(); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "getAttribute failed for " + memberId + ": ", t); }
+            try { hp = pl.getHealth(); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "getHealth failed for " + memberId + ": ", t); }
         }
         String bar = makeBar(hp / Math.max(1.0, max));
         Component barC = Component.text(bar, NamedTextColor.GREEN);
@@ -147,7 +147,7 @@ public class TablistManager {
                     case "PALADIN" -> icon = "✚";
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "buildPartyLine failed for " + memberId + ": ", t); }
         return Component.text(icon + " " + name + " ", NamedTextColor.WHITE).append(barC).append(hpC);
     }
 
@@ -173,7 +173,7 @@ public class TablistManager {
             Component level = Component.text("(Lv " + lvl + ")", NamedTextColor.GRAY);
             p.playerListName(left.append(level));
             lastPlayerListName.put(p.getUniqueId(), plain);
-        } catch (Throwable ignored) {}
+        } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "updatePlayerListNameIfNeeded failed for " + p.getUniqueId() + ": ", t); }
     }
 
     private String makeBar(double ratio, int len) {
