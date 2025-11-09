@@ -1,0 +1,78 @@
+# LobbySystem Konfiguration
+min-players: 2            # Mindestanzahl für Auto-Start (nur relevant ohne admission)
+max-players: 8            # Obergrenze; bei Erreichen schneller starten (nur ohne admission)
+autostart-seconds: 15     # Countdown-Dauer bei ausreichender Queue (nur ohne admission)
+open-menu-on-join: true   # Öffnet das Lobby-Menü beim Join
+bossbar-enabled: true     # Zeigt BossBar mit Queue-Status
+bossbar-color: BLUE       # BLUE, RED, GREEN, YELLOW, PURPLE, WHITE, PINK
+bossbar-overlay: PROGRESS # PROGRESS | NOTCHED_6 | NOTCHED_10 | NOTCHED_12 | NOTCHED_20
+survivors-start-command: "msstart" # Befehl zum Start der Survivors-Runde (von der Konsole)
+
+admission:
+  enabled: true              # Wenn true, Spieler werden nacheinander zugelassen
+  interval-seconds: 3        # Zeitabstand zwischen zwei Zulassungen
+  start-when: min            # min | queue_empty | manual — Startbedingung für MS
+  backfill-while-running: true # Wenn MS bereits läuft, weiterhin Spieler zulassen
+
+npc:
+  enabled: true
+  type: "armorstand"       # armorstand | player (player benötigt externe NPC/Packet-Lösung, fällt sonst zurück)
+  mode-name: "Minecraft Survivors"
+  look-at-player: true
+  skin-player: ""          # Optionaler Spielername für Skin
+  armor-enabled: true       # Rüstung zur Spieleroptik
+  world: ""
+  x: 0.0
+  y: 0.0
+  z: 0.0
+  yaw: 0.0
+
+compass:
+  enabled: true
+  slot: 0
+  name: "§bNavigator"
+  lore:
+    - "§7Rechtsklick zum Öffnen"
+    - "§fSpielmodi, Profil, Party, Freunde, Cosmetics"
+
+ui:
+  navigator-title: "Navigator • Auswahl"
+  profile-title: "Profil • Übersicht"
+  cosmetics-title: "Cosmetics • Auswahl"
+  friends-title: "Freunde • Liste"
+  party-title: "Party • Steuerung"
+
+# Neues Theming für den Navigator
+navigator:
+  slots:
+    survivors: 10
+    profile: 12
+    party: 14
+    friends: 16
+    cosmetics: 28
+    close: 49
+  items:
+    survivors:
+      material: "NETHER_STAR"
+      name: "§aMinecraft Survivors"
+      lore: "§7Betrete den Survivors Spielmodus"
+    profile:
+      material: "PLAYER_HEAD"
+      name: "§bProfil"
+      lore: "§7Zeigt deine Statistiken"
+    party:
+      material: "ENDER_PEARL"
+      name: "§dParty"
+      lore: "§7Party verwalten"
+    friends:
+      material: "BOOK"
+      name: "§eFreunde"
+      lore: "§7Freundesliste anzeigen"
+    cosmetics:
+      material: "DIAMOND"
+      name: "§9Cosmetics"
+      lore: "§7Kosmetische Anpassungen"
+    close:
+      material: "BARRIER"
+      name: "§cSchließen"
+      lore: "§7Fenster schließen"

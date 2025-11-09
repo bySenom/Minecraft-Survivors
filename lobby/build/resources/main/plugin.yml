@@ -1,0 +1,41 @@
+name: LobbySystem
+main: org.bysenom.lobby.LobbySystem
+version: 1.0-SNAPSHOT
+author: bySenom
+description: "Zentraler Lobby- und Matchmaking-Hub für MinecraftSurvivors."
+api-version: 1.21
+softdepend: [MinecraftSurvivors, ProtocolLib, FancyNpcs]
+commands:
+  lobby:
+    description: "Öffnet das Lobby-Menü"
+    usage: "/lobby"
+  queue:
+    description: "Queue: /queue join|leave|status|next"
+    usage: "/queue <join|leave|status|next>"
+    aliases: [q, warteschlange]
+  startsurvivors:
+    description: "Admin: Startet eine Survivors-Runde für gequeue-te Spieler"
+    usage: "/startsurvivors"
+  lobbyreload:
+    description: "Reloadet die Lobby-Konfiguration (BossBar/AutoStart)"
+    usage: "/lobbyreload"
+    permission: lobby.admin
+  lobbynpc:
+    description: "Verwaltet Player-NPCs: list|add|remove|move|setcmd|togglelook|info|reload"
+    usage: "/lobbynpc list|add <Name>|remove <index>|move <index>|setcmd <index> <Befehl>|togglelook <index>|info <index>|reload"
+    permission: lobby.admin
+  navigator:
+    description: "Öffnet direkt den Navigator"
+    usage: "/navigator"
+  friends:
+    description: "Freundesverwaltung: list|pending|invite|accept|deny|add|remove|block|unblock"
+    usage: "/friends <list|pending|invite|accept|deny|add|remove|block|unblock> [Name]"
+    aliases: [friend]
+  cosmetics:
+    description: "Cosmetics Flags: unlock|clear|status"
+    usage: "/cosmetics <unlock|clear|status> [key]"
+    aliases: [cos]
+permissions:
+  lobby.admin:
+    description: "Adminrechte für LobbySystem"
+    default: op

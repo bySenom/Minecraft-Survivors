@@ -23,7 +23,7 @@ function walk(obj, prefix = '') {
       out += '| Key | Value (example) | Type |\n|---|---|---|\n';
       for (const k of Object.keys(val)) {
         const v = val[k];
-        out += `| ${k} | \\`${JSON.stringify(v).replace(/\n/g,' ')}\\` | ${Array.isArray(v)?'array':typeof v} |\n`;
+        out += '| ' + k + ' | `' + JSON.stringify(v).replace(/\n/g,' ') + '` | ' + (Array.isArray(v)?'array':typeof v) + ' |\n';
       }
       out += '\n';
       out += walk(val, full);
@@ -39,7 +39,7 @@ try {
   // Top-level sections list
   md += '## Top-level keys\n\n';
   for (const k of Object.keys(parsed)) {
-    md += `- \\`${k}\\`\n`;
+    md += '- `' + k + '`\n';
   }
   md += '\n---\n\n';
   md += walk(parsed);
@@ -50,4 +50,3 @@ try {
   console.error('Error generating config doc:', e);
   process.exit(2);
 }
-
