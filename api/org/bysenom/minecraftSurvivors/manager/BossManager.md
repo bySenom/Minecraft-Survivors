@@ -9,3 +9,5 @@ Simpler Endgame-Boss-Controller: spawnt bei Enrage >= 1.0 einen Boss und verwalt
 - `isBossActive()`
 - `tick()`
 - `forceEnd()`
+- `debugSpawnBoss()`
+- `debugAggroNearest()`
