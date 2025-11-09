@@ -108,4 +108,5 @@ This section contains automatically generated API documentation (basic).
 - [org.bysenom.minecraftSurvivors.util.LogUtil](../api/org/bysenom/minecraftSurvivors/util/LogUtil.md)
 - [org.bysenom.minecraftSurvivors.util.Msg](../api/org/bysenom/minecraftSurvivors/util/Msg.md)
 - [org.bysenom.minecraftSurvivors.util.NumberUtil](../api/org/bysenom/minecraftSurvivors/util/NumberUtil.md)
+- [org.bysenom.minecraftSurvivors.util.ParticleUtil](../api/org/bysenom/minecraftSurvivors/util/ParticleUtil.md)
 - [org.bysenom.minecraftSurvivors.util.PlayerDataManager](../api/org/bysenom/minecraftSurvivors/util/PlayerDataManager.md)
