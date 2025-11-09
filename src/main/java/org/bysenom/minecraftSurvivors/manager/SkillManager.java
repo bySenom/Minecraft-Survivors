@@ -297,45 +297,73 @@ public class SkillManager {
         if (onCd(p.getUniqueId(), "w_ranged", cd)) return;
         double range = 16.0 + lvl * 2.0;
         double damage = 1.8 + lvl * 0.6 + sp.getFlatDamage() * 0.6;
-        List<org.bukkit.entity.LivingEntity> mobs = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(p.getLocation(), range);
+        java.util.List<org.bukkit.entity.LivingEntity> mobs = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(p.getLocation(), range);
         if (mobs.isEmpty()) return;
-        org.bukkit.entity.LivingEntity target = mobs.iterator().next();
-        org.bukkit.Location eye = p.getEyeLocation();
-        org.bukkit.util.Vector dir = target.getLocation().toVector().subtract(eye.toVector()).normalize();
-        org.bukkit.Location cur = eye.clone();
+        mobs.sort(java.util.Comparator.comparingDouble(m -> m.getLocation().distanceSquared(p.getLocation())));
+        int baseCount = 1 + (int)Math.floor(Math.max(0.0, sp.getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.PROJECTILE_COUNT)));
+        int bounceCount = (int)Math.floor(Math.max(0.0, sp.getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.PROJECTILE_BOUNCE)));
+        baseCount = Math.max(1, Math.min(6, baseCount));
+        bounceCount = Math.max(0, Math.min(5, bounceCount));
         double speed = 1.3 + 0.05 * lvl;
-        boolean fancyAll = plugin.getConfigUtil().getBoolean("visuals.fancy-enabled", true);
-        boolean fancyRanged = plugin.getConfigUtil().getBoolean("visuals.ranged.fancy", true);
-        boolean sonicTrail = plugin.getConfigUtil().getBoolean("visuals.ranged.sonic", true);
-        int sonicPts = plugin.getConfigUtil().getInt("visuals.ranged.sonic-points", 14);
-        int sonicEvery = Math.max(1, plugin.getConfigUtil().getInt("visuals.ranged.sonic-every-ticks", 4));
-        double sonicBase = plugin.getConfigUtil().getDouble("visuals.ranged.sonic-base-radius", 0.6);
-        double sonicGrowth = plugin.getConfigUtil().getDouble("visuals.ranged.sonic-growth-per-tick", 0.02);
-        double sonicMax = plugin.getConfigUtil().getDouble("visuals.ranged.sonic-max-radius", 1.6);
+        org.bukkit.Location start = p.getEyeLocation();
+        for (int i=0; i<baseCount; i++) {
+            org.bukkit.entity.LivingEntity target = mobs.get(Math.min(i, mobs.size()-1));
+            shootRangedProjectile(p, sp, start, target, damage, speed, 40, bounceCount);
+        }
+        try { p.playSound(p.getLocation(), org.bukkit.Sound.ITEM_CROSSBOW_SHOOT, 0.5f, 1.4f); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWRanged shoot sound failed for player " + p.getUniqueId() + ": ", t); }
+    }
+
+    // Launches a visual projectile towards target with optional bouncing to nearby enemies
+    private void shootRangedProjectile(Player p, SurvivorPlayer sp, org.bukkit.Location start, org.bukkit.entity.LivingEntity target, double damage, double speed, int maxTicks, int remainingBounces) {
+        if (p == null || target == null || !target.isValid()) return;
+        final org.bukkit.Location cur = start.clone();
+        final boolean fancyAll = plugin.getConfigUtil().getBoolean("visuals.fancy-enabled", true);
+        final boolean fancyRanged = plugin.getConfigUtil().getBoolean("visuals.ranged.fancy", true);
+        final boolean sonicTrail = plugin.getConfigUtil().getBoolean("visuals.ranged.sonic", true);
+        final int sonicPts = plugin.getConfigUtil().getInt("visuals.ranged.sonic-points", 14);
+        final int sonicEvery = Math.max(1, plugin.getConfigUtil().getInt("visuals.ranged.sonic-every-ticks", 4));
+        final double sonicBase = plugin.getConfigUtil().getDouble("visuals.ranged.sonic-base-radius", 0.6);
+        final double sonicGrowth = plugin.getConfigUtil().getDouble("visuals.ranged.sonic-growth-per-tick", 0.02);
+        final double sonicMax = plugin.getConfigUtil().getDouble("visuals.ranged.sonic-max-radius", 1.6);
         new org.bukkit.scheduler.BukkitRunnable() {
-            int t = 0; @Override public void run() {
+            int t = 0;
+            final org.bukkit.entity.LivingEntity tgt = target;
+            final org.bukkit.util.Vector dir = tgt.getLocation().toVector().subtract(cur.toVector()).normalize();
+            @Override public void run() {
                 if (!p.isOnline()) { cancel(); return; }
                 cur.add(dir.clone().multiply(speed));
-                cur.getWorld().spawnParticle(Particle.CRIT, cur, 2, 0.02,0.02,0.02, 0.0);
+                try { cur.getWorld().spawnParticle(org.bukkit.Particle.CRIT, cur, 2, 0.02,0.02,0.02, 0.0); } catch (Throwable ignored) {}
                 if (fancyAll && fancyRanged) {
-                    org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSpiral(cur.getWorld(), cur.clone().add(0,-0.2,0), 0.35, 0.6, 10, org.bukkit.Particle.END_ROD, 1.0);
+                    try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSpiral(cur.getWorld(), cur.clone().add(0,-0.2,0), 0.35, 0.6, 10, org.bukkit.Particle.END_ROD, 1.0); } catch (Throwable ignored) {}
                     if (sonicTrail && t % sonicEvery == 0) {
                         double r = Math.min(sonicBase + t * sonicGrowth, sonicMax);
-                        for (int i=0;i<Math.max(3, sonicPts);i++) {
-                            double ang = 2*Math.PI*i/Math.max(3, sonicPts);
+                        int pts = Math.max(3, sonicPts);
+                        for (int i=0;i<pts;i++) {
+                            double ang = 2*Math.PI*i/pts;
                             double x = cur.getX()+Math.cos(ang)*r;
                             double z = cur.getZ()+Math.sin(ang)*r;
-                            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafe(cur.getWorld(), org.bukkit.Particle.CRIT, new org.bukkit.Location(cur.getWorld(), x, cur.getY()+0.05, z), 1, 0.01,0.01,0.01,0.0);
+                            try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafe(cur.getWorld(), org.bukkit.Particle.CRIT, new org.bukkit.Location(cur.getWorld(), x, cur.getY()+0.05, z), 1, 0.01,0.01,0.01,0.0); } catch (Throwable ignored) {}
                         }
                     }
                 }
-                if (cur.distanceSquared(target.getLocation()) < 1.0) {
-                    try { target.damage(damage * (1.0 + sp.getDamageMult()), p); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWRanged hit damage failed for player " + p.getUniqueId() + ": ", t); }
-                    try { p.playSound(cur, Sound.ENTITY_ARROW_HIT_PLAYER, 0.5f, 1.6f); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWRanged hit sound failed for player " + p.getUniqueId() + ": ", t); }
+                if (cur.distanceSquared(tgt.getLocation()) < 1.0) {
+                    try { tgt.damage(damage * (1.0 + sp.getDamageMult()), p); } catch (Throwable t1) { plugin.getLogger().log(java.util.logging.Level.FINE, "shootRangedProjectile hit damage failed for player " + p.getUniqueId() + ": ", t1); }
+                    try { p.playSound(cur, org.bukkit.Sound.ENTITY_ARROW_HIT_PLAYER, 0.5f, 1.6f); } catch (Throwable ignored) {}
+                    // Bounce to next target if available
+                    if (remainingBounces > 0) {
+                        java.util.List<org.bukkit.entity.LivingEntity> near = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(cur, 8.0);
+                        org.bukkit.entity.LivingEntity next = null;
+                        for (org.bukkit.entity.LivingEntity le : near) { if (le != null && le.isValid() && !le.equals(tgt)) { next = le; break; } }
+                        if (next != null) {
+                            try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnLine(cur.getWorld(), cur.clone().add(0,0.1,0), next.getLocation().clone().add(0,0.6,0), 12, org.bukkit.Particle.CRIT); } catch (Throwable ignored) {}
+                            shootRangedProjectile(p, sp, cur.clone(), next, damage, speed, Math.max(20, maxTicks/2), remainingBounces-1);
+                        }
+                    }
                     cancel(); return;
                 }
-                if (++t > 40) cancel();
-            }}.runTaskTimer(plugin, 0L, 1L);
+                if (++t > maxTicks) cancel();
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
     }
 
     private void runWHoly(Player p, SurvivorPlayer sp, int lvl) {

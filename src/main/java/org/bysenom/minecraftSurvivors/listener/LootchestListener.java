@@ -350,6 +350,19 @@ public class LootchestListener implements Listener {
                         case "RESIST": st = org.bysenom.minecraftSurvivors.model.StatType.RESIST; break;
                         case "LUCK": st = org.bysenom.minecraftSurvivors.model.StatType.LUCK; break;
                         case "HEALTH_HEARTS": st = org.bysenom.minecraftSurvivors.model.StatType.HEALTH_HEARTS; break;
+                        case "MAX_HEALTH": st = org.bysenom.minecraftSurvivors.model.StatType.MAX_HEALTH; break;
+                        case "HP_REGEN": st = org.bysenom.minecraftSurvivors.model.StatType.HP_REGEN; break;
+                        case "SHIELD": st = org.bysenom.minecraftSurvivors.model.StatType.SHIELD; break;
+                        case "ARMOR": st = org.bysenom.minecraftSurvivors.model.StatType.ARMOR; break;
+                        case "EVASION": st = org.bysenom.minecraftSurvivors.model.StatType.EVASION; break;
+                        case "LIFESTEAL": st = org.bysenom.minecraftSurvivors.model.StatType.LIFESTEAL; break;
+                        case "THORNS": st = org.bysenom.minecraftSurvivors.model.StatType.THORNS; break;
+                        case "CRIT_CHANCE": st = org.bysenom.minecraftSurvivors.model.StatType.CRIT_CHANCE; break;
+                        case "CRIT_DAMAGE": st = org.bysenom.minecraftSurvivors.model.StatType.CRIT_DAMAGE; break;
+                        case "DAMAGE_ELITE_BOSS": st = org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ELITE_BOSS; break;
+                        case "KNOCKBACK": st = org.bysenom.minecraftSurvivors.model.StatType.KNOCKBACK; break;
+                        case "XP_GAIN": st = org.bysenom.minecraftSurvivors.model.StatType.XP_GAIN; break;
+                        case "POWERUP_MULT": st = org.bysenom.minecraftSurvivors.model.StatType.POWERUP_MULT; break;
                     }
                     if (st != null) {
                         org.bysenom.minecraftSurvivors.model.StatModifier mod = new org.bysenom.minecraftSurvivors.model.StatModifier(st, val, "lootchest:" + nm);
@@ -373,6 +386,19 @@ public class LootchestListener implements Listener {
                         case "RESIST": sp.addDamageResist(val); break;
                         case "LUCK": sp.addLuck(val); break;
                         case "HEALTH_HEARTS": sp.addExtraHearts((int)Math.round(val)); break;
+                        case "MAX_HEALTH": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.MAX_HEALTH, val, "lootchest:"+nm)); break;
+                        case "HP_REGEN": sp.addHpRegen(val); break;
+                        case "SHIELD": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.SHIELD, val, "lootchest:"+nm)); break;
+                        case "ARMOR": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.ARMOR, val, "lootchest:"+nm)); break;
+                        case "EVASION": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.EVASION, val, "lootchest:"+nm)); break;
+                        case "LIFESTEAL": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.LIFESTEAL, val, "lootchest:"+nm)); break;
+                        case "THORNS": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.THORNS, val, "lootchest:"+nm)); break;
+                        case "CRIT_CHANCE": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.CRIT_CHANCE, val, "lootchest:"+nm)); break;
+                        case "CRIT_DAMAGE": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.CRIT_DAMAGE, val, "lootchest:"+nm)); break;
+                        case "DAMAGE_ELITE_BOSS": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ELITE_BOSS, val, "lootchest:"+nm)); break;
+                        case "KNOCKBACK": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.KNOCKBACK, val, "lootchest:"+nm)); break;
+                        case "XP_GAIN": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.XP_GAIN, val, "lootchest:"+nm)); break;
+                        case "POWERUP_MULT": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.POWERUP_MULT, val, "lootchest:"+nm)); break;
                         default: p.sendMessage("§eUnbekannte Belohnung: "+type); return;
                     }
                 } else {
@@ -427,6 +453,19 @@ public class LootchestListener implements Listener {
             case "RESIST": m = Material.SHIELD; break;
             case "LUCK": m = Material.RABBIT_FOOT; break;
             case "HEALTH_HEARTS": m = Material.APPLE; break;
+            case "MAX_HEALTH": m = Material.GOLDEN_CARROT; break;
+            case "HP_REGEN": m = Material.HONEY_BOTTLE; break;
+            case "SHIELD": m = Material.SHIELD; break;
+            case "ARMOR": m = Material.DIAMOND_CHESTPLATE; break;
+            case "EVASION": m = Material.RABBIT_HIDE; break;
+            case "LIFESTEAL": m = Material.GHAST_TEAR; break;
+            case "THORNS": m = Material.CACTUS; break;
+            case "CRIT_CHANCE": m = Material.SPYGLASS; break;
+            case "CRIT_DAMAGE": m = Material.NETHERITE_SWORD; break;
+            case "DAMAGE_ELITE_BOSS": m = Material.DRAGON_BREATH; break;
+            case "KNOCKBACK": m = Material.PISTON; break;
+            case "XP_GAIN": m = Material.EXPERIENCE_BOTTLE; break;
+            case "POWERUP_MULT": m = Material.ENCHANTING_TABLE; break;
             default: m = Material.PAPER; break;
         }
         ItemStack it = new ItemStack(m);
@@ -455,6 +494,19 @@ public class LootchestListener implements Listener {
             case "RESIST": sp.addDamageResist(val); break;
             case "LUCK": sp.addLuck(val); break;
             case "HEALTH_HEARTS": sp.addExtraHearts((int)Math.round(val)); break;
+            case "MAX_HEALTH": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.MAX_HEALTH, val, "lootchest:"+nm)); break;
+            case "HP_REGEN": sp.addHpRegen(val); break;
+            case "SHIELD": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.SHIELD, val, "lootchest:"+nm)); break;
+            case "ARMOR": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.ARMOR, val, "lootchest:"+nm)); break;
+            case "EVASION": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.EVASION, val, "lootchest:"+nm)); break;
+            case "LIFESTEAL": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.LIFESTEAL, val, "lootchest:"+nm)); break;
+            case "THORNS": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.THORNS, val, "lootchest:"+nm)); break;
+            case "CRIT_CHANCE": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.CRIT_CHANCE, val, "lootchest:"+nm)); break;
+            case "CRIT_DAMAGE": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.CRIT_DAMAGE, val, "lootchest:"+nm)); break;
+            case "DAMAGE_ELITE_BOSS": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ELITE_BOSS, val, "lootchest:"+nm)); break;
+            case "KNOCKBACK": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.KNOCKBACK, val, "lootchest:"+nm)); break;
+            case "XP_GAIN": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.XP_GAIN, val, "lootchest:"+nm)); break;
+            case "POWERUP_MULT": sp.addStatModifier(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.POWERUP_MULT, val, "lootchest:"+nm)); break;
             default: p.sendMessage("§eUnbekannte Belohnung: "+type); return;
         }
         try { p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.0f); } catch (Throwable ignored) {}
