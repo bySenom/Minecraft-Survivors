@@ -22,19 +22,70 @@ public class SkillManager {
     private final java.util.List<LingeringVoidField> lingeringVoidFields = new java.util.ArrayList<>();
     private final java.util.Map<java.util.UUID, java.util.Map<String, Long>> lastGlyphMsg = new java.util.HashMap<>();
 
+    // Tracking für Aegis Schilde (virtueller Absorptionswert) pro Spieler
+    private final java.util.Map<java.util.UUID, Double> aegisShields = new java.util.concurrent.ConcurrentHashMap<>();
+    private org.bukkit.scheduler.BukkitTask aegisDecayTask;
+
     private static final class LingeringVoidField {
-        final org.bukkit.Location center; final long expireAt; final double radius; final double damage;
-        LingeringVoidField(org.bukkit.Location c, long expireAt, double radius, double damage) { this.center=c; this.expireAt=expireAt; this.radius=radius; this.damage=damage; }
+        final org.bukkit.Location center; final long expireAt; final double radius; final double damage; final java.util.UUID owner;
+        LingeringVoidField(org.bukkit.Location c, long expireAt, double radius, double damage, java.util.UUID owner) { this.center=c; this.expireAt=expireAt; this.radius=radius; this.damage=damage; this.owner=owner; }
     }
 
     public SkillManager(MinecraftSurvivors plugin) { this.plugin = plugin; }
 
-    public void start() { stop(); task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 0L, 20L); }
-    public void stop() { if (task != null) { task.cancel(); task = null; } }
+    public void start() {
+        stop();
+        task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 0L, 20L);
+        // Aegis Schild-Decay Task alle 2s (konfigurierbar später)
+        aegisDecayTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            double decay = plugin.getConfigUtil().getDouble("heal_totem.aegis.decay-per-2s", 0.0); // Standard 0 = kein Decay
+            if (decay <= 0.0) return;
+            for (var entry : aegisShields.entrySet()) {
+                double v = entry.getValue();
+                if (v <= 0) continue;
+                double nv = Math.max(0.0, v - decay);
+                entry.setValue(nv);
+            }
+            // Visuell updaten
+            for (java.util.UUID id : aegisShields.keySet()) updateAegisVisual(id);
+        }, 40L, 40L);
+        // Damage Abfang für Aegis: Listener registrieren falls nicht vorhanden
+        Bukkit.getPluginManager().registerEvents(new org.bukkit.event.Listener() {
+            @org.bukkit.event.EventHandler(ignoreCancelled = true)
+            public void onDamage(org.bukkit.event.entity.EntityDamageEvent e) {
+                if (!(e.getEntity() instanceof org.bukkit.entity.Player pl)) return;
+                java.util.UUID id = pl.getUniqueId();
+                double shield = aegisShields.getOrDefault(id, 0.0);
+                if (shield <= 0.0) return;
+                double dmg = e.getFinalDamage();
+                if (dmg <= 0) return;
+                if (shield >= dmg) {
+                    // kompletter Schaden vom Schild absorbiert
+                    aegisShields.put(id, shield - dmg);
+                    e.setCancelled(true);
+                    try { pl.getWorld().spawnParticle(org.bukkit.Particle.END_ROD, pl.getLocation().add(0,1.0,0), 6, 0.3,0.3,0.3, 0.01); } catch (Throwable ignored) {}
+                    updateAegisVisual(id);
+                } else {
+                    // Teilabsorption
+                    double remain = dmg - shield;
+                    aegisShields.put(id, 0.0);
+                    e.setDamage(remain);
+                    try { pl.getWorld().spawnParticle(org.bukkit.Particle.END_ROD, pl.getLocation().add(0,1.0,0), 10, 0.4,0.4,0.4, 0.02); } catch (Throwable ignored) {}
+                    updateAegisVisual(id);
+                }
+            }
+        }, plugin);
+    }
+
+    public void stop() {
+        if (task != null) { task.cancel(); task = null; }
+        if (aegisDecayTask != null) { aegisDecayTask.cancel(); aegisDecayTask = null; }
+    }
 
     public void clearLingeringEffects() {
         lingeringVoidFields.clear();
         temporalAnchors.clear();
+        aegisShields.clear();
     }
 
     private void tick() {
@@ -293,13 +344,31 @@ public class SkillManager {
         if (onCd(p.getUniqueId(), "heal_totem", cd)) return;
         double heal = 0.6 + lvl * 0.2;
         double radius = 6.0 + lvl * 0.5;
+        java.util.List<String> glyphs = plugin.getPlayerManager().get(p.getUniqueId()).getGlyphs("ab_heal_totem");
+        boolean aegis = glyphs.contains("ab_heal_totem:aegis");
+        double aegisChance = plugin.getConfigUtil().getDouble("heal_totem.aegis.proc-chance", 0.12); // 12% default
+        double aegisMultiplier = plugin.getConfigUtil().getDouble("heal_totem.aegis.multiplier", 2.5); // Schildwert = heal * multiplier
         for (Player other : p.getWorld().getPlayers()) {
             if (!other.getWorld().equals(p.getWorld())) continue;
             if (other.getLocation().distanceSquared(p.getLocation()) <= radius*radius) {
                 try {
+                    double before = other.getHealth();
                     double max = other.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue();
-                    other.setHealth(Math.min(max, other.getHealth() + heal));
-                    other.spawnParticle(org.bukkit.Particle.HEART, other.getLocation().add(0,1.0,0), 4, 0.2, 0.2, 0.2, 0.0);
+                    if (aegis && java.util.concurrent.ThreadLocalRandom.current().nextDouble() < aegisChance) {
+                        double shieldAmount = heal * aegisMultiplier;
+                        addAegisShield(other, shieldAmount);
+                        other.getWorld().spawnParticle(org.bukkit.Particle.SPELL_INSTANT, other.getLocation().add(0,1.0,0), 8, 0.3, 0.4, 0.3, 0.01);
+                        other.playSound(other.getLocation(), org.bukkit.Sound.ITEM_TOTEM_USE, 0.5f, 1.2f);
+                        if (other.equals(p)) glyphProcNotify(p, "ab_heal_totem:aegis", p.getLocation());
+                    } else {
+                        double newH = Math.min(max, before + heal);
+                        other.setHealth(newH);
+                        double healed = Math.max(0.0, newH - before);
+                        if (healed > 0) {
+                            try { plugin.getStatsMeterManager().recordHeal(p.getUniqueId(), healed); } catch (Throwable ignored) {}
+                        }
+                        other.spawnParticle(org.bukkit.Particle.HEART, other.getLocation().add(0,1.0,0), 4, 0.2, 0.2, 0.2, 0.0);
+                    }
                 } catch (Throwable ignored) {}
             }
         }
@@ -360,7 +429,8 @@ public class SkillManager {
                         glyphProcNotify(p, "ab_void_nova:rupture", center);
                     }
                     if (lingering) {
-                        lingeringVoidFields.add(new LingeringVoidField(center.clone(), System.currentTimeMillis() + 3500, Math.max(2.5, radius * 0.6), damage * 0.25));
+                        // Lingering Void: Feld speichert Besitzer -> Damage Attribution für DPS
+                        lingeringVoidFields.add(new LingeringVoidField(center.clone(), System.currentTimeMillis() + 3500, Math.max(2.5, radius * 0.6), damage * 0.25, p.getUniqueId()));
                         glyphProcNotify(p, "ab_void_nova:lingering_void", center);
                     }
                     return;
@@ -552,9 +622,16 @@ public class SkillManager {
                 org.bukkit.Location l = new org.bukkit.Location(f.center.getWorld(), x, f.center.getY()+0.1, z);
                 try { f.center.getWorld().spawnParticle(org.bukkit.Particle.ASH, l, 1, 0.02,0.02,0.02,0.0); } catch (Throwable ignored) {}
             }
-            // Schaden anwenden
+            // Schaden anwenden (mit Attribution an Owner für DPS)
+            org.bukkit.entity.Player ownerPl = f.owner == null ? null : org.bukkit.Bukkit.getPlayer(f.owner);
             for (org.bukkit.entity.LivingEntity le : plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(f.center, f.radius)) {
-                try { le.damage(f.damage/2.0); } catch (Throwable ignored) {}
+                try {
+                    if (ownerPl != null && ownerPl.isOnline()) {
+                        le.damage(f.damage/2.0, ownerPl); // triggert EntityDamageByEntityEvent -> StatsMeterManager.recordDamage
+                    } else {
+                        le.damage(f.damage/2.0); // Fallback ohne Attribution
+                    }
+                } catch (Throwable ignored) {}
             }
         }
     }
