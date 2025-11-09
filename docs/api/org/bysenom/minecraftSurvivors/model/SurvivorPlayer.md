@@ -137,6 +137,8 @@ Package: `org.bysenom.minecraftSurvivors.model`
 - `getEffectiveDurationMult()`
 - `removeAbility(String key)`
 - `addHpRegen(double v)`
+- `getBaseHpRegen()`
+- `setBaseHpRegen(double v)`
 - `getHpRegen()`
 - `isReady()`
 - `setReady(boolean r)`
