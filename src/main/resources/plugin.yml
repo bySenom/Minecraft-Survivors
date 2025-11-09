@@ -95,6 +95,18 @@ commands:
       /fx meteor <height> <speed> <radius> <damage>
     permission: minecraftsurvivors.admin
     permission-message: "§cKeine Berechtigung."
+  msboss:
+    description: |-
+      Debug-Bosssteuerung (Admin): spawn|kill|barrage|meteor|shockwave|lightning
+    usage: |-
+      /msboss spawn
+      /msboss kill
+      /msboss barrage
+      /msboss meteor
+      /msboss shockwave
+      /msboss lightning
+    permission: minecraftsurvivors.admin
+    permission-message: "§cKeine Berechtigung."
 permissions:
   minecraftsurvivors.admin:
     description: "Erlaubnis für Admin-/Management-Kommandos"

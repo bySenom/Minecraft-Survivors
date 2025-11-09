@@ -101,6 +101,9 @@ public final class MinecraftSurvivors extends JavaPlugin {
             cmd = getCommand("fx");
             if (cmd != null) cmd.setExecutor(new FxTestCommand());
 
+            cmd = getCommand("msboss");
+            if (cmd != null) cmd.setExecutor(new org.bysenom.minecraftSurvivors.command.BossDebugCommand(this));
+
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.EntityDeathListener(playerManager, guiManager, this.configUtil), this);
             getServer().getPluginManager().registerEvents(new PlayerDeathListener(gameManager, playerManager, this.playerDataManager), this);
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.PlayerDataListener(this.playerDataManager, playerManager), this);
@@ -120,6 +123,7 @@ public final class MinecraftSurvivors extends JavaPlugin {
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.HungerListener(), this);
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.gui.GlyphSocketMenu.Listener(this), this);
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.GlyphPickupListener(this), this);
+            getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.MeteorBlockListener(this), this);
 
             this.scoreboardManager.start();
             try { this.statsDisplayManager.start(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "statsDisplayManager.start failed: ", t); }

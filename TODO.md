@@ -21,12 +21,13 @@ Status-Update (2025-11-09)
 - Fix Commit und Push sometimes failing (only generate commit I will push it by myself)
 
 ### 1. Endboss (100% Enrage) fertigstellen
-Beschreibung: Custom Boss mit Phasen (P1/P2/P3), Mechaniken (Meteor Barrage, Lightning Beam, Summons), klaren Telegraphs.
+Beschreibung: Custom Boss mit Phasen (P1/P2/P3), Mechaniken (Meteor Barrage, Lightning Beam, Summons), klare Telegraphs.
 Akzeptanzkriterien:
 - Boss spawnt verlässlich, Phasenwechsel funktionieren.
-- Telegraphs (Particles/Sounds) + Angriffsschaden/Tempo ausgewogen.
+- Angriffsschaden/Tempo pro Phase balanciert.
 - Kein Wither-Placeholder mehr.
 - Meteor-FallingBlocks hinterlassen keine Blöcke (DONE)
+- Telegraphs (Warnringe/Sound-Cues) (DONE)
 
 ### 2. Neue Stats in UI/Progression verfügbar
 Beschreibung: LevelUp/Shop/Loot bieten und zeigen neue Stats (Max Health, HP Regen, Shield, Armor, Evasion, Lifesteal, Thorns, Crit Chance, Crit Damage, Projectile Count, Attack Speed, Projectile Bounce, Size, Duration, Damage vs. Elites/Bosses, Knockback, Jump Height, XP Gain, Elite Spawn Increase, Powerup Multiplier).
