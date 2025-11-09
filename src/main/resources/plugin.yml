@@ -88,6 +88,13 @@ commands:
       /party leave
       /party disband
       /party list
+  fx:
+    description: "Test visueller Effekte (Meteor/Genkidama). Subcommands: testgenkidama, meteor <h> <speed> <radius> <damage>"
+    usage: |-
+      /fx testgenkidama
+      /fx meteor <height> <speed> <radius> <damage>
+    permission: minecraftsurvivors.admin
+    permission-message: "§cKeine Berechtigung."
 permissions:
   minecraftsurvivors.admin:
     description: "Erlaubnis für Admin-/Management-Kommandos"

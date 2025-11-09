@@ -1,6 +1,7 @@
 package org.bysenom.minecraftSurvivors;
 
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bysenom.minecraftSurvivors.command.FxTestCommand;
 import org.bysenom.minecraftSurvivors.command.MsConfigCommand;
 import org.bysenom.minecraftSurvivors.command.MsConfigTabCompleter;
 import org.bysenom.minecraftSurvivors.command.MsStatsCommand;
@@ -95,6 +96,10 @@ public final class MinecraftSurvivors extends JavaPlugin {
             // dev command to spawn glyphs for testing
             cmd = getCommand("spawnglyph");
             if (cmd != null) { cmd.setExecutor(new org.bysenom.minecraftSurvivors.command.SpawnGlyphCommand()); cmd.setTabCompleter(new SpawnGlyphTabCompleter()); }
+
+            // visual effects test command
+            cmd = getCommand("fx");
+            if (cmd != null) cmd.setExecutor(new FxTestCommand());
 
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.EntityDeathListener(playerManager, guiManager, this.configUtil), this);
             getServer().getPluginManager().registerEvents(new PlayerDeathListener(gameManager, playerManager, this.playerDataManager), this);
