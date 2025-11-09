@@ -28,6 +28,18 @@ public class SpawnManager {
     private final org.bukkit.NamespacedKey eliteKey; // mark as final
     private final Random random = new Random();
 
+    // Helper container for enrage computation (progress + multipliers)
+    private static final class EnrageFactors {
+        final double prog, hMul, sMul, dMul;
+
+        EnrageFactors(double prog, double hMul, double sMul, double dMul) {
+            this.prog = prog;
+            this.hMul = hMul;
+            this.sMul = sMul;
+            this.dMul = dMul;
+        }
+    }
+
     // Map: playerUuid -> Set gefrorener Entity-UUIDs (für diesen Spieler eingefroren)
     private final Map<UUID, Set<UUID>> frozenByPlayer = new ConcurrentHashMap<>();
     private BukkitTask freezeEnforcerTask;
@@ -46,9 +58,9 @@ public class SpawnManager {
     private static final org.bukkit.NamespacedKey FOLLOW_RANGE = org.bukkit.NamespacedKey.minecraft("generic.follow_range");
 
     // PDC Keys für Baseline-Attribute
-    private static final org.bukkit.NamespacedKey BASE_MAX_HP = new org.bukkit.NamespacedKey("minecraftsurvivors","base_max_hp");
-    private static final org.bukkit.NamespacedKey BASE_SPEED = new org.bukkit.NamespacedKey("minecraftsurvivors","base_speed");
-    private static final org.bukkit.NamespacedKey BASE_DAMAGE = new org.bukkit.NamespacedKey("minecraftsurvivors","base_damage");
+    private static final org.bukkit.NamespacedKey BASE_MAX_HP = new org.bukkit.NamespacedKey("minecraftsurvivors", "base_max_hp");
+    private static final org.bukkit.NamespacedKey BASE_SPEED = new org.bukkit.NamespacedKey("minecraftsurvivors", "base_speed");
+    private static final org.bukkit.NamespacedKey BASE_DAMAGE = new org.bukkit.NamespacedKey("minecraftsurvivors", "base_damage");
 
     public SpawnManager(MinecraftSurvivors plugin, @SuppressWarnings("unused") PlayerManager playerManager) {
         this.plugin = plugin;
@@ -64,16 +76,19 @@ public class SpawnManager {
         int periodTicks = Math.max(20, plugin.getConfigUtil().getInt("scaling.update-interval-ticks", 40));
         scalingTask = org.bukkit.Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             try {
-                if (plugin.getGameManager() == null || plugin.getGameManager().getState() != org.bysenom.minecraftSurvivors.model.GameState.RUNNING) return;
+                if (plugin.getGameManager() == null || plugin.getGameManager().getState() != org.bysenom.minecraftSurvivors.model.GameState.RUNNING)
+                    return;
                 double minutes = getElapsedMinutes();
                 for (org.bukkit.World w : org.bukkit.Bukkit.getWorlds()) {
                     for (org.bukkit.entity.Entity e : w.getEntities()) {
                         if (!(e instanceof org.bukkit.entity.LivingEntity)) continue;
-                        if (!e.getPersistentDataContainer().has(waveKey, org.bukkit.persistence.PersistentDataType.BYTE)) continue;
+                        if (!e.getPersistentDataContainer().has(waveKey, org.bukkit.persistence.PersistentDataType.BYTE))
+                            continue;
                         applyScaling((org.bukkit.entity.LivingEntity) e, minutes);
                     }
                 }
-            } catch (Throwable ignored) {}
+            } catch (Throwable ignored) {
+            }
         }, periodTicks, periodTicks);
     }
 
@@ -84,34 +99,46 @@ public class SpawnManager {
             double followRangeCfg = Math.max(16.0, plugin.getConfigUtil().getDouble("ai.follow-range", 64.0));
             aggroTask = org.bukkit.Bukkit.getScheduler().runTaskTimer(plugin, () -> {
                 try {
-                    if (plugin.getGameManager() == null || plugin.getGameManager().getState() != org.bysenom.minecraftSurvivors.model.GameState.RUNNING) return;
+                    if (plugin.getGameManager() == null || plugin.getGameManager().getState() != org.bysenom.minecraftSurvivors.model.GameState.RUNNING)
+                        return;
                     for (org.bukkit.World w : org.bukkit.Bukkit.getWorlds()) {
                         java.util.List<org.bukkit.entity.Player> players = new java.util.ArrayList<>(w.getPlayers());
                         if (players.isEmpty()) continue;
                         for (org.bukkit.entity.Entity e : w.getEntities()) {
                             if (!(e instanceof org.bukkit.entity.Mob mob)) continue;
-                            if (!e.getPersistentDataContainer().has(waveKey, org.bukkit.persistence.PersistentDataType.BYTE)) continue;
+                            if (!e.getPersistentDataContainer().has(waveKey, org.bukkit.persistence.PersistentDataType.BYTE))
+                                continue;
                             try {
                                 org.bukkit.attribute.Attribute frAttr = org.bukkit.Registry.ATTRIBUTE.get(FOLLOW_RANGE);
                                 if (frAttr != null) {
                                     org.bukkit.attribute.AttributeInstance fr = mob.getAttribute(frAttr);
-                                    if (fr != null && fr.getBaseValue() < followRangeCfg) fr.setBaseValue(followRangeCfg);
+                                    if (fr != null && fr.getBaseValue() < followRangeCfg)
+                                        fr.setBaseValue(followRangeCfg);
                                 }
-                            } catch (Throwable ignored) {}
+                            } catch (Throwable ignored) {
+                            }
                             org.bukkit.entity.Player nearest = null;
                             double best = Double.MAX_VALUE;
                             for (org.bukkit.entity.Player p : players) {
                                 double d2 = p.getLocation().distanceSquared(mob.getLocation());
-                                if (d2 < best) { best = d2; nearest = p; }
+                                if (d2 < best) {
+                                    best = d2;
+                                    nearest = p;
+                                }
                             }
                             if (nearest != null) {
-                                try { mob.setTarget(nearest); } catch (Throwable ignored) {}
+                                try {
+                                    mob.setTarget(nearest);
+                                } catch (Throwable ignored) {
+                                }
                             }
                         }
                     }
-                } catch (Throwable ignored) {}
+                } catch (Throwable ignored) {
+                }
             }, every, every);
-        } catch (Throwable ignored) {}
+        } catch (Throwable ignored) {
+        }
     }
 
     private void captureBaselineIfMissing(LivingEntity mob) {
@@ -119,20 +146,33 @@ public class SpawnManager {
             org.bukkit.persistence.PersistentDataContainer pdc = mob.getPersistentDataContainer();
             if (!pdc.has(BASE_MAX_HP, org.bukkit.persistence.PersistentDataType.DOUBLE)) {
                 double v = 20.0;
-                try { org.bukkit.attribute.AttributeInstance a = mob.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH); if (a != null) v = a.getBaseValue(); } catch (Throwable ignored) {}
+                try {
+                    org.bukkit.attribute.AttributeInstance a = mob.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+                    if (a != null) v = a.getBaseValue();
+                } catch (Throwable ignored) {
+                }
                 pdc.set(BASE_MAX_HP, org.bukkit.persistence.PersistentDataType.DOUBLE, v);
             }
             if (!pdc.has(BASE_SPEED, org.bukkit.persistence.PersistentDataType.DOUBLE)) {
                 double v = 0.25;
-                try { org.bukkit.attribute.AttributeInstance a = mob.getAttribute(org.bukkit.attribute.Attribute.MOVEMENT_SPEED); if (a != null) v = a.getBaseValue(); } catch (Throwable ignored) {}
+                try {
+                    org.bukkit.attribute.AttributeInstance a = mob.getAttribute(org.bukkit.attribute.Attribute.MOVEMENT_SPEED);
+                    if (a != null) v = a.getBaseValue();
+                } catch (Throwable ignored) {
+                }
                 pdc.set(BASE_SPEED, org.bukkit.persistence.PersistentDataType.DOUBLE, v);
             }
             if (!pdc.has(BASE_DAMAGE, org.bukkit.persistence.PersistentDataType.DOUBLE)) {
                 double v = 3.0;
-                try { org.bukkit.attribute.AttributeInstance a = mob.getAttribute(org.bukkit.attribute.Attribute.ATTACK_DAMAGE); if (a != null) v = a.getBaseValue(); } catch (Throwable ignored) {}
+                try {
+                    org.bukkit.attribute.AttributeInstance a = mob.getAttribute(org.bukkit.attribute.Attribute.ATTACK_DAMAGE);
+                    if (a != null) v = a.getBaseValue();
+                } catch (Throwable ignored) {
+                }
                 pdc.set(BASE_DAMAGE, org.bukkit.persistence.PersistentDataType.DOUBLE, v);
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable ignored) {
+        }
     }
 
     public void spawnWave(int waveNumber) {
@@ -157,7 +197,8 @@ public class SpawnManager {
                 if (shouldGlow) {
                     try {
                         mob.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, Math.max(20, glowTicks), 0, false, false, false));
-                    } catch (Throwable ignored) {}
+                    } catch (Throwable ignored) {
+                    }
                 }
 
                 // Wenn der Spieler lokal pausiert ist, friere diesen Mob für ihn ein
@@ -165,7 +206,19 @@ public class SpawnManager {
                     if (plugin.getGameManager() != null && plugin.getGameManager().isPlayerPaused(player.getUniqueId())) {
                         freezeSingleMobForPlayer(player.getUniqueId(), mob);
                     }
-                } catch (Throwable ignored) {}
+                    // Additionally: ensure any other paused players who are near this mob also have it frozen for them
+                    double fr = plugin.getConfigUtil().getDouble("spawn.freeze-radius", 10.0);
+                    for (org.bukkit.entity.Player other : org.bukkit.Bukkit.getOnlinePlayers()) {
+                        try {
+                            if (!other.isOnline() || other.getWorld() == null) continue;
+                            if (!plugin.getGameManager().isPlayerPaused(other.getUniqueId())) continue;
+                            if (other.getLocation().distanceSquared(mob.getLocation()) <= fr * fr)
+                                freezeSingleMobForPlayer(other.getUniqueId(), mob);
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                } catch (Throwable ignored) {
+                }
 
                 // Partikel-Animation beim Spawn
                 playSpawnAnimation(spawnLoc);
@@ -181,7 +234,10 @@ public class SpawnManager {
                 if (!(e instanceof LivingEntity)) continue;
                 LivingEntity le = (LivingEntity) e;
                 if (!le.getPersistentDataContainer().has(waveKey, PersistentDataType.BYTE)) continue;
-                try { le.remove(); } catch (Throwable ignored) {}
+                try {
+                    le.remove();
+                } catch (Throwable ignored) {
+                }
             }
         }
     }
@@ -192,7 +248,10 @@ public class SpawnManager {
         double dx = Math.cos(angle) * distance;
         double dz = Math.sin(angle) * distance;
         Location loc = base.clone().add(dx, 0, dz);
-        try { loc.setY(base.getWorld().getHighestBlockYAt(loc) + 1); } catch (Throwable ignored) {}
+        try {
+            loc.setY(base.getWorld().getHighestBlockYAt(loc) + 1);
+        } catch (Throwable ignored) {
+        }
         return loc;
     }
 
@@ -208,9 +267,13 @@ public class SpawnManager {
 
         new org.bukkit.scheduler.BukkitRunnable() {
             int tick = 0;
+
             @Override
             public void run() {
-                if (tick > maxTicks) { cancel(); return; }
+                if (tick > maxTicks) {
+                    cancel();
+                    return;
+                }
                 double radius = 0.4 + tick * 0.12;
                 double height = 0.3 + tick * 0.08;
                 for (int i = 0; i < points; i++) {
@@ -228,7 +291,8 @@ public class SpawnManager {
                         } else {
                             world.spawnParticle(particle, p, count, spread, spread, spread, 0.0);
                         }
-                    } catch (Throwable ignored) {}
+                    } catch (Throwable ignored) {
+                    }
                 }
                 tick++;
             }
@@ -269,9 +333,13 @@ public class SpawnManager {
             Set<UUID> set = frozenByPlayer.computeIfAbsent(playerUuid, k -> ConcurrentHashMap.newKeySet());
             set.add(mob.getUniqueId());
             // Nur AI deaktivieren
-            try { mob.getClass().getMethod("setAI", boolean.class).invoke(mob, false); } catch (Throwable ignored) {}
+            try {
+                mob.getClass().getMethod("setAI", boolean.class).invoke(mob, false);
+            } catch (Throwable ignored) {
+            }
             ensureEnforcerRunning();
-        } catch (Throwable ignored) {}
+        } catch (Throwable ignored) {
+        }
     }
 
     // Freeze alle nahegelegenen Wave-Mobs für einen Spieler
@@ -294,15 +362,22 @@ public class SpawnManager {
             try {
                 boolean stillReferenced = false;
                 for (Map.Entry<UUID, Set<UUID>> en : frozenByPlayer.entrySet()) {
-                    if (en.getValue().contains(eu)) { stillReferenced = true; break; }
+                    if (en.getValue().contains(eu)) {
+                        stillReferenced = true;
+                        break;
+                    }
                 }
                 if (stillReferenced) continue;
                 Entity ent = Bukkit.getEntity(eu);
                 if (!(ent instanceof LivingEntity)) continue;
                 LivingEntity le = (LivingEntity) ent;
                 // AI wieder aktivieren
-                try { le.getClass().getMethod("setAI", boolean.class).invoke(le, true); } catch (Throwable ignored) {}
-            } catch (Throwable ignored) {}
+                try {
+                    le.getClass().getMethod("setAI", boolean.class).invoke(le, true);
+                } catch (Throwable ignored) {
+                }
+            } catch (Throwable ignored) {
+            }
         }
     }
 
@@ -343,8 +418,12 @@ public class SpawnManager {
                                 }
                                 LivingEntity le = (LivingEntity) ent;
                                 // AI deaktiviert halten (Reflection für Kompatibilität)
-                                try { le.getClass().getMethod("setAI", boolean.class).invoke(le, false); } catch (Throwable ignored) {}
-                            } catch (Throwable ignored) {}
+                                try {
+                                    le.getClass().getMethod("setAI", boolean.class).invoke(le, false);
+                                } catch (Throwable ignored) {
+                                }
+                            } catch (Throwable ignored) {
+                            }
                         }
 
                         // Aufräumen leerer Player-Einträge
@@ -352,10 +431,12 @@ public class SpawnManager {
                             Set<UUID> s = frozenByPlayer.get(key);
                             if (s == null || s.isEmpty()) frozenByPlayer.remove(key);
                         }
-                    } catch (Throwable ignored) {}
+                    } catch (Throwable ignored) {
+                    }
                 }
             }.runTaskTimer(plugin, 0L, 20L);
-        } catch (Throwable ignored) {}
+        } catch (Throwable ignored) {
+        }
     }
 
     /**
@@ -366,10 +447,18 @@ public class SpawnManager {
         Location loc = target.getLocation();
         if (loc == null || loc.getWorld() == null) return;
         Runnable r = () -> {
-            try { loc.getWorld().strikeLightningEffect(loc); } catch (Throwable ignored) {}
-            try { target.damage(damage, source); } catch (Throwable ex) { plugin.getLogger().warning("strikeLightningAtTarget: " + ex.getMessage()); }
+            try {
+                loc.getWorld().strikeLightningEffect(loc);
+            } catch (Throwable ignored) {
+            }
+            try {
+                target.damage(damage, source);
+            } catch (Throwable ex) {
+                plugin.getLogger().warning("strikeLightningAtTarget: " + ex.getMessage());
+            }
         };
-        if (Bukkit.isPrimaryThread()) r.run(); else Bukkit.getScheduler().runTask(plugin, r);
+        if (Bukkit.isPrimaryThread()) r.run();
+        else Bukkit.getScheduler().runTask(plugin, r);
     }
 
     // ===== Continuous spawn API =====
@@ -389,7 +478,10 @@ public class SpawnManager {
         continuousTask = new org.bukkit.scheduler.BukkitRunnable() {
             @Override
             public void run() {
-                try { continuousTick(); } catch (Throwable ignored) {}
+                try {
+                    continuousTick();
+                } catch (Throwable ignored) {
+                }
             }
         }.runTaskTimer(plugin, 0L, Math.max(1L, ticksPerCycle));
         plugin.getLogger().info("Continuous spawn started (ticks-per-cycle=" + ticksPerCycle + ")");
@@ -427,7 +519,10 @@ public class SpawnManager {
         // Reset timing so Enrage/elapsed doesn't keep increasing after stop
         continuousStartMillis = 0L;
         continuousPausedAccumMillis = 0L;
-        if (scalingTask != null) { scalingTask.cancel(); scalingTask = null; }
+        if (scalingTask != null) {
+            scalingTask.cancel();
+            scalingTask = null;
+        }
     }
 
     private void continuousTick() {
@@ -435,7 +530,8 @@ public class SpawnManager {
         try {
             org.bysenom.minecraftSurvivors.model.GameState state = plugin.getGameManager() != null ? plugin.getGameManager().getState() : null;
             if (state == org.bysenom.minecraftSurvivors.model.GameState.PAUSED) return;
-        } catch (Throwable ignored) {}
+        } catch (Throwable ignored) {
+        }
 
         // Optional Ruhephase
         int restEvery = plugin.getConfigUtil().getInt("spawn.continuous.rest-every-seconds", 0);
@@ -523,12 +619,115 @@ public class SpawnManager {
                 } catch (Throwable t) {
                     mob = (LivingEntity) p.getWorld().spawnEntity(spawnLoc, EntityType.ZOMBIE);
                 }
+                // Ensure skeletons / ranged-loadout mobs don't keep bows: give them a sword instead for easier balancing
+                try {
+                    if (mob != null && mob.isValid()) {
+                        final org.bukkit.entity.LivingEntity theMob = mob;
+                        final boolean isSkeletonClass = mob.getType() == EntityType.SKELETON || mob.getType() == EntityType.STRAY || mob.getType() == EntityType.SKELETON_HORSE;
+                        Material swordMat = Material.IRON_SWORD;
+                        try {
+                            String cfg = plugin.getConfigUtil().getString("spawn.skeleton-melee-material", "IRON_SWORD");
+                            if (cfg != null && !cfg.isBlank()) {
+                                try {
+                                    swordMat = Material.valueOf(cfg.toUpperCase());
+                                } catch (Throwable ignored) {
+                                }
+                            }
+                        } catch (Throwable ignored) {
+                        }
+                        final Material chosenSwordMat = swordMat;
+                        Runnable applyEquip = () -> {
+                            try {
+                                if (theMob == null || !theMob.isValid()) return;
+                                org.bukkit.inventory.EntityEquipment equip = theMob.getEquipment();
+                                boolean hasRanged = false;
+                                if (equip != null) {
+                                    try {
+                                        org.bukkit.inventory.ItemStack main = equip.getItemInMainHand();
+                                        if (main != null) {
+                                            Material mm = main.getType();
+                                            if (mm == Material.BOW || mm == Material.CROSSBOW) hasRanged = true;
+                                        }
+                                    } catch (Throwable ignored) {
+                                    }
+                                }
+                                if (isSkeletonClass || hasRanged) {
+                                    if (equip != null) {
+                                        try {
+                                            equip.setItemInMainHand(new org.bukkit.inventory.ItemStack(chosenSwordMat));
+                                        } catch (Throwable ignored) {
+                                        }
+                                        try {
+                                            equip.setItemInOffHand(null);
+                                        } catch (Throwable ignored) {
+                                        }
+                                        try {
+                                            equip.setHelmet(null);
+                                        } catch (Throwable ignored) {
+                                        }
+                                        try {
+                                            equip.setChestplate(null);
+                                        } catch (Throwable ignored) {
+                                        }
+                                        try {
+                                            equip.setLeggings(null);
+                                        } catch (Throwable ignored) {
+                                        }
+                                        try {
+                                            equip.setBoots(null);
+                                        } catch (Throwable ignored) {
+                                        }
+                                        try {
+                                            equip.setItemInMainHandDropChance(0f);
+                                        } catch (Throwable ignored) {
+                                        }
+                                        try {
+                                            equip.setItemInOffHandDropChance(0f);
+                                        } catch (Throwable ignored) {
+                                        }
+                                        try {
+                                            equip.setHelmetDropChance(0f);
+                                        } catch (Throwable ignored) {
+                                        }
+                                        try {
+                                            equip.setChestplateDropChance(0f);
+                                        } catch (Throwable ignored) {
+                                        }
+                                        try {
+                                            equip.setLeggingsDropChance(0f);
+                                        } catch (Throwable ignored) {
+                                        }
+                                        try {
+                                            equip.setBootsDropChance(0f);
+                                        } catch (Throwable ignored) {
+                                        }
+                                        try {
+                                            theMob.setCanPickupItems(false);
+                                        } catch (Throwable ignored) {
+                                        }
+                                    }
+                                }
+                            } catch (Throwable ignored) {
+                            }
+                        };
+                        // apply now and reapply at several short intervals to counter server/equipment race conditions
+                        applyEquip.run();
+                        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, applyEquip, 1L);
+                        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, applyEquip, 5L);
+                        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, applyEquip, 10L);
+                        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, applyEquip, 20L);
+                    }
+                } catch (Throwable ignored) {
+                }
                 mob.getPersistentDataContainer().set(waveKey, PersistentDataType.BYTE, (byte) 1);
                 captureBaselineIfMissing(mob);
                 // Elite roll
                 maybeMakeElite(mob);
                 if (shouldGlow) {
-                    try { mob.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, Math.max(20, glowTicks), 0, false, false, false)); } catch (Throwable ignored) {}
+                    try {
+                        mob.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, Math.max(20, glowTicks), 0, false, false, false));
+                    } catch (Throwable ignored) {
+                    }
                 }
                 applyScaling(mob, minutes);
                 // freeze if player is paused locally
@@ -536,7 +735,18 @@ public class SpawnManager {
                     if (plugin.getGameManager() != null && plugin.getGameManager().isPlayerPaused(p.getUniqueId())) {
                         freezeSingleMobForPlayer(p.getUniqueId(), mob);
                     }
-                } catch (Throwable ignored) {}
+                    double fr = plugin.getConfigUtil().getDouble("spawn.freeze-radius", 10.0);
+                    for (org.bukkit.entity.Player other : org.bukkit.Bukkit.getOnlinePlayers()) {
+                        try {
+                            if (!other.isOnline() || other.getWorld() == null) continue;
+                            if (!plugin.getGameManager().isPlayerPaused(other.getUniqueId())) continue;
+                            if (other.getLocation().distanceSquared(mob.getLocation()) <= fr * fr)
+                                freezeSingleMobForPlayer(other.getUniqueId(), mob);
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                } catch (Throwable ignored) {
+                }
                 // animation
                 playSpawnAnimation(spawnLoc);
             }
@@ -578,12 +788,14 @@ public class SpawnManager {
             double dmgLateMul = plugin.getConfigUtil().getDouble("scaling.damage-late-multiplier", 1.25);
 
             double healthMultPerMin = baseHpm;
-            if (minutes >= lateMin) healthMultPerMin *= lateMul; else if (minutes >= midMin) healthMultPerMin *= midMul;
+            if (minutes >= lateMin) healthMultPerMin *= lateMul;
+            else if (minutes >= midMin) healthMultPerMin *= midMul;
             double healthMult = 1.0 + Math.max(0, minutes) * healthMultPerMin;
 
             double speedMult = 1.0 + Math.max(0, minutes) * (speedPerMin * 0.9);
             double dmgMul = 1.0;
-            if (minutes >= lateMin) dmgMul = dmgLateMul; else if (minutes >= midMin) dmgMul = dmgMidMul;
+            if (minutes >= lateMin) dmgMul = dmgLateMul;
+            else if (minutes >= midMin) dmgMul = dmgMidMul;
             double dmgAdd = Math.max(0, minutes) * (dmgAddPerMin * dmgMul);
 
             EnrageFactors ef = computeEnrage(minutes);
@@ -603,25 +815,46 @@ public class SpawnManager {
                     maxHp.setBaseValue(targetMaxHp);
                     mob.setHealth(Math.max(1.0, Math.min(targetMaxHp, ratio * targetMaxHp)));
                 }
-            } catch (Throwable ignored) {}
+            } catch (Throwable ignored) {
+            }
             try {
                 org.bukkit.attribute.AttributeInstance move = mob.getAttribute(org.bukkit.attribute.Attribute.MOVEMENT_SPEED);
                 if (move != null) move.setBaseValue(targetSpeed);
-            } catch (Throwable ignored) {}
+            } catch (Throwable ignored) {
+            }
             try {
                 org.bukkit.attribute.AttributeInstance dmg = mob.getAttribute(org.bukkit.attribute.Attribute.ATTACK_DAMAGE);
                 if (dmg != null) dmg.setBaseValue(targetDamage);
-            } catch (Throwable ignored) {}
-        } catch (Throwable ignored) {}
+            } catch (Throwable ignored) {
+            }
+        } catch (Throwable ignored) {
+        }
     }
 
     // Enrage-Konfiguration wird aus der Config gelesen
-    private boolean enrageEnabled() { return plugin.getConfigUtil().getBoolean("enrage.enabled", true); }
-    private double enrageStartMinute() { return plugin.getConfigUtil().getDouble("enrage.start-minute", 12.0); }
-    private double enrageRampMinutes() { return Math.max(0.1, plugin.getConfigUtil().getDouble("enrage.ramp-minutes", 3.0)); }
-    private double enrageHealthMax() { return Math.max(1.0, plugin.getConfigUtil().getDouble("enrage.health-mult-max", 3.0)); }
-    private double enrageSpeedMax() { return Math.max(1.0, plugin.getConfigUtil().getDouble("enrage.speed-mult-max", 1.6)); }
-    private double enrageDamageMax() { return Math.max(1.0, plugin.getConfigUtil().getDouble("enrage.damage-mult-max", 2.0)); }
+    private boolean enrageEnabled() {
+        return plugin.getConfigUtil().getBoolean("enrage.enabled", true);
+    }
+
+    private double enrageStartMinute() {
+        return plugin.getConfigUtil().getDouble("enrage.start-minute", 12.0);
+    }
+
+    private double enrageRampMinutes() {
+        return Math.max(0.1, plugin.getConfigUtil().getDouble("enrage.ramp-minutes", 3.0));
+    }
+
+    private double enrageHealthMax() {
+        return Math.max(1.0, plugin.getConfigUtil().getDouble("enrage.health-mult-max", 3.0));
+    }
+
+    private double enrageSpeedMax() {
+        return Math.max(1.0, plugin.getConfigUtil().getDouble("enrage.speed-mult-max", 1.6));
+    }
+
+    private double enrageDamageMax() {
+        return Math.max(1.0, plugin.getConfigUtil().getDouble("enrage.damage-mult-max", 2.0));
+    }
 
     private EnrageFactors computeEnrage(double minutes) {
         if (!enrageEnabled()) return new EnrageFactors(0.0, 1.0, 1.0, 1.0);
@@ -661,7 +894,8 @@ public class SpawnManager {
         double dmgLateMul = plugin.getConfigUtil().getDouble("scaling.damage-late-multiplier", 1.25);
 
         double healthMultPerMin = baseHpm;
-        if (minutes >= lateMin) healthMultPerMin *= lateMul; else if (minutes >= midMin) healthMultPerMin *= midMul;
+        if (minutes >= lateMin) healthMultPerMin *= lateMul;
+        else if (minutes >= midMin) healthMultPerMin *= midMul;
         double h = 1.0 + Math.max(0, minutes) * healthMultPerMin;
         double s = 1.0 + Math.max(0, minutes) * (speedPerMin * 0.9);
         double dAdd = Math.max(0, minutes) * (dmgAddPerMin * (minutes >= lateMin ? dmgLateMul : (minutes >= midMin ? dmgMidMul : 1.0)));
@@ -684,7 +918,7 @@ public class SpawnManager {
             if (chance <= 0) return;
             if (random.nextInt(100) >= chance) return;
             // mark elite
-            mob.getPersistentDataContainer().set(eliteKey, PersistentDataType.BYTE, (byte)1);
+            mob.getPersistentDataContainer().set(eliteKey, PersistentDataType.BYTE, (byte) 1);
             double baseMult = plugin.getConfigUtil().getDouble("spawn.elite.base-health-mult", 1.5);
             double perMin = plugin.getConfigUtil().getDouble("spawn.elite.extra-health-mult-per-minute", 0.03);
             double eliteMult = Math.max(1.0, baseMult + Math.max(0.0, minutes) * perMin);
@@ -696,15 +930,46 @@ public class SpawnManager {
                     maxHp.setBaseValue(newBase);
                     mob.setHealth(Math.min(newBase, mob.getHealth()));
                 }
-            } catch (Throwable ignored) {}
-            try { mob.customName(net.kyori.adventure.text.Component.text("Elite "+mob.getType().name()).color(net.kyori.adventure.text.format.NamedTextColor.LIGHT_PURPLE)); mob.setCustomNameVisible(true);} catch (Throwable ignored) {}
-            try { java.lang.reflect.Method m = mob.getClass().getMethod("setScale", float.class); m.invoke(mob, (float) plugin.getConfigUtil().getDouble("spawn.elite.size-scale", 1.25)); } catch (Throwable ignored) {}
-        } catch (Throwable ignored) {}
+            } catch (Throwable ignored) {
+            }
+            try {
+                mob.customName(net.kyori.adventure.text.Component.text("Elite " + mob.getType().name()).color(net.kyori.adventure.text.format.NamedTextColor.LIGHT_PURPLE));
+                mob.setCustomNameVisible(true);
+            } catch (Throwable ignored) {
+            }
+            // Prefer explicit Attribute SCALE if available in this server version, fallback to reflection setScale
+            double scaleCfg = Math.max(1.0, plugin.getConfigUtil().getDouble("spawn.elite.size-scale", 1.5));
+            try {
+                org.bukkit.attribute.Attribute scaleAttr = org.bukkit.Registry.ATTRIBUTE.get(org.bukkit.NamespacedKey.minecraft("generic.scale"));
+                if (scaleAttr != null) {
+                    org.bukkit.attribute.AttributeInstance ai = mob.getAttribute(scaleAttr);
+                    if (ai != null) ai.setBaseValue(scaleCfg);
+                } else {
+                    try {
+                        java.lang.reflect.Method m = mob.getClass().getMethod("setScale", float.class);
+                        m.invoke(mob, (float) scaleCfg);
+                    } catch (Throwable ignored) {
+                    }
+                }
+            } catch (Throwable outerScaleEx) {
+                try {
+                    java.lang.reflect.Method m = mob.getClass().getMethod("setScale", float.class);
+                    m.invoke(mob, (float) scaleCfg);
+                } catch (Throwable ignoredScale2) {
+                }
+            }
+        } catch (Throwable ignored) {
+        }
     }
 
     private static class Weighted {
-        final EntityType type; final int weight;
-        Weighted(EntityType t, int w) { this.type = t; this.weight = w; }
+        final EntityType type;
+        final int weight;
+
+        Weighted(EntityType t, int w) {
+            this.type = t;
+            this.weight = w;
+        }
     }
 
     private EntityType pickEntityType(double minutes) {
@@ -736,18 +1001,27 @@ public class SpawnManager {
                 if (!et.isAlive()) continue;
                 if (weight <= 0) continue;
                 pool.add(new Weighted(et, weight));
-            } catch (Throwable ignored) {}
+            } catch (Throwable ignored) {
+            }
         }
         if (pool.isEmpty()) return EntityType.ZOMBIE;
-        int total = 0; for (Weighted w : pool) total += w.weight;
-        int r = random.nextInt(Math.max(1, total)); int cur = 0;
-        for (Weighted w : pool) { cur += w.weight; if (r < cur) return w.type; }
-        return pool.get(pool.size()-1).type;
+        int total = 0;
+        for (Weighted w : pool) total += w.weight;
+        int r = random.nextInt(Math.max(1, total));
+        int cur = 0;
+        for (Weighted w : pool) {
+            cur += w.weight;
+            if (r < cur) return w.type;
+        }
+        return pool.get(pool.size() - 1).type;
     }
 
     public void markAsWave(org.bukkit.entity.LivingEntity mob) {
         if (mob == null) return;
-        try { mob.getPersistentDataContainer().set(waveKey, org.bukkit.persistence.PersistentDataType.BYTE, (byte)1); } catch (Throwable ignored) {}
+        try {
+            mob.getPersistentDataContainer().set(waveKey, org.bukkit.persistence.PersistentDataType.BYTE, (byte) 1);
+        } catch (Throwable ignored) {
+        }
     }
 
     public void repelMobsAround(org.bukkit.entity.Player p, double radius, double strength, boolean onlyWave) {
@@ -773,12 +1047,75 @@ public class SpawnManager {
                     double y = 0.35 + 0.15 * random.nextDouble();
                     org.bukkit.util.Vector v = new org.bukkit.util.Vector(dir.getX() * strength, y, dir.getZ() * strength);
                     le.setVelocity(v);
-                    try { le.getWorld().playSound(le.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_ATTACK_KNOCKBACK, 0.8f, 1.0f); } catch (Throwable ignored) {}
-                    try { le.getWorld().spawnParticle(org.bukkit.Particle.CLOUD, le.getLocation().add(0,0.2,0), 6, 0.25, 0.1, 0.25, 0.01); } catch (Throwable ignored) {}
-                } catch (Throwable ignored) {}
+                    try {
+                        le.getWorld().playSound(le.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_ATTACK_KNOCKBACK, 0.8f, 1.0f);
+                    } catch (Throwable ignored) {
+                    }
+                    try {
+                        le.getWorld().spawnParticle(org.bukkit.Particle.CLOUD, le.getLocation().add(0, 0.2, 0), 6, 0.25, 0.1, 0.25, 0.01);
+                    } catch (Throwable ignored) {
+                    }
+                } catch (Throwable ignored) {
+                }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable ignored) {
+        }
     }
 
-    private static final class EnrageFactors { final double prog, hMul, sMul, dMul; EnrageFactors(double p,double h,double s,double d){prog=p;hMul=h;sMul=s;dMul=d;} }
+    private void ensureMeleeForMob(org.bukkit.entity.LivingEntity mob) {
+        if (mob == null) return;
+        try {
+            final org.bukkit.entity.LivingEntity theMob = mob;
+            final boolean isSkeletonClass = mob.getType() == EntityType.SKELETON || mob.getType() == EntityType.STRAY || mob.getType() == EntityType.SKELETON_HORSE;
+            Material swordMat = Material.IRON_SWORD;
+            try {
+                String cfg = plugin.getConfigUtil().getString("spawn.skeleton-melee-material", "IRON_SWORD");
+                if (cfg != null && !cfg.isBlank()) {
+                    try { swordMat = Material.valueOf(cfg.toUpperCase()); } catch (Throwable ignored) {}
+                }
+            } catch (Throwable ignored) {}
+
+            final Material chosenSwordMat = swordMat;
+            Runnable applyEquip = () -> {
+                try {
+                    if (theMob == null || !theMob.isValid()) return;
+                    org.bukkit.inventory.EntityEquipment equip = theMob.getEquipment();
+                    boolean hasRanged = false;
+                    if (equip != null) {
+                        try {
+                            org.bukkit.inventory.ItemStack main = equip.getItemInMainHand();
+                            if (main != null) {
+                                Material mm = main.getType();
+                                if (mm == Material.BOW || mm == Material.CROSSBOW) hasRanged = true;
+                            }
+                        } catch (Throwable ignored) {}
+                    }
+                    if (isSkeletonClass || hasRanged) {
+                        if (equip != null) {
+                            try { equip.setItemInMainHand(new org.bukkit.inventory.ItemStack(chosenSwordMat)); } catch (Throwable ignored) {}
+                            try { equip.setItemInOffHand(null); } catch (Throwable ignored) {}
+                            try { equip.setHelmet(null); } catch (Throwable ignored) {}
+                            try { equip.setChestplate(null); } catch (Throwable ignored) {}
+                            try { equip.setLeggings(null); } catch (Throwable ignored) {}
+                            try { equip.setBoots(null); } catch (Throwable ignored) {}
+                            try { equip.setItemInMainHandDropChance(0f); } catch (Throwable ignored) {}
+                            try { equip.setItemInOffHandDropChance(0f); } catch (Throwable ignored) {}
+                            try { equip.setHelmetDropChance(0f); } catch (Throwable ignored) {}
+                            try { equip.setChestplateDropChance(0f); } catch (Throwable ignored) {}
+                            try { equip.setLeggingsDropChance(0f); } catch (Throwable ignored) {}
+                            try { equip.setBootsDropChance(0f); } catch (Throwable ignored) {}
+                        }
+                        try { theMob.setCanPickupItems(false); } catch (Throwable ignored) {}
+                    }
+                } catch (Throwable ignored) {}
+            };
+
+            // apply now and reapply at several short intervals to counter server/equipment race conditions
+            applyEquip.run();
+            org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, applyEquip, 1L);
+            org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, applyEquip, 5L);
+            org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, applyEquip, 10L);
+            org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, applyEquip, 20L);
+        } catch (Throwable ignored) {}
+    }
 }

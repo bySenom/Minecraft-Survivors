@@ -34,6 +34,15 @@ public class GuiClickListener implements Listener {
         if (action == null) return;
         Player player = (Player) e.getWhoClicked();
 
+        // get plain title and short-circuit for confirm dialog so ReplaceConfirmMenu.Listener can handle it
+        String title = "";
+        try { title = PlainTextComponentSerializer.plainText().serialize(e.getView().title()); } catch (Throwable ignored) {}
+        String titleLower = title.toLowerCase(java.util.Locale.ROOT);
+        if (titleLower.contains("bestätigen") || titleLower.contains("ability ersetzen") || titleLower.contains("confirm replace")) {
+            // Let the specialised ReplaceConfirmMenu.Listener handle this inventory entirely
+            return;
+        }
+
         // Debug logging
         try {
             net.kyori.adventure.text.Component comp = e.getView().title();
@@ -196,12 +205,100 @@ public class GuiClickListener implements Listener {
             return;
         }
 
+        if (action.startsWith("glyph_pickup_select:")) {
+            try {
+                // Extract full glyph key after the prefix. This may contain ':' so use substring.
+                String full = action.substring("glyph_pickup_select:".length());
+                if (full == null || full.isEmpty()) return;
+                String glyphKeyFull = full;
+                // Derive abilityKey from glyphKey (format ability:glyphId)
+                String abilityKey = glyphKeyFull.contains(":") ? glyphKeyFull.split(":", 2)[0] : glyphKeyFull;
+                // Directly apply the glyph to the player's SurvivorPlayer
+                try {
+                    var sp = plugin.getPlayerManager().get(player.getUniqueId());
+                    if (sp == null) {
+                        player.sendMessage("§cFehler: Spielerprofil nicht geladen.");
+                    } else {
+                        boolean ok = sp.addGlyph(abilityKey, glyphKeyFull);
+                        if (ok) {
+                            plugin.getPlayerDataManager().saveAsync(sp);
+                            try { org.bysenom.minecraftSurvivors.util.Msg.ok(player, "Glyph erhalten: " + glyphKeyFull); } catch (Throwable ignored) {}
+                            try { player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 0.8f, 1.2f); } catch (Throwable ignored) {}
+                            // If ability now has 3 filled glyphs, level up the ability
+                            try {
+                                java.util.List<String> gls = sp.getGlyphs(abilityKey);
+                                long filled = gls.stream().filter(s -> s != null && !s.isEmpty()).count();
+                                if (filled >= 3) {
+                                    boolean inc = sp.incrementAbilityLevel(abilityKey, 1);
+                                    if (inc) {
+                                        plugin.getPlayerDataManager().saveAsync(sp);
+                                        try { org.bysenom.minecraftSurvivors.util.Msg.ok(player, "Deine Fähigkeit wurde verbessert: " + abilityKey); } catch (Throwable ignored) {}
+                                        try { player.playSound(player.getLocation(), org.bukkit.Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.9f, 1.0f); } catch (Throwable ignored) {}
+                                    }
+                                }
+                            } catch (Throwable ignored) {}
+                         } else {
+                             // Could be duplicate or full
+                             try { org.bysenom.minecraftSurvivors.util.Msg.err(player, "Glyph konnte nicht hinzugefügt werden (bereits vorhanden oder volle Slots)"); } catch (Throwable ignored) {}
+                         }
+                     }
+                 } catch (Throwable ex) {
+                     try { player.sendMessage("§cFehler beim Hinzufügen der Glyphe: " + ex.getMessage()); } catch (Throwable ignored) {}
+                 }
+                 // mark handled and resume
+                 try { org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.markSelectionHandled(player.getUniqueId()); } catch (Throwable ignored) {}
+                 try { org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.setSelectionOpen(player.getUniqueId(), false); } catch (Throwable ignored) {}
+                 try { plugin.getGameManager().resumeForPlayer(player.getUniqueId()); } catch (Throwable ignored) {}
+                 try { player.closeInventory(); } catch (Throwable ignored) {}
+             } catch (Throwable ignored) {}
+             return;
+         }
+
         if (action.startsWith("glyph_socket:")) {
             try {
                 String[] parts = action.split(":", 3);
                 if (parts.length < 3) return;
                 String abilityKey = parts[1];
                 int slot = Integer.parseInt(parts[2]);
+                // If player has a pending glyph from pickup for this ability, apply it directly
+                try {
+                    String pending = org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.getPendingGlyph(player.getUniqueId());
+                    if (pending != null && pending.startsWith(abilityKey + ":")) {
+                        var sp2 = plugin.getPlayerManager().get(player.getUniqueId());
+                        if (sp2 != null) {
+                            boolean ok = sp2.replaceGlyph(abilityKey, slot, pending);
+                            if (ok) {
+                                plugin.getPlayerDataManager().saveAsync(sp2);
+                                org.bysenom.minecraftSurvivors.util.Msg.ok(player, "Glyph eingesetzt: " + pending);
+                                org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.clearPendingFor(player.getUniqueId());
+                                org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.markSelectionHandled(player.getUniqueId());
+                                org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.setSelectionOpen(player.getUniqueId(), false);
+                                org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.clearSelectionContext(player.getUniqueId());
+                                try { plugin.getGameManager().resumeForPlayer(player.getUniqueId()); } catch (Throwable ignored) {}
+                                try { player.closeInventory(); } catch (Throwable ignored) {}
+
+                                // check fullness and level up if needed
+                                try {
+                                    java.util.List<String> gls = sp2.getGlyphs(abilityKey);
+                                    long filled = gls.stream().filter(s -> s != null && !s.isEmpty()).count();
+                                    if (filled >= 3) {
+                                        boolean inc = sp2.incrementAbilityLevel(abilityKey, 1);
+                                        if (inc) {
+                                            plugin.getPlayerDataManager().saveAsync(sp2);
+                                            try { org.bysenom.minecraftSurvivors.util.Msg.ok(player, "Deine Fähigkeit wurde verbessert: " + abilityKey); } catch (Throwable ignored) {}
+                                            try { player.playSound(player.getLocation(), org.bukkit.Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.9f, 1.0f); } catch (Throwable ignored) {}
+                                        }
+                                    }
+                                } catch (Throwable ignored) {}
+
+                                return;
+                            } else {
+                                org.bysenom.minecraftSurvivors.util.Msg.err(player, "Konnte Glyph nicht einsetzen (Max 3 oder bereits vorhanden)");
+                                // fallthrough to open selection UI as before
+                            }
+                        }
+                    }
+                } catch (Throwable ignored) {}
                 try { plugin.getGameManager().pauseForPlayer(player.getUniqueId()); } catch (Throwable ignored) {}
                 var choices = org.bysenom.minecraftSurvivors.glyph.GlyphCatalog.forAbility(abilityKey);
                 var sel = org.bukkit.Bukkit.createInventory(null, 9, net.kyori.adventure.text.Component.text("Wähle Glyph").color(net.kyori.adventure.text.format.NamedTextColor.LIGHT_PURPLE));
@@ -244,6 +341,19 @@ public class GuiClickListener implements Listener {
                         org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.clearSelectionContext(player.getUniqueId());
                         try { plugin.getGameManager().resumeForPlayer(player.getUniqueId()); } catch (Throwable ignored) {}
                         try { player.closeInventory(); } catch (Throwable ignored) {}
+                        // check fullness and level up if needed
+                        try {
+                            java.util.List<String> gls = sp.getGlyphs(abilityKey);
+                            long filled = gls.stream().filter(s -> s != null && !s.isEmpty()).count();
+                            if (filled >= 3) {
+                                boolean inc = sp.incrementAbilityLevel(abilityKey, 1);
+                                if (inc) {
+                                    plugin.getPlayerDataManager().saveAsync(sp);
+                                    try { org.bysenom.minecraftSurvivors.util.Msg.ok(player, "Deine Fähigkeit wurde verbessert: " + abilityKey); } catch (Throwable ignored) {}
+                                    try { player.playSound(player.getLocation(), org.bukkit.Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.9f, 1.0f); } catch (Throwable ignored) {}
+                                }
+                            }
+                        } catch (Throwable ignored) {}
                     } else {
                         org.bysenom.minecraftSurvivors.util.Msg.err(player, "Konnte Glyph nicht einsetzen (Max 3 oder bereits vorhanden)");
                         org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.setPendingGlyphWithLog(player.getUniqueId(), pending);

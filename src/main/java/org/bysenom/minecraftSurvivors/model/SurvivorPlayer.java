@@ -52,18 +52,18 @@ public class SurvivorPlayer {
     // Skill slots
     private int maxSkillSlots = 1;
     private final java.util.List<String> skills = new java.util.ArrayList<>(); // keys like "shockwave", "dash"
-    private final java.util.Map<String,Integer> skillLevels = new java.util.HashMap<>();
+    private final java.util.Map<String, Integer> skillLevels = new java.util.HashMap<>();
     private boolean ready = false;
 
     // Weapons (passive), ähnlich wie Skills
     private int maxWeaponSlots = 6;
     private final java.util.List<String> weapons = new java.util.ArrayList<>(); // keys like w_lightning, w_fire
-    private final java.util.Map<String,Integer> weaponLevels = new java.util.HashMap<>();
+    private final java.util.Map<String, Integer> weaponLevels = new java.util.HashMap<>();
 
     // Unified Abilities (ersetzt Skills+Weapons)
     private int maxAbilitySlots = 5;
     private final java.util.List<String> abilities = new java.util.ArrayList<>();
-    private final java.util.Map<String,Integer> abilityLevels = new java.util.HashMap<>();
+    private final java.util.Map<String, Integer> abilityLevels = new java.util.HashMap<>();
     private final java.util.Map<String, String> abilityOrigins = new java.util.HashMap<>(); // e.g. ability -> "class" | "levelup" | "loot"
 
     // Glyphen: je Ability bis zu 3 Sockel
@@ -78,13 +78,33 @@ public class SurvivorPlayer {
         this.uuid = uuid;
     }
 
-    public UUID getUuid() { return uuid; }
-    public int getKills() { return kills; }
-    public void addKill() { this.kills++; }
-    public void setKills(int kills) { this.kills = Math.max(0, kills); }
-    public int getCoins() { return coins; }
-    public void addCoins(int amount) { this.coins += amount; }
-    public void setCoins(int coins) { this.coins = Math.max(0, coins); }
+    public UUID getUuid() {
+        return uuid;
+    }
+
+    public int getKills() {
+        return kills;
+    }
+
+    public void addKill() {
+        this.kills++;
+    }
+
+    public void setKills(int kills) {
+        this.kills = Math.max(0, kills);
+    }
+
+    public int getCoins() {
+        return coins;
+    }
+
+    public void addCoins(int amount) {
+        this.coins += amount;
+    }
+
+    public void setCoins(int coins) {
+        this.coins = Math.max(0, coins);
+    }
 
     public void reset() {
         this.kills = 0;
@@ -199,8 +219,8 @@ public class SurvivorPlayer {
         this.maxAbilitySlots = 5;
         // Preserve class-origin abilities: collect them, clear all abilities, then re-add class ones
         java.util.List<String> preserved = new java.util.ArrayList<>();
-        java.util.Map<String,Integer> preservedLevels = new java.util.HashMap<>();
-        for (java.util.Map.Entry<String,String> en : abilityOrigins.entrySet()) {
+        java.util.Map<String, Integer> preservedLevels = new java.util.HashMap<>();
+        for (java.util.Map.Entry<String, String> en : abilityOrigins.entrySet()) {
             if ("class".equals(en.getValue())) {
                 String key = en.getKey();
                 preserved.add(key);
@@ -225,16 +245,38 @@ public class SurvivorPlayer {
     }
 
     // Neue Methoden zur Klassenverwaltung
-    public PlayerClass getSelectedClass() { return selectedClass; }
-    public void setSelectedClass(PlayerClass selectedClass) { this.selectedClass = selectedClass; }
-    public int getClassLevel() { return classLevel; }
-    public void setClassLevel(int classLevel) { this.classLevel = Math.max(1, classLevel); }
+    public PlayerClass getSelectedClass() {
+        return selectedClass;
+    }
+
+    public void setSelectedClass(PlayerClass selectedClass) {
+        this.selectedClass = selectedClass;
+    }
+
+    public int getClassLevel() {
+        return classLevel;
+    }
+
+    public void setClassLevel(int classLevel) {
+        this.classLevel = Math.max(1, classLevel);
+    }
 
     // XP / Level
-    public int getXp() { return xp; }
-    public int getXpToNext() { return xpToNext; }
-    public void setXp(int xp) { this.xp = Math.max(0, xp); }
-    public void setXpToNext(int xpToNext) { this.xpToNext = Math.max(1, xpToNext); }
+    public int getXp() {
+        return xp;
+    }
+
+    public int getXpToNext() {
+        return xpToNext;
+    }
+
+    public void setXp(int xp) {
+        this.xp = Math.max(0, xp);
+    }
+
+    public void setXpToNext(int xpToNext) {
+        this.xpToNext = Math.max(1, xpToNext);
+    }
 
     public boolean addXp(int amount) {
         if (amount <= 0) return false;
@@ -249,126 +291,314 @@ public class SurvivorPlayer {
         return leveled;
     }
 
-    private int calculateXpForLevel(int level) { return Math.max(1, 5 * level); }
+    private int calculateXpForLevel(int level) {
+        return Math.max(1, 5 * level);
+    }
 
     // Upgrade-APIs
-    public double getBonusDamage() { return 0.0; } // Legacy: nicht mehr separat verwendet
-    public void addBonusDamage(double val) { this.flatDamage += val; } // leite auf flatDamage um
-    public void setBonusDamage(double bonusDamage) { this.flatDamage = bonusDamage; this.bonusDamage = 0.0; }
+    public double getBonusDamage() {
+        return 0.0;
+    } // Legacy: nicht mehr separat verwendet
 
-    public double getFlatDamage() { return flatDamage; }
-    public void addFlatDamage(double val) { this.flatDamage += val; }
-    public void setFlatDamage(double flatDamage) { this.flatDamage = flatDamage; }
+    public void addBonusDamage(double val) {
+        this.flatDamage += val;
+    } // leite auf flatDamage um
+
+    public void setBonusDamage(double bonusDamage) {
+        this.flatDamage = bonusDamage;
+        this.bonusDamage = 0.0;
+    }
+
+    public double getFlatDamage() {
+        return flatDamage;
+    }
+
+    public void addFlatDamage(double val) {
+        this.flatDamage += val;
+    }
+
+    public void setFlatDamage(double flatDamage) {
+        this.flatDamage = flatDamage;
+    }
 
     // Einheitliche additive Schadenssumme
-    public double getDamageAddTotal() { return Math.max(0.0, this.flatDamage + this.bonusDamage); }
+    public double getDamageAddTotal() {
+        return Math.max(0.0, this.flatDamage + this.bonusDamage);
+    }
 
-    public int getBonusStrikes() { return bonusStrikes; }
-    public void addBonusStrikes(int val) { this.bonusStrikes += val; }
-    public void setBonusStrikes(int bonusStrikes) { this.bonusStrikes = bonusStrikes; }
+    public int getBonusStrikes() {
+        return bonusStrikes;
+    }
 
-    public int getExtraHearts() { return extraHearts; }
-    public void addExtraHearts(int val) { this.extraHearts += val; }
-    public void setExtraHearts(int extraHearts) { this.extraHearts = extraHearts; }
+    public void addBonusStrikes(int val) {
+        this.bonusStrikes += val;
+    }
 
-    public double getRadiusMult() { return radiusMult; }
-    public void addRadiusMult(double delta) { this.radiusMult = Math.max(0.0, this.radiusMult + delta); }
-    public void setRadiusMult(double radiusMult) { this.radiusMult = Math.max(0.0, radiusMult); }
+    public void setBonusStrikes(int bonusStrikes) {
+        this.bonusStrikes = bonusStrikes;
+    }
 
-    public double getDamageMult() { return damageMult; }
-    public void addDamageMult(double delta) { this.damageMult = Math.max(0.0, this.damageMult + delta); }
-    public void setDamageMult(double damageMult) { this.damageMult = Math.max(0.0, damageMult); }
+    public int getExtraHearts() {
+        return extraHearts;
+    }
 
-    public int getIgniteBonusTicks() { return igniteBonusTicks; }
-    public void addIgniteBonusTicks(int delta) { this.igniteBonusTicks = Math.max(0, this.igniteBonusTicks + delta); }
-    public void setIgniteBonusTicks(int igniteBonusTicks) { this.igniteBonusTicks = Math.max(0, igniteBonusTicks); }
+    public void addExtraHearts(int val) {
+        this.extraHearts += val;
+    }
 
-    public double getKnockbackBonus() { return knockbackBonus; }
-    public void addKnockbackBonus(double delta) { this.knockbackBonus = Math.max(0.0, this.knockbackBonus + delta); }
-    public void setKnockbackBonus(double knockbackBonus) { this.knockbackBonus = Math.max(0.0, knockbackBonus); }
+    public void setExtraHearts(int extraHearts) {
+        this.extraHearts = extraHearts;
+    }
 
-    public double getHealBonus() { return healBonus; }
-    public void addHealBonus(double delta) { this.healBonus = Math.max(0.0, this.healBonus + delta); }
-    public void setHealBonus(double healBonus) { this.healBonus = Math.max(0.0, healBonus); }
+    public double getRadiusMult() {
+        return radiusMult;
+    }
 
-    public double getMoveSpeedMult() { return moveSpeedMult; }
-    public void addMoveSpeedMult(double d) { this.moveSpeedMult = Math.max(0.0, this.moveSpeedMult + d); }
-    public void setMoveSpeedMult(double v) { this.moveSpeedMult = Math.max(0.0, v); }
+    public void addRadiusMult(double delta) {
+        this.radiusMult = Math.max(0.0, this.radiusMult + delta);
+    }
 
-    public double getAttackSpeedMult() { return attackSpeedMult; }
-    public void addAttackSpeedMult(double d) { this.attackSpeedMult = Math.max(0.0, this.attackSpeedMult + d); }
-    public void setAttackSpeedMult(double v) { this.attackSpeedMult = Math.max(0.0, v); }
+    public void setRadiusMult(double radiusMult) {
+        this.radiusMult = Math.max(0.0, radiusMult);
+    }
 
-    public double getDamageResist() { return damageResist; }
-    public void addDamageResist(double d) { this.damageResist = Math.max(0.0, Math.min(0.9, this.damageResist + d)); }
-    public void setDamageResist(double v) { this.damageResist = Math.max(0.0, Math.min(0.9, v)); }
+    public double getDamageMult() {
+        return damageMult;
+    }
 
-    public double getLuck() { return luck; }
-    public void addLuck(double d) { this.luck = Math.max(0.0, this.luck + d); }
-    public void setLuck(double v) { this.luck = Math.max(0.0, v); }
+    public void addDamageMult(double delta) {
+        this.damageMult = Math.max(0.0, this.damageMult + delta);
+    }
+
+    public void setDamageMult(double damageMult) {
+        this.damageMult = Math.max(0.0, damageMult);
+    }
+
+    public int getIgniteBonusTicks() {
+        return igniteBonusTicks;
+    }
+
+    public void addIgniteBonusTicks(int delta) {
+        this.igniteBonusTicks = Math.max(0, this.igniteBonusTicks + delta);
+    }
+
+    public void setIgniteBonusTicks(int igniteBonusTicks) {
+        this.igniteBonusTicks = Math.max(0, igniteBonusTicks);
+    }
+
+    public double getKnockbackBonus() {
+        return knockbackBonus;
+    }
+
+    public void addKnockbackBonus(double delta) {
+        this.knockbackBonus = Math.max(0.0, this.knockbackBonus + delta);
+    }
+
+    public void setKnockbackBonus(double knockbackBonus) {
+        this.knockbackBonus = Math.max(0.0, knockbackBonus);
+    }
+
+    public double getHealBonus() {
+        return healBonus;
+    }
+
+    public void addHealBonus(double delta) {
+        this.healBonus = Math.max(0.0, this.healBonus + delta);
+    }
+
+    public void setHealBonus(double healBonus) {
+        this.healBonus = Math.max(0.0, healBonus);
+    }
+
+    public double getMoveSpeedMult() {
+        return moveSpeedMult;
+    }
+
+    public void addMoveSpeedMult(double d) {
+        this.moveSpeedMult = Math.max(0.0, this.moveSpeedMult + d);
+    }
+
+    public void setMoveSpeedMult(double v) {
+        this.moveSpeedMult = Math.max(0.0, v);
+    }
+
+    public double getAttackSpeedMult() {
+        return attackSpeedMult;
+    }
+
+    public void addAttackSpeedMult(double d) {
+        this.attackSpeedMult = Math.max(0.0, this.attackSpeedMult + d);
+    }
+
+    public void setAttackSpeedMult(double v) {
+        this.attackSpeedMult = Math.max(0.0, v);
+    }
+
+    public double getDamageResist() {
+        return damageResist;
+    }
+
+    public void addDamageResist(double d) {
+        this.damageResist = Math.max(0.0, Math.min(0.9, this.damageResist + d));
+    }
+
+    public void setDamageResist(double v) {
+        this.damageResist = Math.max(0.0, Math.min(0.9, v));
+    }
+
+    public double getLuck() {
+        return luck;
+    }
+
+    public void addLuck(double d) {
+        this.luck = Math.max(0.0, this.luck + d);
+    }
+
+    public void setLuck(double v) {
+        this.luck = Math.max(0.0, v);
+    }
 
     // --- Shop limits ---
-    public int getShopPurchasesRun() { return shopPurchasesRun; }
-    public int getShopPurchasesToday() { return shopPurchasesToday; }
-    public String getShopLastDay() { return shopLastDay; }
-    public void setShopPurchasesToday(int v) { this.shopPurchasesToday = Math.max(0, v); }
-    public void setShopLastDay(String s) { this.shopLastDay = s; this.perDayCounts.clear(); }
-    public void incrementShopRun() { this.shopPurchasesRun++; }
-    public void incrementShopToday() { this.shopPurchasesToday++; }
+    public int getShopPurchasesRun() {
+        return shopPurchasesRun;
+    }
 
-    public int getPerRunCount(String key) { return perRunCounts.getOrDefault(key, 0); }
-    public int getPerDayCount(String key) { return perDayCounts.getOrDefault(key, 0); }
-    public void incPerRun(String key) { perRunCounts.put(key, getPerRunCount(key) + 1); }
-    public void incPerDay(String key) { perDayCounts.put(key, getPerDayCount(key) + 1); }
+    public int getShopPurchasesToday() {
+        return shopPurchasesToday;
+    }
 
-    public boolean hasPurchased(String key) { return key != null && purchasedKeys.contains(key); }
-    public void markPurchased(String key) { if (key != null) purchasedKeys.add(key); }
+    public String getShopLastDay() {
+        return shopLastDay;
+    }
+
+    public void setShopPurchasesToday(int v) {
+        this.shopPurchasesToday = Math.max(0, v);
+    }
+
+    public void setShopLastDay(String s) {
+        this.shopLastDay = s;
+        this.perDayCounts.clear();
+    }
+
+    public void incrementShopRun() {
+        this.shopPurchasesRun++;
+    }
+
+    public void incrementShopToday() {
+        this.shopPurchasesToday++;
+    }
+
+    public int getPerRunCount(String key) {
+        return perRunCounts.getOrDefault(key, 0);
+    }
+
+    public int getPerDayCount(String key) {
+        return perDayCounts.getOrDefault(key, 0);
+    }
+
+    public void incPerRun(String key) {
+        perRunCounts.put(key, getPerRunCount(key) + 1);
+    }
+
+    public void incPerDay(String key) {
+        perDayCounts.put(key, getPerDayCount(key) + 1);
+    }
+
+    public boolean hasPurchased(String key) {
+        return key != null && purchasedKeys.contains(key);
+    }
+
+    public void markPurchased(String key) {
+        if (key != null) purchasedKeys.add(key);
+    }
 
     // Ranger
-    public int getRangerPierce() { return rangerPierce; }
-    public void addRangerPierce(int d) { this.rangerPierce = Math.max(0, this.rangerPierce + d); }
+    public int getRangerPierce() {
+        return rangerPierce;
+    }
+
+    public void addRangerPierce(int d) {
+        this.rangerPierce = Math.max(0, this.rangerPierce + d);
+    }
 
     // Evo flags
-    public boolean isEvoPyroNova() { return evoPyroNova; }
-    public void setEvoPyroNova(boolean v) { this.evoPyroNova = v; }
+    public boolean isEvoPyroNova() {
+        return evoPyroNova;
+    }
 
-    public int getMaxSkillSlots() { return maxSkillSlots; }
-    public void setMaxSkillSlots(int v) { this.maxSkillSlots = Math.max(1, Math.min(5, v)); }
+    public void setEvoPyroNova(boolean v) {
+        this.evoPyroNova = v;
+    }
 
-    public java.util.List<String> getSkills() { return skills; }
+    public int getMaxSkillSlots() {
+        return maxSkillSlots;
+    }
+
+    public void setMaxSkillSlots(int v) {
+        this.maxSkillSlots = Math.max(1, Math.min(5, v));
+    }
+
+    public java.util.List<String> getSkills() {
+        return skills;
+    }
+
     public boolean addSkill(String key) {
         if (key == null) return false;
-        if (skills.contains(key)) { skillLevels.put(key, skillLevels.getOrDefault(key,1)+1); return true; }
+        if (skills.contains(key)) {
+            skillLevels.put(key, skillLevels.getOrDefault(key, 1) + 1);
+            return true;
+        }
         if (skills.size() >= maxSkillSlots) return false;
         skills.add(key);
         skillLevels.putIfAbsent(key, 1);
         return true;
     }
-    public int getSkillLevel(String key) { return skillLevels.getOrDefault(key, 0); }
+
+    public int getSkillLevel(String key) {
+        return skillLevels.getOrDefault(key, 0);
+    }
+
     public boolean removeSkill(String key) {
         if (key == null) return false;
         boolean removed = skills.remove(key);
         skillLevels.remove(key);
         return removed;
     }
+
     public void clearSkills() {
         skills.clear();
         skillLevels.clear();
     }
 
     // Unified Abilities API
-    public int getMaxAbilitySlots() { return maxAbilitySlots; }
-    public void setMaxAbilitySlots(int v) { this.maxAbilitySlots = Math.max(1, Math.min(5, v)); }
-    public java.util.List<String> getAbilities() { return abilities; }
-    public int getAbilityLevel(String key) { return abilityLevels.getOrDefault(key, 0); }
+    public int getMaxAbilitySlots() {
+        return maxAbilitySlots;
+    }
+
+    public void setMaxAbilitySlots(int v) {
+        this.maxAbilitySlots = Math.max(1, Math.min(5, v));
+    }
+
+    public java.util.List<String> getAbilities() {
+        return abilities;
+    }
+
+    public int getAbilityLevel(String key) {
+        return abilityLevels.getOrDefault(key, 0);
+    }
+
     public boolean addAbility(String key) {
         if (key == null) return false;
-        if (abilities.contains(key)) { abilityLevels.put(key, abilityLevels.getOrDefault(key,1)+1); return true; }
+        if (abilities.contains(key)) {
+            abilityLevels.put(key, abilityLevels.getOrDefault(key, 1) + 1);
+            return true;
+        }
         if (abilities.size() >= maxAbilitySlots) return false;
         abilities.add(key);
         abilityLevels.putIfAbsent(key, 1);
         return true;
     }
+
     public boolean replaceAbilityAt(int index, String newKey, int newLevel) {
         if (newKey == null) return false;
         if (index < 0 || index >= abilities.size()) return false;
@@ -381,7 +611,11 @@ public class SurvivorPlayer {
         abilityOrigins.remove(newKey);
         return true;
     }
-    public boolean hasAbility(String key) { return key != null && abilities.contains(key); }
+
+    public boolean hasAbility(String key) {
+        return key != null && abilities.contains(key);
+    }
+
     public boolean addNewAbilityWithLevel(String key, int level) {
         if (key == null) return false;
         if (abilities.contains(key)) return false;
@@ -390,6 +624,7 @@ public class SurvivorPlayer {
         abilityLevels.put(key, Math.max(1, level));
         return true;
     }
+
     /**
      * Try to add ability into the first free slot. Returns true if added, false if no free slot or already exists.
      */
@@ -412,6 +647,7 @@ public class SurvivorPlayer {
         }
         return false;
     }
+
     /**
      * Add ability into first free slot and return the index where it was placed, or -1 if failed/existing.
      */
@@ -434,6 +670,7 @@ public class SurvivorPlayer {
         }
         return -1;
     }
+
     public boolean incrementAbilityLevel(String key, int delta) {
         if (key == null) return false;
         if (!abilities.contains(key)) return false;
@@ -445,18 +682,37 @@ public class SurvivorPlayer {
     // Ability origin helpers (class/levelup/loot)
     public void setAbilityOrigin(String abilityKey, String origin) {
         if (abilityKey == null) return;
-        if (origin == null) abilityOrigins.remove(abilityKey); else abilityOrigins.put(abilityKey, origin);
+        if (origin == null) abilityOrigins.remove(abilityKey);
+        else abilityOrigins.put(abilityKey, origin);
     }
-    public String getAbilityOrigin(String abilityKey) { return abilityKey == null ? null : abilityOrigins.get(abilityKey); }
+
+    public String getAbilityOrigin(String abilityKey) {
+        return abilityKey == null ? null : abilityOrigins.get(abilityKey);
+    }
 
     // Weapons API
-    public java.util.List<String> getWeapons() { return weapons; }
-    public int getWeaponLevel(String key) { return weaponLevels.getOrDefault(key, 0); }
-    public int getMaxWeaponSlots() { return maxWeaponSlots; }
-    public void setMaxWeaponSlots(int v) { this.maxWeaponSlots = Math.max(1, Math.min(8, v)); }
+    public java.util.List<String> getWeapons() {
+        return weapons;
+    }
+
+    public int getWeaponLevel(String key) {
+        return weaponLevels.getOrDefault(key, 0);
+    }
+
+    public int getMaxWeaponSlots() {
+        return maxWeaponSlots;
+    }
+
+    public void setMaxWeaponSlots(int v) {
+        this.maxWeaponSlots = Math.max(1, Math.min(8, v));
+    }
+
     public boolean addWeapon(String key) {
         if (key == null) return false;
-        if (weapons.contains(key)) { weaponLevels.put(key, weaponLevels.getOrDefault(key,1)+1); return true; }
+        if (weapons.contains(key)) {
+            weaponLevels.put(key, weaponLevels.getOrDefault(key, 1) + 1);
+            return true;
+        }
         if (weapons.size() >= maxWeaponSlots) return false;
         weapons.add(key);
         weaponLevels.putIfAbsent(key, 1);
@@ -467,37 +723,142 @@ public class SurvivorPlayer {
     public java.util.List<String> getGlyphs(String abilityKey) {
         return abilityGlyphs.computeIfAbsent(String.valueOf(abilityKey), k -> new java.util.ArrayList<>());
     }
-    public boolean hasGlyph(String abilityKey, String glyphKey) {
-        java.util.List<String> list = abilityGlyphs.getOrDefault(String.valueOf(abilityKey), java.util.Collections.emptyList());
-        return list.contains(String.valueOf(glyphKey));
+    // Track created modifier IDs per glyphKey so we can remove them later
+    private final java.util.Map<String, java.util.List<java.util.UUID>> glyphModifierIds = new java.util.HashMap<>();
+
+    private void applyGlyphModifiers(String glyphKey) {
+        if (glyphKey == null) return;
+        try {
+            org.bysenom.minecraftSurvivors.glyph.GlyphCatalog.Def def = org.bysenom.minecraftSurvivors.glyph.GlyphCatalog.get(glyphKey);
+            if (def == null) return;
+            java.util.List<org.bysenom.minecraftSurvivors.model.StatModifier> mods = org.bysenom.minecraftSurvivors.glyph.GlyphCatalog.createModifiersFor(def.key);
+            if (mods == null || mods.isEmpty()) return;
+            java.util.List<java.util.UUID> ids = glyphModifierIds.computeIfAbsent(glyphKey, k -> new java.util.ArrayList<>());
+            for (var m : mods) {
+                java.util.UUID id = addStatModifier(m);
+                if (id != null) ids.add(id);
+            }
+        } catch (Throwable ignored) {}
     }
+
+    private void removeGlyphModifiers(String glyphKey) {
+        if (glyphKey == null) return;
+        try {
+            java.util.List<java.util.UUID> ids = glyphModifierIds.remove(glyphKey);
+            if (ids == null) return;
+            for (java.util.UUID id : ids) {
+                try { removeStatModifier(id); } catch (Throwable ignored) {}
+            }
+        } catch (Throwable ignored) {}
+    }
+
     public boolean addGlyph(String abilityKey, String glyphKey) {
         if (abilityKey == null || glyphKey == null) return false;
         java.util.List<String> list = getGlyphs(abilityKey);
         if (list.size() >= 3) return false;
         if (list.contains(glyphKey)) return false;
         list.add(glyphKey);
+        // apply modifiers for this glyph (non-persistent temporary buffs)
+        applyGlyphModifiers(glyphKey);
         return true;
     }
+
     public boolean replaceGlyph(String abilityKey, int index, String glyphKey) {
         if (abilityKey == null) return false;
         java.util.List<String> list = getGlyphs(abilityKey);
         if (index < 0 || index >= 3) return false;
         while (list.size() <= index) list.add(null);
-        // Removal
+        // If removing
+        String old = list.get(index);
         if (glyphKey == null) {
+            // remove old glyph and its modifiers
             list.set(index, null);
+            if (old != null && !old.isEmpty()) removeGlyphModifiers(old);
             return true;
         }
         // Prevent duplicate glyphs for same ability
         if (list.contains(glyphKey)) return false;
-        // Insert/replace
+        // Replace: remove old modifiers, set new glyph, apply new modifiers
+        if (old != null && !old.isEmpty()) removeGlyphModifiers(old);
         list.set(index, glyphKey);
+        applyGlyphModifiers(glyphKey);
         return true;
     }
-    public int getCounter(String key) { return glyphCounters.getOrDefault(String.valueOf(key), 0); }
-    public void setCounter(String key, int v) { glyphCounters.put(String.valueOf(key), Math.max(0, v)); }
-    public int incCounter(String key, int d) { int v = getCounter(key) + d; setCounter(key, v); return v; }
+
+    public int getCounter(String key) {
+        return glyphCounters.getOrDefault(String.valueOf(key), 0);
+    }
+
+    public void setCounter(String key, int v) {
+        glyphCounters.put(String.valueOf(key), Math.max(0, v));
+    }
+
+    public int incCounter(String key, int d) {
+        int v = getCounter(key) + d;
+        setCounter(key, v);
+        return v;
+    }
+
+    // --- StatModifier system ---
+    // Modifiers are additive values attached to a player (source: loot/glyph/weapon)
+    private final java.util.List<org.bysenom.minecraftSurvivors.model.StatModifier> statModifiers = new java.util.ArrayList<>();
+
+    public java.util.UUID addStatModifier(org.bysenom.minecraftSurvivors.model.StatModifier m) {
+        if (m == null) return null;
+        statModifiers.add(m);
+        return m.id;
+    }
+
+    public boolean removeStatModifier(java.util.UUID id) {
+        if (id == null) return false;
+        return statModifiers.removeIf(sm -> sm.id.equals(id));
+    }
+
+    public java.util.List<org.bysenom.minecraftSurvivors.model.StatModifier> getModifiersFor(org.bysenom.minecraftSurvivors.model.StatType t) {
+        java.util.List<org.bysenom.minecraftSurvivors.model.StatModifier> out = new java.util.ArrayList<>();
+        for (var m : statModifiers) if (m.type == t) out.add(m);
+        return out;
+    }
+
+    public double getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType t) {
+        double s = 0.0;
+        for (var m : statModifiers) if (m.type == t) s += m.value;
+        return s;
+    }
+
+    // Effective getters combine base persistent stats with dynamic modifiers
+    public double getEffectiveDamageMult() {
+        return Math.max(0.0, this.damageMult + getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_MULT));
+    }
+
+    public double getEffectiveDamageAdd() {
+        double add = this.flatDamage + this.bonusDamage;
+        add += getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ADD);
+        add += getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.FLAT_DAMAGE);
+        return Math.max(0.0, add);
+    }
+
+    public double getEffectiveRadiusMult() {
+        return Math.max(0.0, this.radiusMult + getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.RADIUS_MULT));
+    }
+
+    public double getEffectiveMoveSpeedMult() {
+        return Math.max(0.0, this.moveSpeedMult + getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.SPEED));
+    }
+
+    public double getEffectiveAttackSpeedMult() {
+        return Math.max(0.0, this.attackSpeedMult + getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.ATTACK_SPEED));
+    }
+
+    public double getEffectiveDamageResist() {
+        return Math.max(0.0, Math.min(0.9, this.damageResist + getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.RESIST)));
+    }
+
+    public double getEffectiveLuck() {
+        return Math.max(0.0, this.luck + getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.LUCK));
+    }
+
+    public int getEffectiveExtraHearts() { return this.extraHearts + (int)Math.round(getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.HEALTH_HEARTS)); }
 
     // Unlock API: abilities and glyphs must be unlocked (purchased) before they appear in level-up choices.
     public boolean hasUnlockedAbility(String abilityKey) { return abilityKey != null && (unlockedAbilities.contains(abilityKey) || abilities.contains(abilityKey)); }
@@ -522,7 +883,11 @@ public class SurvivorPlayer {
         abilities.remove(idx);
         abilityLevels.remove(key);
         abilityOrigins.remove(key);
-        abilityGlyphs.remove(key);
+        // remove any glyph modifiers tied to glyphs of this ability
+        java.util.List<String> glyphs = abilityGlyphs.remove(key);
+        if (glyphs != null) {
+            for (String g : glyphs) try { removeGlyphModifiers(g); } catch (Throwable ignored) {}
+        }
         return true;
     }
 }

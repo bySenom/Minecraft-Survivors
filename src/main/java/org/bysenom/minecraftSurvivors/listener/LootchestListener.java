@@ -257,6 +257,7 @@ public class LootchestListener implements Listener {
         try {
             org.bukkit.entity.Player p = (org.bukkit.entity.Player) e.getPlayer();
             plugin.getGameManager().getSpawnManager().repelMobsAround(p, 8.0, 1.2, true);
+            try { int t = Math.max(1, plugin.getConfigUtil().getInt("spawn.repel-protect-ticks", 12)); plugin.getGameManager().protectPlayer(p.getUniqueId(), t); } catch(Throwable ignored){}
         } catch (Throwable ignored) {}
         // Nur resuming, wenn wir selbst pausiert haben
         if (LOOT_PAUSED.remove(uid)) {
@@ -325,7 +326,7 @@ public class LootchestListener implements Listener {
         }
         private void applyReward(Player p, java.util.Map<String,Object> reward) {
             // Frühzeitiger Knockback bevor Inventar geschlossen wird und Reward angewandt wird
-            try { plugin.getGameManager().getSpawnManager().repelMobsAround(p, 6.0, 1.0, true); } catch (Throwable ignored) {}
+            try { plugin.getGameManager().getSpawnManager().repelMobsAround(p, 6.0, 1.0, true); try { int t = Math.max(1, plugin.getConfigUtil().getInt("spawn.repel-protect-ticks", 12)); plugin.getGameManager().protectPlayer(p.getUniqueId(), t); } catch(Throwable ignored){} } catch (Throwable ignored) {}
             if (reward == null) { p.sendMessage("§eDie Kiste war leer…"); return; }
             Object oType = reward.get("type");
             Object oVal = reward.get("value");
@@ -334,24 +335,55 @@ public class LootchestListener implements Listener {
             double val = (oVal == null) ? 0.0 : parseDoubleSafe(oVal);
             String nm = (oName == null) ? type : String.valueOf(oName);
             SurvivorPlayer sp = plugin.getPlayerManager().get(p.getUniqueId());
-            switch (type.toUpperCase()) {
-                case "DAMAGE_MULT": sp.addDamageMult(val); break;
-                case "DAMAGE_ADD": sp.addBonusDamage(val); break;
-                case "FLAT_DAMAGE": sp.addFlatDamage(val); break;
-                case "RADIUS_MULT": sp.addRadiusMult(val); break;
-                case "PALADIN_HEAL": sp.addHealBonus(val); break;
-                case "SPEED": sp.addMoveSpeedMult(val); break;
-                case "ATTACK_SPEED": sp.addAttackSpeedMult(val); break;
-                case "RESIST": sp.addDamageResist(val); break;
-                case "LUCK": sp.addLuck(val); break;
-                case "HEALTH_HEARTS": sp.addExtraHearts((int)Math.round(val)); break;
-                default: p.sendMessage("§eUnbekannte Belohnung: "+type); return;
+            boolean applied = false;
+            try {
+                if (sp != null) {
+                    org.bysenom.minecraftSurvivors.model.StatType st = null;
+                    switch (type.toUpperCase()) {
+                        case "DAMAGE_MULT": st = org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_MULT; break;
+                        case "DAMAGE_ADD": st = org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ADD; break;
+                        case "FLAT_DAMAGE": st = org.bysenom.minecraftSurvivors.model.StatType.FLAT_DAMAGE; break;
+                        case "RADIUS_MULT": st = org.bysenom.minecraftSurvivors.model.StatType.RADIUS_MULT; break;
+                        case "PALADIN_HEAL": st = org.bysenom.minecraftSurvivors.model.StatType.PALADIN_HEAL; break;
+                        case "SPEED": st = org.bysenom.minecraftSurvivors.model.StatType.SPEED; break;
+                        case "ATTACK_SPEED": st = org.bysenom.minecraftSurvivors.model.StatType.ATTACK_SPEED; break;
+                        case "RESIST": st = org.bysenom.minecraftSurvivors.model.StatType.RESIST; break;
+                        case "LUCK": st = org.bysenom.minecraftSurvivors.model.StatType.LUCK; break;
+                        case "HEALTH_HEARTS": st = org.bysenom.minecraftSurvivors.model.StatType.HEALTH_HEARTS; break;
+                    }
+                    if (st != null) {
+                        org.bysenom.minecraftSurvivors.model.StatModifier mod = new org.bysenom.minecraftSurvivors.model.StatModifier(st, val, "lootchest:" + nm);
+                        sp.addStatModifier(mod);
+                        plugin.getPlayerDataManager().saveAsync(sp);
+                        applied = true;
+                    }
+                }
+            } catch (Throwable ignored) {}
+            if (!applied) {
+                // fallback to legacy direct application if player profile missing or mapping failed
+                if (sp != null) {
+                    switch (type.toUpperCase()) {
+                        case "DAMAGE_MULT": sp.addDamageMult(val); break;
+                        case "DAMAGE_ADD": sp.addBonusDamage(val); break;
+                        case "FLAT_DAMAGE": sp.addFlatDamage(val); break;
+                        case "RADIUS_MULT": sp.addRadiusMult(val); break;
+                        case "PALADIN_HEAL": sp.addHealBonus(val); break;
+                        case "SPEED": sp.addMoveSpeedMult(val); break;
+                        case "ATTACK_SPEED": sp.addAttackSpeedMult(val); break;
+                        case "RESIST": sp.addDamageResist(val); break;
+                        case "LUCK": sp.addLuck(val); break;
+                        case "HEALTH_HEARTS": sp.addExtraHearts((int)Math.round(val)); break;
+                        default: p.sendMessage("§eUnbekannte Belohnung: "+type); return;
+                    }
+                } else {
+                    p.sendMessage("§eUnbekannte Belohnung: "+type);
+                    return;
+                }
             }
-            try { p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.0f); } catch (Throwable ignored) {}
-            p.sendMessage("§aGewonnen: "+nm+" §7("+val+")");
-        }
-    }
-
+             try { p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.0f); } catch (Throwable ignored) {}
+             p.sendMessage("§aGewonnen: "+nm+" §7("+val+")");
+         }
+     }
     // ---- Rewards / Icons / Sounds ----
     private static class WeightedReward { final String type; final double value; final String name; final int weight; WeightedReward(String t,double v,String n,int w){type=t;value=v;name=n;weight=w;} }
 

@@ -28,8 +28,8 @@ public class LevelUpMenuListener implements Listener {
         if (display == null) return;
 
         Player player = (Player) e.getWhoClicked();
-        // Früh Knockback (leicht reduziert Radius/Stärke)
-        try { guiManager.getGameManager().getSpawnManager().repelMobsAround(player, 6.0, 1.0, true); } catch (Throwable ignored) {}
+        // Früh Knockback (leicht reduziert Radius/Stärke) + temporärer Schutz
+        try { guiManager.getGameManager().getSpawnManager().repelMobsAround(player, 6.0, 1.0, true); try { int t = Math.max(1, guiManager.getGameManager().getPlugin().getConfigUtil().getInt("spawn.repel-protect-ticks", 12)); guiManager.getGameManager().protectPlayer(player.getUniqueId(), t); } catch(Throwable ignored){} } catch (Throwable ignored) {}
 
         // Versuche die Level-Nummer aus dem Titel zu parsen: "... (Level X)"
         int level = 1;

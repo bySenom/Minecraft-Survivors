@@ -30,9 +30,9 @@ public class GlyphPickupListener implements Listener {
     private static org.bukkit.scheduler.BukkitTask anim;
 
     private static final class ActiveGlyph {
-        final java.util.UUID id; final World world; final Location base; final java.util.UUID itemId; final java.util.UUID textId; final long expireAt; final String abilityKey; final String glyphKey;
-        ActiveGlyph(java.util.UUID id, World w, Location base, java.util.UUID item, java.util.UUID text, long expireAt, String abilityKey, String glyphKey) {
-            this.id=id; this.world=w; this.base=base; this.itemId=item; this.textId=text; this.expireAt=expireAt; this.abilityKey=abilityKey; this.glyphKey=glyphKey;
+        final java.util.UUID id; final World world; final Location base; final java.util.UUID itemId; final java.util.UUID textId; final long expireAt; final String abilityKey; final java.util.List<String> glyphChoices;
+        ActiveGlyph(java.util.UUID id, World w, Location base, java.util.UUID item, java.util.UUID text, long expireAt, String abilityKey, java.util.List<String> glyphChoices) {
+            this.id=id; this.world=w; this.base=base; this.itemId=item; this.textId=text; this.expireAt=expireAt; this.abilityKey=abilityKey; this.glyphChoices = glyphChoices == null ? new java.util.ArrayList<>() : glyphChoices;
         }
     }
 
@@ -68,13 +68,20 @@ public class GlyphPickupListener implements Listener {
     public static void spawnGlyph(Location loc, String abilityKey) {
         MinecraftSurvivors pl = MinecraftSurvivors.getInstance(); if (pl == null || loc == null || loc.getWorld() == null) return;
         World w = loc.getWorld();
-        // choose a specific glyph for this ability (so pickup grants a concrete glyph)
+        // choose up to 3 glyph choices for this ability so player can pick
         java.util.List<org.bysenom.minecraftSurvivors.glyph.GlyphCatalog.Def> choices = org.bysenom.minecraftSurvivors.glyph.GlyphCatalog.forAbility(abilityKey);
-        String glyphKey = null;
+        java.util.List<String> glyphKeys = new java.util.ArrayList<>();
         if (choices != null && !choices.isEmpty()) {
-            glyphKey = choices.get(new java.util.Random().nextInt(choices.size())).key;
+            java.util.Random rnd = new java.util.Random();
+            // select up to 3 distinct choices (allow duplicates only if insufficient)
+            int want = Math.min(3, Math.max(1, choices.size()));
+            java.util.Set<Integer> idxs = new java.util.LinkedHashSet<>();
+            while (idxs.size() < want) idxs.add(rnd.nextInt(choices.size()));
+            for (int i : idxs) glyphKeys.add(choices.get(i).key);
+            // if less than 3, fill with repeated randoms
+            while (glyphKeys.size() < 3) glyphKeys.add(choices.get(rnd.nextInt(choices.size())).key);
         }
-        // Wähle Icon von Ability or glyph if possible
+        // Wähle Icon von Ability or glyph if möglich
         AbilityCatalog.Def def = org.bysenom.minecraftSurvivors.ability.AbilityCatalog.get(abilityKey);
         org.bukkit.Material mat = null;
         String cfgMat = null;
@@ -84,8 +91,8 @@ public class GlyphPickupListener implements Listener {
         }
         if (mat == null) {
             // prefer glyph icon if available
-            if (glyphKey != null) {
-                org.bysenom.minecraftSurvivors.glyph.GlyphCatalog.Def gdef = org.bysenom.minecraftSurvivors.glyph.GlyphCatalog.get(glyphKey);
+            if (glyphKeys.get(0) != null) {
+                org.bysenom.minecraftSurvivors.glyph.GlyphCatalog.Def gdef = org.bysenom.minecraftSurvivors.glyph.GlyphCatalog.get(glyphKeys.get(0));
                 if (gdef != null && gdef.icon != null) mat = gdef.icon;
             }
             if (mat == null) mat = (def != null && def.icon != null) ? def.icon : org.bukkit.Material.AMETHYST_SHARD;
@@ -112,10 +119,11 @@ public class GlyphPickupListener implements Listener {
         int lifeSec = pl.getConfigUtil().getInt("glyph.lifetime-seconds", 45);
         long expires = System.currentTimeMillis() + Math.max(5, lifeSec) * 1000L;
         java.util.UUID id = java.util.UUID.randomUUID();
-        GLYPHS.put(id, new ActiveGlyph(id, w, loc, item.getUniqueId(), text.getUniqueId(), expires, abilityKey, glyphKey));
+        GLYPHS.put(id, new ActiveGlyph(id, w, loc, item.getUniqueId(), text.getUniqueId(), expires, abilityKey, glyphKeys));
         DISPLAY_TO_GLYPH.put(item.getUniqueId(), id);
         DISPLAY_TO_GLYPH.put(text.getUniqueId(), id);
-        try { pl.getLogger().info("Glyph spawned: " + glyphKey + " (ability=" + abilityKey + ") @ " + loc + " (display=" + item.getUniqueId() + ")"); } catch (Throwable ignored) {}
+        try { pl.getLogger().info("Glyph spawned: choices=" + glyphKeys + " (ability=" + abilityKey + ") @ " + loc + " (display=" + item.getUniqueId() + ")"); } catch (Throwable ignored) {}
+        try { pl.getLogger().fine("Glyph internal choices for spawn id=" + id + " -> " + glyphKeys); } catch (Throwable ignored) {}
         ensureAnim(pl);
     }
 
@@ -136,7 +144,20 @@ public class GlyphPickupListener implements Listener {
                         et.teleport(ag.base.clone().add(0, 1.6 + bob, 0));
                         if (java.util.concurrent.ThreadLocalRandom.current().nextInt(6) == 0) ag.world.spawnParticle(Particle.ENCHANT, ag.base.clone().add(0,1.0+bob,0), 2, 0.2,0.2,0.2, 0.01);
                     } catch (Throwable ignored) {}
-                    if (now > ag.expireAt) { despawn(en.getKey(), ag); }
+                    if (now > ag.expireAt) {
+                        try {
+                            // If a game is running, keep glyphs alive until round end. Only despawn on expiry when not running.
+                            MinecraftSurvivors pluginInstance = MinecraftSurvivors.getInstance();
+                            if (pluginInstance != null && pluginInstance.getGameManager() != null) {
+                                var state = pluginInstance.getGameManager().getState();
+                                if (state == org.bysenom.minecraftSurvivors.model.GameState.RUNNING) {
+                                    // skip despawn while running
+                                    continue;
+                                }
+                            }
+                        } catch (Throwable ignored) {}
+                        despawn(en.getKey(), ag);
+                    }
                 }
             }
         }.runTaskTimer(pl, 0L, 2L);
@@ -162,13 +183,30 @@ public class GlyphPickupListener implements Listener {
         }
         if (hitId != null && hit != null) {
             despawn(hitId, hit);
-            // mark pending glyph for this player so it can only be socketed once
-            try { if (hit.glyphKey != null) setPendingGlyphWithLog(p.getUniqueId(), hit.glyphKey); } catch (Throwable ignored) {}
-            // Öffne Socket-UI für die passende Ability
-            if (plugin.getGameManager() != null) {
-                try { plugin.getGameManager().pauseForPlayer(p.getUniqueId()); } catch (Throwable ignored) {}
-            }
-            new org.bysenom.minecraftSurvivors.gui.GlyphSocketMenu(p, plugin.getPlayerManager().get(p.getUniqueId()), hit.abilityKey);
+            // Open a selection UI with the prechosen glyph choices for this pickup
+            try {
+                plugin.getGameManager().pauseForPlayer(p.getUniqueId());
+            } catch (Throwable ignored) {}
+            try {
+                var sel = org.bukkit.Bukkit.createInventory(null, 9, net.kyori.adventure.text.Component.text("Wähle Glyph").color(net.kyori.adventure.text.format.NamedTextColor.LIGHT_PURPLE));
+                int si = 0;
+                for (String gk : hit.glyphChoices) {
+                    try {
+                        org.bysenom.minecraftSurvivors.glyph.GlyphCatalog.Def gd = org.bysenom.minecraftSurvivors.glyph.GlyphCatalog.get(gk);
+                        var gl = new java.util.ArrayList<net.kyori.adventure.text.Component>();
+                        if (gd != null) gl.add(net.kyori.adventure.text.Component.text(gd.desc).color(net.kyori.adventure.text.format.NamedTextColor.GRAY));
+                        String act = "glyph_pickup_select:" + gk;
+                        sel.setItem(si, org.bysenom.minecraftSurvivors.gui.GuiTheme.createAction(MinecraftSurvivors.getInstance(), gd != null ? gd.icon : org.bukkit.Material.PAPER, net.kyori.adventure.text.Component.text(gd != null ? gd.name : gk).color(net.kyori.adventure.text.format.NamedTextColor.GOLD), gl, act, false));
+                        try { MinecraftSurvivors.getInstance().getLogger().fine("Glyph pickup option shown: " + gk + " for player=" + p.getName()); } catch (Throwable ignored) {}
+                    } catch (Throwable ignored) {}
+                    si++; if (si >= sel.getSize()) break;
+                }
+                sel.setItem(8, org.bysenom.minecraftSurvivors.gui.GuiTheme.createAction(MinecraftSurvivors.getInstance(), org.bukkit.Material.BARRIER, net.kyori.adventure.text.Component.text("Abbrechen").color(net.kyori.adventure.text.format.NamedTextColor.RED), java.util.List.of(net.kyori.adventure.text.Component.text("Schließe dieses Menü")), "back", false));
+                org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.setSelectionOpen(p.getUniqueId(), true);
+                org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.setSelectionContext(p.getUniqueId(), hit.abilityKey, 0);
+                p.openInventory(sel);
+                try { MinecraftSurvivors.getInstance().getLogger().fine("Opened glyph pickup selection for player=" + p.getName() + " choices=" + hit.glyphChoices); } catch (Throwable ignored) {}
+            } catch (Throwable ignored) {}
         }
     }
 

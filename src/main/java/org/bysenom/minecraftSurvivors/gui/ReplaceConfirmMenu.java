@@ -52,6 +52,29 @@ public class ReplaceConfirmMenu {
         player.openInventory(inv);
     }
 
+    // Public helpers so other listeners (e.g., a global GuiClickListener) can delegate the confirm/cancel actions
+    public static void cancelFor(Player p) {
+        if (p == null) return;
+        try { p.playSound(p.getLocation(), Sound.BLOCK_ANVIL_PLACE, 0.6f, 0.8f); } catch (Throwable ignored) {}
+        try { p.closeInventory(); } catch (Throwable ignored) {}
+        PENDING.remove(p.getUniqueId());
+    }
+
+    public static void confirmFor(Player p, MinecraftSurvivors plugin) {
+        if (p == null || plugin == null) return;
+        Intent intent = PENDING.remove(p.getUniqueId());
+        try { p.closeInventory(); } catch (Throwable ignored) {}
+        if (intent == null) return;
+        SurvivorPlayer sp = plugin.getPlayerManager().get(p.getUniqueId());
+        if (sp == null) return;
+        boolean ok = sp.replaceAbilityAt(intent.idx, intent.newKey, intent.newLevel);
+        if (ok) {
+            sp.setAbilityOrigin(intent.newKey, "levelup");
+            try { p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.9f, 1.0f); p.sendActionBar(Component.text("Ability ersetzt!").color(NamedTextColor.GREEN)); } catch (Throwable ignored) {}
+            try { p.updateInventory(); } catch (Throwable ignored) {}
+        }
+    }
+
     public static class Listener implements org.bukkit.event.Listener {
         private final MinecraftSurvivors plugin;
         public Listener(MinecraftSurvivors plugin) { this.plugin = plugin; }

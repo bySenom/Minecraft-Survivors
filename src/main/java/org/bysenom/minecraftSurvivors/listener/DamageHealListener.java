@@ -21,9 +21,15 @@ public class DamageHealListener implements Listener {
         if (e.getEntity() instanceof Player) {
             Player victim = (Player) e.getEntity();
             try {
-                if (plugin.getGameManager() != null && plugin.getGameManager().isPlayerPaused(victim.getUniqueId())) {
-                    e.setCancelled(true);
-                    return;
+                if (plugin.getGameManager() != null) {
+                    if (plugin.getGameManager().isPlayerPaused(victim.getUniqueId())) {
+                        e.setCancelled(true);
+                        return;
+                    }
+                    if (plugin.getGameManager().isPlayerTemporarilyProtected(victim.getUniqueId())) {
+                        e.setCancelled(true);
+                        return;
+                    }
                 }
             } catch (Throwable ignored) {}
         }

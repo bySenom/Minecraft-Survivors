@@ -88,4 +88,54 @@ public final class GlyphCatalog {
         return BY_ABILITY.getOrDefault(abilityKey, java.util.Collections.emptyList());
     }
     public static Def get(String glyphKey) { return BY_KEY.get(glyphKey); }
+
+    /**
+     * Create StatModifier objects for a given glyph key. These are non-persistent, temporary modifiers.
+     */
+    public static java.util.List<org.bysenom.minecraftSurvivors.model.StatModifier> createModifiersFor(String glyphKey) {
+        if (glyphKey == null) return java.util.Collections.emptyList();
+        switch (glyphKey) {
+            // Lightning
+            case "ab_lightning:genkidama": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ADD, 4.0, "glyph:genkidama"));
+            case "ab_lightning:storm_chain": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.RADIUS_MULT, 0.12, "glyph:storm_chain"));
+            case "ab_lightning:overcharge": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_MULT, 0.20, "glyph:overcharge"));
+            // Fire
+            case "ab_fire:inferno": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_MULT, 0.12, "glyph:inferno"));
+            case "ab_fire:phoenix": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.HEALTH_HEARTS, 1.0, "glyph:phoenix"));
+            case "ab_fire:combust": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ADD, 3.0, "glyph:combust"));
+            // Ranged
+            case "ab_ranged:multishot": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ADD, 2.0, "glyph:multishot"));
+            case "ab_ranged:headshot": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_MULT, 0.10, "glyph:headshot"));
+            case "ab_ranged:ricochet": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.RADIUS_MULT, 0.08, "glyph:ricochet"));
+            // Holy
+            case "ab_holy:consecration": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.PALADIN_HEAL, 0.5, "glyph:consecration"));
+            case "ab_holy:divine_shield": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.RESIST, 0.08, "glyph:divine_shield"));
+            case "ab_holy:penance": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_MULT, 0.08, "glyph:penance"));
+            // Shockwave
+            case "ab_shockwave:earthsplit": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ADD, 2.0, "glyph:earthsplit"));
+            case "ab_shockwave:vacuum": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.RADIUS_MULT, 0.10, "glyph:vacuum"));
+            case "ab_shockwave:fracture": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_MULT, 0.12, "glyph:fracture"));
+            // Frost Nova
+            case "ab_frost_nova:brittle": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ADD, 1.5, "glyph:brittle"));
+            case "ab_frost_nova:shatter": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_MULT, 0.07, "glyph:shatter"));
+            case "ab_frost_nova:glacier": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.RADIUS_MULT, 0.10, "glyph:glacier"));
+            // Heal Totem
+            case "ab_heal_totem:aegis": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.PALADIN_HEAL, 1.0, "glyph:aegis"));
+            case "ab_heal_totem:pulse": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.HEALTH_HEARTS, 1.0, "glyph:pulse"));
+            case "ab_heal_totem:beacon": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.PALADIN_HEAL, 0.8, "glyph:beacon"));
+            // Void Nova
+            case "ab_void_nova:gravity_well": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.RADIUS_MULT, 0.12, "glyph:gravity_well"));
+            case "ab_void_nova:rupture": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ADD, 3.0, "glyph:rupture"));
+            case "ab_void_nova:lingering_void": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_MULT, 0.10, "glyph:lingering_void"));
+            // Time Rift
+            case "ab_time_rift:haste_burst": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.ATTACK_SPEED, 0.15, "glyph:haste_burst"));
+            case "ab_time_rift:slow_field": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.RADIUS_MULT, 0.10, "glyph:slow_field"));
+            case "ab_time_rift:temporal_anchor": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ADD, 2.0, "glyph:temporal_anchor"));
+            // Venom Spire
+            case "ab_venom_spire:toxic_bloom": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.RADIUS_MULT, 0.15, "glyph:toxic_bloom"));
+            case "ab_venom_spire:neurotoxin": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_MULT, 0.10, "glyph:neurotoxin"));
+            case "ab_venom_spire:corrosive_venom": return java.util.List.of(new org.bysenom.minecraftSurvivors.model.StatModifier(org.bysenom.minecraftSurvivors.model.StatType.RESIST, -0.05, "glyph:corrosive_venom"));
+            default: return java.util.Collections.emptyList();
+        }
+    }
 }

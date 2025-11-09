@@ -23,6 +23,9 @@ public class GameManager {
     private int pauseCounter = 0; // counts GUI pauses (e.g., multiple players)
     private final java.util.Set<java.util.UUID> pausedPlayers = new java.util.HashSet<>();
     private final java.util.Map<java.util.UUID, org.bukkit.scheduler.BukkitTask> pauseTimeoutTasks = new java.util.concurrent.ConcurrentHashMap<>();
+    // Temporary protection after repel/loot/actions to prevent instant death due to AI/race conditions
+    private final java.util.Map<java.util.UUID, Long> protectedUntil = new java.util.concurrent.ConcurrentHashMap<>();
+    private final java.util.Map<java.util.UUID, org.bukkit.scheduler.BukkitTask> protectTasks = new java.util.concurrent.ConcurrentHashMap<>();
     private volatile boolean starting = false;
     private org.bukkit.scheduler.BukkitTask countdownTask;
 
@@ -325,6 +328,33 @@ public class GameManager {
                 spawnManager.unfreezeMobsForPlayer(playerUuid);
             } catch (Throwable ignored) {}
         }
+    }
+
+    /**
+     * Temporarily protect a player from incoming damage. Duration is in ticks (20 ticks = 1s).
+     */
+    public synchronized void protectPlayer(java.util.UUID playerUuid, int ticks) {
+        if (playerUuid == null || ticks <= 0) return;
+        try {
+            long until = System.currentTimeMillis() + Math.max(1, ticks) * 50L;
+            protectedUntil.put(playerUuid, until);
+            // cancel any existing task
+            try {
+                org.bukkit.scheduler.BukkitTask old = protectTasks.remove(playerUuid);
+                if (old != null) old.cancel();
+            } catch (Throwable ignored) {}
+            org.bukkit.scheduler.BukkitTask t = org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                try { Long cur = protectedUntil.get(playerUuid); if (cur != null && cur <= System.currentTimeMillis()) protectedUntil.remove(playerUuid); } catch (Throwable ignored) {}
+                try { protectTasks.remove(playerUuid); } catch (Throwable ignored) {}
+            }, Math.max(1, ticks));
+            protectTasks.put(playerUuid, t);
+        } catch (Throwable ignored) {}
+    }
+
+    public boolean isPlayerTemporarilyProtected(java.util.UUID playerUuid) {
+        if (playerUuid == null) return false;
+        Long until = protectedUntil.get(playerUuid);
+        return until != null && until > System.currentTimeMillis();
     }
 
     public synchronized boolean isPlayerPaused(java.util.UUID playerUuid) {
