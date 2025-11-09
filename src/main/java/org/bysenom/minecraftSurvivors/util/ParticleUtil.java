@@ -16,6 +16,34 @@ public final class ParticleUtil {
         }
     }
 
+    // --- Throttle helpers ---
+    private static boolean shouldThrottle(Location loc) {
+        try {
+            org.bysenom.minecraftSurvivors.MinecraftSurvivors pl = org.bysenom.minecraftSurvivors.MinecraftSurvivors.getInstance();
+            if (pl == null) return false;
+            boolean enabled = pl.getConfigUtil().getBoolean("fx.throttle.enabled", false);
+            if (!enabled) return false;
+            double view = pl.getConfigUtil().getDouble("fx.throttle.view-distance", 32.0);
+            double skipChance = pl.getConfigUtil().getDouble("fx.throttle.skip-chance", 0.0);
+            if (skipChance > 0.0 && Math.random() < Math.max(0.0, Math.min(1.0, skipChance))) return true;
+            // Skip if no nearby player in radius
+            try {
+                for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
+                    if (!p.isOnline()) continue;
+                    if (p.getWorld() != loc.getWorld()) continue;
+                    if (p.getLocation().distanceSquared(loc) <= view*view) return false; // found viewer nearby
+                }
+                return true; // no viewers nearby
+            } catch (Throwable ignored) { return false; }
+        } catch (Throwable ignored) { return false; }
+    }
+
+    public static void spawnSafeThrottled(World w, Particle p, Location loc, int count, double offX, double offY, double offZ, double extra) {
+        if (w == null || loc == null) return;
+        if (shouldThrottle(loc)) return;
+        spawnSafe(w, p, loc, count, offX, offY, offZ, extra);
+    }
+
     public static void spawnRing(World w, Location center, double radius, int points, Particle p) {
         if (w == null || center == null) return;
         try {
@@ -31,6 +59,12 @@ public final class ParticleUtil {
         }
     }
 
+    public static void spawnRingThrottled(World w, Location center, double radius, int points, Particle p) {
+        if (w == null || center == null) return;
+        if (shouldThrottle(center)) return;
+        spawnRing(w, center, radius, points, p);
+    }
+
     public static void spawnBurst(World w, Location center, Particle p, int count, double spread) {
         if (w == null || center == null) return;
         try {
@@ -38,6 +72,12 @@ public final class ParticleUtil {
         } catch (Throwable t) {
             LogUtil.logFine("spawnBurst failed: " + p + " center=" + center, t);
         }
+    }
+
+    public static void spawnBurstThrottled(World w, Location center, Particle p, int count, double spread) {
+        if (w == null || center == null) return;
+        if (shouldThrottle(center)) return;
+        spawnBurst(w, center, p, count, spread);
     }
 
     public static void spawnDust(World w, Location loc, int count, double r, double g, double b, float size) {
@@ -81,6 +121,12 @@ public final class ParticleUtil {
         }
     }
 
+    public static void spawnLineThrottled(World w, Location from, Location to, int steps, Particle p) {
+        if (w == null || from == null || to == null) return;
+        if (shouldThrottle(from)) return;
+        spawnLine(w, from, to, steps, p);
+    }
+
     public static void spawnSpiral(World w, Location center, double radius, double height, int points, Particle p, double turns) {
         if (w == null || center == null) return;
         try {
@@ -95,6 +141,12 @@ public final class ParticleUtil {
                 spawnSafe(w, p, new Location(w, x, y, z), 1, 0.02,0.02,0.02,0.0);
             }
         } catch (Throwable t) { LogUtil.logFine("spawnSpiral failed: ", t); }
+    }
+
+    public static void spawnSpiralThrottled(World w, Location center, double radius, double height, int points, Particle p, double turns) {
+        if (w == null || center == null) return;
+        if (shouldThrottle(center)) return;
+        spawnSpiral(w, center, radius, height, points, p, turns);
     }
 
     public static void spawnHelix(World w, Location base, double radius, double height, int points, Particle p, int strands) {
@@ -114,6 +166,12 @@ public final class ParticleUtil {
                 }
             }
         } catch (Throwable t) { LogUtil.logFine("spawnHelix failed: ", t); }
+    }
+
+    public static void spawnHelixThrottled(World w, Location base, double radius, double height, int points, Particle p, int strands) {
+        if (w == null || base == null) return;
+        if (shouldThrottle(base)) return;
+        spawnHelix(w, base, radius, height, points, p, strands);
     }
 
     private static double clamp(double v) { return Math.max(0.0, Math.min(1.0, v)); }
