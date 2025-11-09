@@ -38,7 +38,13 @@ public class GuiClickListener implements Listener {
         String title = "";
         try { title = PlainTextComponentSerializer.plainText().serialize(e.getView().title()); } catch (Throwable ignored) {}
         String titleLower = title.toLowerCase(java.util.Locale.ROOT);
-        if (titleLower.contains("bestätigen") || titleLower.contains("ability ersetzen") || titleLower.contains("confirm replace")) {
+        // Only bypass when it's the Replace-Confirm dialog, not every "bestätigen" titled inventory
+        boolean isReplaceConfirm = false;
+        try {
+            isReplaceConfirm = im.getPersistentDataContainer().has(new NamespacedKey(plugin, "ms_replace_confirm"), PersistentDataType.STRING)
+                    || titleLower.contains("ability ersetzen") || titleLower.contains("confirm replace");
+        } catch (Throwable ignored) {}
+        if (isReplaceConfirm) {
             // Let the specialised ReplaceConfirmMenu.Listener handle this inventory entirely
             return;
         }

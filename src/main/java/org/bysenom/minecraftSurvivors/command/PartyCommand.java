@@ -99,6 +99,26 @@ public class PartyCommand implements CommandExecutor {
                 }
                 p.sendMessage("§eParty: §a" + sb.toString().trim());
                 return true;
+            case "ready":
+                plugin.getGameManager().enterSurvivorsContext(p.getUniqueId());
+                var spReady = plugin.getPlayerManager().get(p.getUniqueId());
+                if (spReady != null) { spReady.setReady(true); p.sendMessage("§aBereit gesetzt."); }
+                var pm2 = plugin.getPartyManager(); var party2 = pm2 != null ? pm2.getPartyOf(p.getUniqueId()) : null;
+                if (party2 != null && party2.getLeader().equals(p.getUniqueId())) {
+                    int voteSec = Math.max(5, plugin.getConfigUtil().getInt("lobby.party-vote.seconds", 15));
+                    plugin.getGameManager().beginPartyStartVote(party2, voteSec);
+                } else {
+                    p.sendMessage("§7Warte auf Party-Leader.");
+                }
+                return true;
+            case "yes":
+                if (args.length < 2) { p.sendMessage("§c/party yes <LeaderUUID>"); return true; }
+                try { java.util.UUID l = java.util.UUID.fromString(args[1]); plugin.getGameManager().handlePartyVote(l, p.getUniqueId(), true); p.sendMessage("§aZugestimmt."); } catch (IllegalArgumentException ex) { p.sendMessage("§cUngültige UUID."); }
+                return true;
+            case "no":
+                if (args.length < 2) { p.sendMessage("§c/party no <LeaderUUID>"); return true; }
+                try { java.util.UUID l = java.util.UUID.fromString(args[1]); plugin.getGameManager().handlePartyVote(l, p.getUniqueId(), false); p.sendMessage("§eAbgelehnt."); } catch (IllegalArgumentException ex) { p.sendMessage("§cUngültige UUID."); }
+                return true;
             default:
                 p.sendMessage("§e/party create | invite <Spieler> | join <Leader> | leave | disband | list");
                 return true;

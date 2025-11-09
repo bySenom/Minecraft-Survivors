@@ -637,6 +637,14 @@ public class GameManager {
                 for (java.util.UUID u : cur.members) { org.bukkit.entity.Player pl = org.bukkit.Bukkit.getPlayer(u); if (pl != null && pl.isOnline()) pl.sendMessage(net.kyori.adventure.text.Component.text("Party-Start abgebrochen (Zeitüberschreitung)").color(net.kyori.adventure.text.format.NamedTextColor.RED)); }
             }
         }, 20L * sec);
+        // initial bar update
+        updatePartyVoteBar(leader, sec);
+        // schedule per-second updates
+        new org.bukkit.scheduler.BukkitRunnable(){ int remain = sec; @Override public void run(){
+            if (!partyVotes.containsKey(leader)) { clearPartyVoteBar(leader); cancel(); return; }
+            if (remain <= 0) { clearPartyVoteBar(leader); cancel(); return; }
+            updatePartyVoteBar(leader, remain--);
+        }}.runTaskTimer(plugin, 0L, 20L);
     }
 
     public synchronized void handlePartyVote(java.util.UUID leader, java.util.UUID member, boolean accept) {
@@ -644,24 +652,21 @@ public class GameManager {
         if (accept) vs.yes.add(member); else vs.no.add(member);
         // Schließe GUI beim Klickenden
         try { org.bukkit.entity.Player pl = org.bukkit.Bukkit.getPlayer(member); if (pl != null) pl.closeInventory(); } catch (Throwable ignored) {}
-        if (!vs.no.isEmpty()) {
-            // Abbruch: gezielte Info an Leader, wer abgelehnt hat
-            try {
-                org.bukkit.entity.Player leaderPl = org.bukkit.Bukkit.getPlayer(leader);
-                org.bukkit.entity.Player memberPl = org.bukkit.Bukkit.getPlayer(member);
-                String name = memberPl != null ? memberPl.getName() : member.toString();
-                if (leaderPl != null && leaderPl.isOnline()) {
-                    leaderPl.sendMessage(net.kyori.adventure.text.Component.text("Abgelehnt von " + name).color(net.kyori.adventure.text.format.NamedTextColor.RED));
-                }
-            } catch (Throwable ignored) {}
+        updatePartyVoteBar(leader, 0);
+        if (!vs.no.isEmpty()) { clearPartyVoteBar(leader); /* Abbruch: gezielte Info an Leader, wer abgelehnt hat */ try {
+            org.bukkit.entity.Player leaderPl = org.bukkit.Bukkit.getPlayer(leader);
+            org.bukkit.entity.Player memberPl = org.bukkit.Bukkit.getPlayer(member);
+            String name = memberPl != null ? memberPl.getName() : member.toString();
+            if (leaderPl != null && leaderPl.isOnline()) {
+                leaderPl.sendMessage(net.kyori.adventure.text.Component.text("Abgelehnt von " + name).color(net.kyori.adventure.text.format.NamedTextColor.RED));
+            }
+        } catch (Throwable ignored) {}
             // Allgemeine Abbruch-Meldung
             partyVotes.remove(leader); if (vs.timeoutTask != null) try { vs.timeoutTask.cancel(); } catch (Throwable ignored) {}
             for (java.util.UUID u : vs.members) { org.bukkit.entity.Player pl = org.bukkit.Bukkit.getPlayer(u); if (pl != null && pl.isOnline()) pl.sendMessage(net.kyori.adventure.text.Component.text("Party-Start abgelehnt").color(net.kyori.adventure.text.format.NamedTextColor.RED)); }
             return;
         }
-        if (vs.yes.containsAll(vs.members)) {
-            // Ready-Check bestanden -> Wechsel in Klassenwahl-Phase
-            partyVotes.remove(leader); if (vs.timeoutTask != null) try { vs.timeoutTask.cancel(); } catch (Throwable ignored) {}
+        if (vs.yes.containsAll(vs.members)) { clearPartyVoteBar(leader); /* Ready-Check bestanden -> Wechsel in Klassenwahl-Phase */ partyVotes.remove(leader); if (vs.timeoutTask != null) try { vs.timeoutTask.cancel(); } catch (Throwable ignored) {}
             beginClassSelectionForParty(leader, vs.members);
         }
     }
@@ -712,5 +717,19 @@ public class GameManager {
                 }
             }
         } catch (Throwable ignored) {}
+    }
+
+    private final java.util.Map<java.util.UUID, org.bukkit.boss.BossBar> partyVoteBars = new java.util.concurrent.ConcurrentHashMap<>();
+    private void updatePartyVoteBar(java.util.UUID leader, int secondsLeft) {
+        PartyVoteState vs = partyVotes.get(leader); if (vs == null) return;
+        int total = vs.members.size(); int yesC = vs.yes.size(); int noC = vs.no.size();
+        double prog = total <= 0 ? 0.0 : (double) yesC / (double) total;
+        org.bukkit.boss.BossBar bar = partyVoteBars.computeIfAbsent(leader, l -> org.bukkit.Bukkit.createBossBar(org.bukkit.NamespacedKey.minecraft("ms_party_vote_"+l.toString().substring(0,8)), "Party Ready", org.bukkit.boss.BarColor.BLUE, org.bukkit.boss.BarStyle.SEGMENTED_10));
+        bar.setProgress(Math.max(0.0, Math.min(1.0, prog)));
+        bar.setTitle("Ready: " + yesC + "/" + total + " | Nein:" + noC + " | " + secondsLeft + "s");
+        for (java.util.UUID u : vs.members) { org.bukkit.entity.Player p = org.bukkit.Bukkit.getPlayer(u); if (p!=null && p.isOnline()) bar.addPlayer(p); }
+    }
+    private void clearPartyVoteBar(java.util.UUID leader) {
+        org.bukkit.boss.BossBar bar = partyVoteBars.remove(leader); if (bar != null) bar.removeAll();
     }
 }
