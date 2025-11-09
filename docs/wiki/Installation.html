@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Installation — Minecraft Survivors</title>
+<style>body{font-family:Inter,system-ui,Arial,sans-serif;margin:24px;max-width:980px;color:#112;line-height:1.5} pre{background:#f6f8fa;padding:12px;border-radius:6px;overflow:auto} code{background:#eef;padding:2px 4px;border-radius:4px}</style>
+</head>
+<body>
+<article>
+<h1>Installation</h1>
+<h1 id="installation" tabindex="-1">Installation</h1>
+<p>Systemanforderungen</p>
+<ul>
+<li>Java 21 (OpenJDK / Temurin empfohlen)</li>
+<li>Paper 1.21.4</li>
+<li>Mindestens 2–4 GB RAM für Server + Plugin</li>
+</ul>
+<p>Build &amp; Installation</p>
+<ol>
+<li>Projekt bauen</li>
+</ol>
+<pre><code class="language-bat">cd C:\Users\SashaW\IdeaProjects\MinecraftSurvivors
+.\gradlew.bat clean build
+</code></pre>
+<ol start="2">
+<li>Kopiere das Plugin</li>
+</ol>
+<pre><code class="language-bat">copy build\libs\MinecraftSurvivors-*.jar &lt;YOUR_PAPER_SERVER&gt;\plugins\
+</code></pre>
+<ol start="3">
+<li>Starte deinen Paper‑Server und überprüfe <code>logs/latest.log</code> auf Fehler</li>
+</ol>
+<p>Konfigurationsdatei: <code>plugins/MinecraftSurvivors/config.yml</code></p>
+<ul>
+<li>Einstellungen werden beim ersten Start generiert. Passe Werte wie <code>spawn.*</code>, <code>scaling.*</code> und <code>party.*</code> nach Bedarf an.</li>
+</ul>
+
+</article>
+<p><a href="/">Zur Startseite</a> • <a href="/docs/wiki/Home.html">Wiki</a></p>
+</body>
+</html>
