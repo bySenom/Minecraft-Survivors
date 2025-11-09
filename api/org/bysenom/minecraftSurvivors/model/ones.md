@@ -108,12 +108,21 @@ Package: `org.bysenom.minecraftSurvivors.model`
 - `getEffectiveDamageResist()`
 - `getEffectiveLuck()`
 - `getEffectiveExtraHearts()`
+- `getArmor()`
+- `getEvasion()`
+- `getLifesteal()`
+- `getThorns()`
+- `getCritChance()`
+- `getCritDamage()`
+- `getShieldMax()`
+- `removeAbility(String key)`
+- `addHpRegen(double v)`
+- `getHpRegen()`
+- `isReady()`
+- `setReady(boolean r)`
 - `hasUnlockedAbility(String abilityKey)`
 - `unlockAbility(String abilityKey)`
 - `lockAbility(String abilityKey)`
 - `hasUnlockedGlyph(String glyphKey)`
 - `unlockGlyph(String glyphKey)`
 - `lockGlyph(String glyphKey)`
-- `isReady()`
-- `setReady(boolean r)`
-- `removeAbility(String key)`
