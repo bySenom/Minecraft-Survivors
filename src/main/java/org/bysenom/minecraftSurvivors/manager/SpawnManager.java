@@ -54,6 +54,7 @@ public class SpawnManager {
     }
 
     private BukkitTask scalingTask;
+    private BukkitTask aggroTask;
 
     private void ensureScalingTask() {
         if (scalingTask != null && !scalingTask.isCancelled()) return;
@@ -71,6 +72,41 @@ public class SpawnManager {
                 }
             } catch (Throwable ignored) {}
         }, periodTicks, periodTicks);
+    }
+
+    private void ensureAggroTask() {
+        try {
+            if (aggroTask != null && !aggroTask.isCancelled()) return;
+            int every = Math.max(10, plugin.getConfigUtil().getInt("ai.aggro-tick-interval", 20));
+            aggroTask = org.bukkit.Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+                try {
+                    if (plugin.getGameManager() == null || plugin.getGameManager().getState() != org.bysenom.minecraftSurvivors.model.GameState.RUNNING) return;
+                    for (org.bukkit.World w : org.bukkit.Bukkit.getWorlds()) {
+                        java.util.List<org.bukkit.entity.Player> players = new java.util.ArrayList<>(w.getPlayers());
+                        if (players.isEmpty()) continue;
+                        for (org.bukkit.entity.Entity e : w.getEntities()) {
+                            if (!(e instanceof org.bukkit.entity.Mob mob)) continue;
+                            if (!e.getPersistentDataContainer().has(waveKey, org.bukkit.persistence.PersistentDataType.BYTE)) continue;
+                            // Follow Range erhöhen
+                            try {
+                                org.bukkit.attribute.AttributeInstance fr = mob.getAttribute(org.bukkit.attribute.Attribute.FOLLOW_RANGE);
+                                if (fr != null && fr.getBaseValue() < 64.0) fr.setBaseValue(64.0);
+                            } catch (Throwable ignored) {}
+                            // Nächsten Spieler als Ziel setzen
+                            org.bukkit.entity.Player nearest = null;
+                            double best = Double.MAX_VALUE;
+                            for (org.bukkit.entity.Player p : players) {
+                                double d2 = p.getLocation().distanceSquared(mob.getLocation());
+                                if (d2 < best) { best = d2; nearest = p; }
+                            }
+                            if (nearest != null) {
+                                try { mob.setTarget(nearest); } catch (Throwable ignored) {}
+                            }
+                        }
+                    }
+                } catch (Throwable ignored) {}
+            }, every, every);
+        } catch (Throwable ignored) {}
     }
 
     private void captureBaselineIfMissing(LivingEntity mob) {
@@ -131,6 +167,7 @@ public class SpawnManager {
             }
         }
         ensureScalingTask();
+        ensureAggroTask();
     }
 
     public void clearWaveMobs() {
@@ -349,6 +386,7 @@ public class SpawnManager {
         }.runTaskTimer(plugin, 0L, Math.max(1L, ticksPerCycle));
         plugin.getLogger().info("Continuous spawn started (ticks-per-cycle=" + ticksPerCycle + ")");
         ensureScalingTask();
+        ensureAggroTask();
     }
 
     public synchronized void pauseContinuous() {
@@ -507,6 +545,10 @@ public class SpawnManager {
             double baseHp = pdc.getOrDefault(BASE_MAX_HP, org.bukkit.persistence.PersistentDataType.DOUBLE, 20.0);
             double baseSpd = pdc.getOrDefault(BASE_SPEED, org.bukkit.persistence.PersistentDataType.DOUBLE, 0.25);
             double baseDmg = pdc.getOrDefault(BASE_DAMAGE, org.bukkit.persistence.PersistentDataType.DOUBLE, 3.0);
+            // Skeleton-Schaden leicht reduzieren als Balance
+            if (mob.getType() == org.bukkit.entity.EntityType.SKELETON) {
+                baseDmg = Math.max(1.0, baseDmg * 0.75);
+            }
 
             double baseHpm = plugin.getConfigUtil().getDouble("scaling.health-mult-per-minute", 0.10);
             double midMin = plugin.getConfigUtil().getDouble("scaling.health-mid-minute", 4.0);

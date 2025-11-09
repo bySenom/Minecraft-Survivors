@@ -444,50 +444,73 @@ public class SkillManager {
         long base = Math.max(600, 2000 - lvl * 130L);
         long cd = (long) Math.max(180.0, base / Math.max(1.0, 1.0 + sp.getAttackSpeedMult()));
         if (onCd(p.getUniqueId(), "ab_venom_spire", cd)) return;
-        double radius = 3.0 + lvl * 0.6;
-        double damage = (0.9 + lvl * 0.45 + sp.getFlatDamage() * 0.25) * (1.0 + sp.getDamageMult());
-        double durSec = 3.0 + Math.min(6.0, lvl * 0.3);
+        // Suche Gegner im Umkreis (Suchradius)
+        double searchRadius = 12.0 + lvl * 0.8 + sp.getRadiusMult() * 2.0;
+        java.util.List<org.bukkit.entity.LivingEntity> mobs = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(p.getLocation(), searchRadius);
+        if (mobs.isEmpty()) return;
+        // Anzahl Spitzen abhängig vom Level (1..5)
+        int spireCount = Math.min(5, 1 + (lvl / 2));
+        // Glyphen
         java.util.List<String> glyphs = sp.getGlyphs("ab_venom_spire");
         boolean toxicBloom = glyphs.contains("ab_venom_spire:toxic_bloom");
         boolean neurotoxin = glyphs.contains("ab_venom_spire:neurotoxin");
         boolean corrosive = glyphs.contains("ab_venom_spire:corrosive_venom");
-        if (toxicBloom) radius *= 1.35;
-        org.bukkit.Location center = p.getLocation();
-        int ticks = (int)Math.round(durSec*20);
-        try { p.playSound(center, org.bukkit.Sound.ENTITY_SPIDER_AMBIENT, 0.5f, 0.7f); } catch (Throwable ignored) {}
-        final org.bukkit.Location c = center;
-        final double r = radius;
-        final int totalTicks = ticks;
-        final int[] t = {0};
-        org.bukkit.scheduler.BukkitRunnable task = new org.bukkit.scheduler.BukkitRunnable() {
-            @Override public void run() {
-                if (!p.isOnline()) { cancel(); return; }
-                if (t[0] >= totalTicks) { cancel(); return; }
-                double prog = t[0]/(double)totalTicks;
-                double ringR = r * (0.7 + 0.3*Math.sin(prog*Math.PI));
-                int points = Math.max(24,(int)(ringR*12));
-                for (int i=0;i<points;i++) {
-                    double ang = 2*Math.PI*i/points;
-                    double x = c.getX()+Math.cos(ang)*ringR;
-                    double z = c.getZ()+Math.sin(ang)*ringR;
-                    org.bukkit.Location l = new org.bukkit.Location(c.getWorld(), x, c.getY()+0.2+Math.sin(prog*4)*0.3, z);
-                    try { c.getWorld().spawnParticle(Particle.PORTAL, l, 1, 0.03,0.03,0.03, 0.0); } catch (Throwable ignored) {}
-                }
-                // Wirkung auf Mobs
-                for (org.bukkit.entity.LivingEntity le : plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(c, r)) {
-                    if (!le.isValid()) continue;
-                    try { le.damage(damage/Math.max(5, totalTicks/20.0), p); } catch (Throwable ignored) {}
-                    try { le.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.POISON, 40, 0, false, false, true)); } catch (Throwable ignored) {}
-                    if (neurotoxin && java.util.concurrent.ThreadLocalRandom.current().nextInt(18) == 0) {
-                        try { le.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS, 60, 2, false, false, true)); } catch (Throwable ignored) {}
+        // Schaden und Dauer
+        double baseDps = (0.9 + lvl * 0.45 + sp.getFlatDamage() * 0.25) * (1.0 + sp.getDamageMult());
+        double durSec = 2.5 + Math.min(5.0, lvl * 0.25);
+        int totalTicks = (int) Math.round(durSec * 20);
+        // Wähle Ziel-Gegner (näheste zuerst)
+        mobs.sort(java.util.Comparator.comparingDouble(m -> m.getLocation().distanceSquared(p.getLocation())));
+        int spawned = 0;
+        for (org.bukkit.entity.LivingEntity target : mobs) {
+            if (spawned >= spireCount) break;
+            if (target == null || !target.isValid() || target.getWorld() != p.getWorld()) continue;
+            org.bukkit.Location baseLoc = target.getLocation().clone();
+            try { baseLoc.setY(baseLoc.getWorld().getHighestBlockYAt(baseLoc) + 1); } catch (Throwable ignored) {}
+            final org.bukkit.Location c = baseLoc;
+            final double spireRadius = Math.max(1.0, (toxicBloom ? 1.6 : 1.2));
+            final double perTickDamage = Math.max(0.05, baseDps / Math.max(5.0, totalTicks / 20.0));
+            try { p.playSound(c, org.bukkit.Sound.BLOCK_BASALT_BREAK, 0.7f, 0.8f); } catch (Throwable ignored) {}
+            final int[] t = {0};
+            new org.bukkit.scheduler.BukkitRunnable() {
+                @Override public void run() {
+                    if (!p.isOnline()) { cancel(); return; }
+                    if (t[0] >= totalTicks) { cancel(); return; }
+                    double prog = t[0] / (double) totalTicks; // 0..1
+                    // Spire-Visual: Partikel-Säule + Bodenrisse
+                    int column = 6;
+                    for (int i=0;i<column;i++) {
+                        org.bukkit.Location l = c.clone().add(0, 0.2 + i*0.3, 0);
+                        try { c.getWorld().spawnParticle(org.bukkit.Particle.CRIT, l, 2, 0.02,0.02,0.02, 0.0); } catch (Throwable ignored) {}
                     }
-                    if (corrosive && java.util.concurrent.ThreadLocalRandom.current().nextInt(14) == 0) {
-                        try { le.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.WEAKNESS, 80, 1, false, false, true)); } catch (Throwable ignored) {}
+                    int ringPts = 10;
+                    double rr = spireRadius;
+                    for (int i=0;i<ringPts;i++) {
+                        double ang = 2*Math.PI*i/ringPts;
+                        double x = c.getX()+Math.cos(ang)*rr;
+                        double z = c.getZ()+Math.sin(ang)*rr;
+                        org.bukkit.Location l = new org.bukkit.Location(c.getWorld(), x, c.getY()+0.1+Math.sin(prog*10)*0.1, z);
+                        try { c.getWorld().spawnParticle(org.bukkit.Particle.PORTAL, l, 1, 0.03,0.03,0.03, 0.0); } catch (Throwable ignored) {}
                     }
+                    // Schaden/Effects für Gegner in Spire-Nähe (fokussiert)
+                    java.util.List<org.bukkit.entity.LivingEntity> near = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(c, spireRadius + 0.4);
+                    for (org.bukkit.entity.LivingEntity le : near) {
+                        if (!le.isValid()) continue;
+                        try { le.damage(perTickDamage, p); } catch (Throwable ignored) {}
+                        try { le.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.POISON, 40, 0, false, false, true)); } catch (Throwable ignored) {}
+                        if (neurotoxin && java.util.concurrent.ThreadLocalRandom.current().nextInt(20) == 0) {
+                            try { le.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS, 60, 2, false, false, true)); } catch (Throwable ignored) {}
+                        }
+                        if (corrosive && java.util.concurrent.ThreadLocalRandom.current().nextInt(16) == 0) {
+                            try { le.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.WEAKNESS, 80, 1, false, false, true)); } catch (Throwable ignored) {}
+                        }
+                    }
+                    if (t[0] % 10 == 0) { try { c.getWorld().playSound(c, org.bukkit.Sound.BLOCK_STONE_BREAK, 0.4f, 0.9f); } catch (Throwable ignored) {} }
+                    t[0]++;
                 }
-                t[0]++;
-            }
-        }; task.runTaskTimer(plugin, 0L, 1L);
+            }.runTaskTimer(plugin, 0L, 1L);
+            spawned++;
+        }
     }
 
     // Tick für Lingering Void Felder (in bestehendem tick() integrieren)
