@@ -17,12 +17,12 @@ public class SkillListener implements Listener {
 
     private final MinecraftSurvivors plugin;
     private final NamespacedKey shockwaveKey;
-    private final java.util.Map<java.util.UUID, Long> shockwaveCd = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Map<java.util.UUID, Long> shockwaveCd = new java.util.concurrent.ConcurrentHashMap<>();
 
     // Genkidama
     private final NamespacedKey genkidamaKey;
-    private final java.util.Map<java.util.UUID, Long> genkiCd = new java.util.concurrent.ConcurrentHashMap<>();
-    private final java.util.Map<java.util.UUID, Charge> genkiCharge = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Map<java.util.UUID, Long> genkiCd = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Map<java.util.UUID, Charge> genkiCharge = new java.util.concurrent.ConcurrentHashMap<>();
 
     private static final class Charge {
         final long startMs; org.bukkit.scheduler.BukkitTask task; Charge(long s){ this.startMs = s; }
@@ -211,5 +211,15 @@ public class SkillListener implements Listener {
         for (org.bukkit.entity.LivingEntity le : mobs) {
             try { le.damage(damage, owner); } catch (Throwable ignored) {}
         }
+    }
+
+    // Stop any per-player charge tasks (call on shutdown)
+    public static void stopAll() {
+        try {
+            for (java.util.Map.Entry<java.util.UUID, Charge> en : new java.util.HashMap<>(genkiCharge).entrySet()) {
+                try { Charge c = en.getValue(); if (c != null && c.task != null) try { c.task.cancel(); } catch (Throwable ignored) {} } catch (Throwable ignored) {}
+            }
+        } catch (Throwable ignored) {}
+        try { genkiCharge.clear(); genkiCd.clear(); } catch (Throwable ignored) {}
     }
 }

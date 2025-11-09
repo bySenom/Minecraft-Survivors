@@ -439,6 +439,15 @@ public class LootchestListener implements Listener {
         }
     }
 
+    // Stop animation task and clear caches (call on plugin disable)
+    public static void stopAll() {
+        try {
+            if (animateTask != null) { try { animateTask.cancel(); } catch (Throwable ignored) {} animateTask = null; }
+        } catch (Throwable ignored) {}
+        try { despawnAll(); } catch (Throwable ignored) {}
+        try { LOOT_PAUSED.clear(); } catch (Throwable ignored) {}
+    }
+
     // ---- Player death: despawn remaining lootchests in that world ----
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent e) {

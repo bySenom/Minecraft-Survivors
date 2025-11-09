@@ -253,4 +253,15 @@ public class GlyphPickupListener implements Listener {
         return true;
     }
     public static void clearNoReopen(java.util.UUID playerUuid) { if (playerUuid == null) return; NO_REOPEN_UNTIL.remove(playerUuid); }
+
+    // Stop anim task and clear glyphs (call on plugin disable)
+    public static void stopAll() {
+        try { if (anim != null) { try { anim.cancel(); } catch (Throwable ignored) {} anim = null; } } catch (Throwable ignored) {}
+        try {
+            for (Map.Entry<java.util.UUID, ActiveGlyph> en : GLYPHS.entrySet()) {
+                try { despawn(en.getKey(), en.getValue()); } catch (Throwable ignored) {}
+            }
+            GLYPHS.clear(); DISPLAY_TO_GLYPH.clear(); PENDING_BY_PLAYER.clear(); SELECTION_CTX.clear(); SELECTION_HANDLED.clear(); SELECTION_OPEN.clear(); NO_REOPEN_UNTIL.clear();
+        } catch (Throwable ignored) {}
+    }
 }

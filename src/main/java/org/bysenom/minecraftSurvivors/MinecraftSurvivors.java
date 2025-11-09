@@ -163,6 +163,9 @@ public final class MinecraftSurvivors extends JavaPlugin {
         try { if (this.metaManager != null) this.metaManager.saveAll(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "metaManager.saveAll failed: ", t); }
         try { if (this.shopNpcManager != null) this.shopNpcManager.despawnAll(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "shopNpcManager.despawnAll failed: ", t); }
         try { if (this.skillManager != null) this.skillManager.stop(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "skillManager.stop failed: ", t); }
+        try { org.bysenom.minecraftSurvivors.listener.LootchestListener.stopAll(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "LootchestListener.stopAll failed: ", t); }
+        try { org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.stopAll(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "GlyphPickupListener.stopAll failed: ", t); }
+        try { org.bysenom.minecraftSurvivors.listener.SkillListener.stopAll(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "SkillListener.stopAll failed: ", t); }
         // Autosave Task beenden
         try { if (this.autosaveTask != null) this.autosaveTask.cancel(); } catch (Throwable t) { getLogger().log(java.util.logging.Level.FINE, "autosaveTask.cancel failed: ", t); }
         // Final alle Spieler-Daten speichern

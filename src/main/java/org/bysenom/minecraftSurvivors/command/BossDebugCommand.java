@@ -25,14 +25,12 @@ public class BossDebugCommand implements CommandExecutor {
         if (bm == null) { p.sendMessage("§cBossManager fehlt."); return true; }
         String sub = args.length > 0 ? args[0].toLowerCase() : "help";
         switch (sub) {
-            case "spawn" -> {
+            case "spawn", "test" -> {
                 if (bm.isBossActive()) { p.sendMessage("§eBoss bereits aktiv."); }
                 else {
-                    try { // erzwungen: interne tick() prüft enrage, wir wollen direkten Spawn -> reflektierter Aufruf
-                        java.lang.reflect.Method m = BossManager.class.getDeclaredMethod("trySpawnBoss");
-                        m.setAccessible(true);
-                        m.invoke(bm);
-                        p.sendMessage("§aBoss gespawnt.");
+                    try {
+                        bm.debugSpawnBoss();
+                        p.sendMessage("§aBoss gespawnt (debug).");
                     } catch (Throwable t) { p.sendMessage("§cSpawn fehlgeschlagen: " + t.getMessage()); }
                 }
             }
@@ -93,7 +91,7 @@ public class BossDebugCommand implements CommandExecutor {
                 }
             }
             default -> {
-                p.sendMessage("§eVerwendung: /msboss <spawn|kill|meteor|barrage|shockwave|lightning>");
+                p.sendMessage("§eVerwendung: /msboss <spawn|test|kill|meteor|barrage|shockwave|lightning>");
             }
         }
         return true;
