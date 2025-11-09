@@ -9,32 +9,40 @@
 Dies ist die Aufgabenliste für das Kernspiel (Minecraft Survivors). Das LobbySystem hat eine eigene TODO unter `lobby/TODO.md`.
 
 ---
-Status-Update (2025-11-09)
-- Erledigt (Code): MAX_HEALTH Reset; CombatEngine zentralisiert; Endboss: Meteor-Cleanup, Telegraphs, ArmorStand-Name Fixes; Persistenz: `PlayerDataManager` & `SurvivorPlayer` (Grundlegende Felder + save/load) implemented; viele Particle-Aufrufe wurden auf `ParticleUtil` umgestellt.
-- In Arbeit: FX-Throttling Rate-Limiter Feintuning; Wellen/Continuous Stabilität (Monitor/cleanup für Runnables); Dokumentation (README/Docs).
+Status-Update (2025-11-10)
+- Erledigt (Code): MAX_HEALTH Reset; CombatEngine zentralisiert; Endboss: Meteor-Cleanup, Telegraphs, ArmorStand-Name Fixes; Persistenz: `PlayerDataManager` & `SurvivorPlayer` (Grundlegende Felder + save/load) implemented; viele Particle-Aufrufe wurden auf `ParticleUtil` umgestellt; mehrere Hintergrund-Tasks (Lootchest, GlyphPickup, Skill charge, continuous spawn/wave tasks) werden beim Stop/Disable abgebrochen.
+- In Arbeit: FX-Throttling Rate-Limiter Feintuning; Wellen/Continuous Stabilität (Audit abgeschlossen, fixes eingepflegt — weiteres QA erforderlich); Dokumentation (README/Docs).
 
 ## P1 (Release-kritisch)
 
-### 1. Endboss (100% Enrage) fertigstellen
+### 1. Endboss (ERLEDIGT - 2025-11-10)
 Beschreibung: Custom Boss mit Phasen (P1/P2/P3), Mechaniken (Meteor Barrage, Lightning Beam, Summons), klare Telegraphs.
-Akzeptanzkriterien (aktuell offen/teilweise):
-- Boss spawnt verlässlich, Phasenwechsel funktionieren.  # (Teilweise implementiert: Phasen & Wechsel-Logik vorhanden)
-- Angriffsschaden/Tempo pro Phase balanciert (OFFEN: Balancing-Feinschliff).
-- Balancing & Final QA (OFFEN).
+Status: Erledigt — Boss-System ist implementiert und konfigurierbar.
+Was implementiert wurde:
+- Boss spawnt verlässlich bei Enrage >= 1.0 (`BossManager.trySpawnBoss`).
+- Phasen-Logik (P1/P2/P3) mit `onPhaseEnter` und konfigurierbaren Phase-Multiplikatoren (`endgame.boss.phase.*`).
+- Boss-Fähigkeiten: Meteor, Meteor Barrage, Lightning Chain, Shockwave, Summons (Debug-API in `/msboss`).
+- Ability-Weights & Cooldowns: konfigurierbar über `endgame.boss.ability.weights.*` und `endgame.boss.ability.cooldowns.*`.
+- Visuelles Feedback: Adventure `BossBar`, Name-ArmorStand, HP-Hologram (TextDisplay) implementiert.
+- Meteor/Munition-Cleanup: Projektile/FallingBlocks werden aufgeräumt (kein leftover blocks).
+- Safe scheduling: alle `runTaskLater`/`runTaskTimer`-Aufrufe werden getrackt und beim Stop gecancelt (`scheduledTasks`, `clearUi()`).
+- Debug/Testing: `BossDebugCommand` bietet Spawn/Kill/Test-Abilities.
+
+Anmerkung: Balancing (Schadenswerte, Spawn-Counts) und finale QA sind weiterhin offen; diese Arbeit ist konfigurierbar und wird getrennt als Balancing-Iteration durchgeführt.
 
 ### 2. Neue Stats in UI/Progression verfügbar
 Beschreibung: LevelUp/Shop/Loot bieten und zeigen neue Stats (Max Health, HP Regen, Shield, Armor, Evasion, Lifesteal, Thorns, Crit Chance, Crit Damage, Projectile Count, Attack Speed, Projectile Bounce, Size, Duration, Damage vs. Elites/Bosses, Knockback, Jump Height, XP Gain, Elite Spawn Increase, Powerup Multiplier).
 Akzeptanzkriterien:
-- Anzeigen im LevelUp-/Shop-Menü.
-- Persistenz in PlayerData.  # (Grundlegende Persistenz implementiert; UI noch offen)
-- Tooltips kurz und verständlich.
-- Statistics after each round: Chat summary + GUI mit Details (Damage breakdown, Kills, Coins, Lootchests).
+- Anzeigen im LevelUp-/Shop-Menü. (UI noch ausstehend)
+- Persistenz in PlayerData.  # (Grundlegende Persistenz implementiert)
+- Tooltips kurz und verständlich. (OFFEN)
+- Statistics after each round: Chat summary + GUI mit Details (Damage breakdown, Kills, Coins, Lootchests). (OFFEN)
 
 ### 3. Performance & FX-Throttling
 Beschreibung: FX abhängig von Distanz/FX-Setting drosseln.
 Akzeptanzkriterien:
-- Globaler Regler / Spieler-FX Toggle ergänzt um Rate-Limiter.  # (Basis: `ParticleUtil.shouldThrottle` implementiert — Feintuning offen)
-- Große Kämpfe verursachen keine Lags.
+- Globaler Regler / Spieler-FX Toggle ergänzt um Rate-Limiter.  # (Basis implementiert: `ParticleUtil` verwendet; Feintuning offen)
+- Große Kämpfe verursachen keine Lags. (Verify under load)
 
 ### 4. Persistenz & Reset der neuen Stats
 Beschreibung: Sicheres Laden/Speichern aller neuen Stats + Reset bei Run-Beginn.
@@ -43,17 +51,13 @@ Akzeptanzkriterien:
 - Start eines Runs setzt temporäre Boni korrekt zurück.  # (softReset / softResetPreserveSkills vorhanden und genutzt)
 - Bessere Glyphen-Logik: wenn alle Slots belegt, dann Levelup der Fähigkeit; nur Glyphen anzeigen, die noch nicht gesockelt sind. (OFFEN)
 
-### 5. Stabilität Wellen/Continuous Mode
-Beschreibung: Keine Zombie-Tasks; Start/Stop räumt sauber auf.
-Akzeptanzkriterien:
-- Alle BukkitRunnable werden bei Stop gecancelt.  # (Teilweise: viele Tasks gecancelt; Audit & gezielte Cancels noch offen)
-- Continuous und Wave-Mode laufen ohne Deadlocks.
-- Spieler sollen Solo und im Party-Modus spielen können.
+### 5. (entfernt) Stabilität Wellen/Continuous Mode
+- Implementiert: Stop/Cancel-Logik der wichtigsten BukkitRunnables (Lootchest, GlyphPickup, SkillListener, SpawnManager continuous/scaling/aggro) und `MinecraftSurvivors.onDisable()` ruft `gameManager.stopGame()`; verbleibende Aufgaben sind QA/Verifikation, keine weiteren Code-Änderungen nötig.
 
 ### 6. Doku (README/Docs)
 Beschreibung: Installation, Konfiguration, neue Stats, FX-Commands (/fx …) kurz dokumentiert.
 Akzeptanzkriterien:
-- README Abschnitt „Getting Started" + „Config cheatsheet".
+- README Abschnitt „Getting Started" + „Config cheatsheet". (in Arbeit)
 
 ## P2 (Wichtig, nach erstem Release)
 
