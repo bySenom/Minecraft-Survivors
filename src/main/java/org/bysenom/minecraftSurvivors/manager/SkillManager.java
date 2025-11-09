@@ -273,6 +273,8 @@ public class SkillManager {
         if (onCd(p.getUniqueId(), "w_fire", cd)) return;
         double radius = 4.0 + lvl * 0.5;
         double damage = 0.8 + lvl * 0.4 + sp.getFlatDamage() * 0.3;
+        boolean fancyAll = plugin.getConfigUtil().getBoolean("visuals.fancy-enabled", true);
+        boolean fancyFire = plugin.getConfigUtil().getBoolean("visuals.fire.fancy", true);
         List<org.bukkit.entity.LivingEntity> mobs = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(p.getLocation(), radius);
         for (org.bukkit.entity.LivingEntity le : mobs) {
             try {
@@ -280,6 +282,11 @@ public class SkillManager {
                 le.damage(damage * (1.0 + sp.getDamageMult()), p);
                 le.getWorld().spawnParticle(Particle.FLAME, le.getLocation().add(0,1.0,0), 6, 0.25,0.25,0.25, 0.01);
             } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWFire effect failed for player " + p.getUniqueId() + ": ", t); }
+        }
+        if (fancyAll && fancyFire && !mobs.isEmpty()) {
+            // Flame tongue helix rising from player
+            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnHelix(p.getWorld(), p.getLocation().add(0,0.2,0), 0.6, 1.2, 24, org.bukkit.Particle.FLAME, 2);
+            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnHelix(p.getWorld(), p.getLocation().add(0,0.2,0), 0.3, 1.2, 24, org.bukkit.Particle.SMOKE, 2);
         }
         try { p.playSound(p.getLocation(), Sound.ITEM_FLINTANDSTEEL_USE, 0.3f, 1.6f); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWFire sound failed for player " + p.getUniqueId() + ": ", t); }
     }
@@ -297,11 +304,29 @@ public class SkillManager {
         org.bukkit.util.Vector dir = target.getLocation().toVector().subtract(eye.toVector()).normalize();
         org.bukkit.Location cur = eye.clone();
         double speed = 1.3 + 0.05 * lvl;
+        boolean fancyAll = plugin.getConfigUtil().getBoolean("visuals.fancy-enabled", true);
+        boolean fancyRanged = plugin.getConfigUtil().getBoolean("visuals.ranged.fancy", true);
+        boolean sonicTrail = plugin.getConfigUtil().getBoolean("visuals.ranged.sonic", true);
         new org.bukkit.scheduler.BukkitRunnable() {
             int t = 0; @Override public void run() {
                 if (!p.isOnline()) { cancel(); return; }
                 cur.add(dir.clone().multiply(speed));
                 cur.getWorld().spawnParticle(Particle.CRIT, cur, 2, 0.02,0.02,0.02, 0.0);
+                if (fancyAll && fancyRanged) {
+                    // small spiral around current projectile point
+                    org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSpiral(cur.getWorld(), cur.clone().add(0,-0.2,0), 0.35, 0.6, 10, org.bukkit.Particle.END_ROD, 1.0);
+                    if (sonicTrail && t % 4 == 0) {
+                        // sonic ring expanding slightly
+                        int pts = 14;
+                        double r = 0.6 + t * 0.02;
+                        for (int i=0;i<pts;i++) {
+                            double ang = 2*Math.PI*i/pts;
+                            double x = cur.getX()+Math.cos(ang)*r;
+                            double z = cur.getZ()+Math.sin(ang)*r;
+                            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafe(cur.getWorld(), org.bukkit.Particle.CRIT, new org.bukkit.Location(cur.getWorld(), x, cur.getY()+0.05, z), 1, 0.01,0.01,0.01,0.0);
+                        }
+                    }
+                }
                 if (cur.distanceSquared(target.getLocation()) < 1.0) {
                     try { target.damage(damage * (1.0 + sp.getDamageMult()), p); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWRanged hit damage failed for player " + p.getUniqueId() + ": ", t); }
                     try { p.playSound(cur, Sound.ENTITY_ARROW_HIT_PLAYER, 0.5f, 1.6f); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWRanged hit sound failed for player " + p.getUniqueId() + ": ", t); }

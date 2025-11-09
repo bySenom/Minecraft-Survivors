@@ -81,5 +81,40 @@ public final class ParticleUtil {
         }
     }
 
+    public static void spawnSpiral(World w, Location center, double radius, double height, int points, Particle p, double turns) {
+        if (w == null || center == null) return;
+        try {
+            int pts = Math.max(1, points);
+            double total = pts * turns;
+            for (int i=0;i<pts;i++) {
+                double t = i / (double) pts; // 0..1
+                double ang = t * turns * 2 * Math.PI;
+                double x = center.getX() + Math.cos(ang) * radius;
+                double z = center.getZ() + Math.sin(ang) * radius;
+                double y = center.getY() + t * height;
+                spawnSafe(w, p, new Location(w, x, y, z), 1, 0.02,0.02,0.02,0.0);
+            }
+        } catch (Throwable t) { LogUtil.logFine("spawnSpiral failed: ", t); }
+    }
+
+    public static void spawnHelix(World w, Location base, double radius, double height, int points, Particle p, int strands) {
+        if (w == null || base == null) return;
+        try {
+            int pts = Math.max(1, points);
+            int s = Math.max(1, strands);
+            for (int i=0;i<pts;i++) {
+                double t = i/(double)pts; // 0..1
+                double y = base.getY() + t * height;
+                double angBase = t * 2 * Math.PI * s;
+                for (int k=0;k<s;k++) {
+                    double ang = angBase + (2*Math.PI*k/s);
+                    double x = base.getX() + Math.cos(ang) * radius;
+                    double z = base.getZ() + Math.sin(ang) * radius;
+                    spawnSafe(w, p, new Location(w, x, y, z), 1, 0.02,0.02,0.02,0.0);
+                }
+            }
+        } catch (Throwable t) { LogUtil.logFine("spawnHelix failed: ", t); }
+    }
+
     private static double clamp(double v) { return Math.max(0.0, Math.min(1.0, v)); }
 }
