@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Minecraft Survivors — bySenom</title>
+  <style>
+    :root{--bg:#071226;--card:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));--accent:#1f6feb;--muted:#9fb4d6}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:var(--bg);color:#e6eef8;-webkit-font-smoothing:antialiased}
+    header{background:linear-gradient(90deg,#0f1724 0%,#142033 100%);padding:28px 20px 10px}
+    .hero{max-width:1200px;margin:0 auto;display:flex;gap:18px;align-items:center;padding:8px}
+    .brand{display:flex;align-items:center;gap:14px}
+    .brand img{height:64px}
+    h1{margin:0;font-size:26px;font-weight:700}
+    .tag{color:var(--muted);margin-top:6px}
+    .badges{display:flex;gap:8px;align-items:center;margin-left:12px}
+    .cta{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+    .btn{display:inline-block;padding:10px 14px;border-radius:8px;background:var(--accent);color:white;text-decoration:none;font-weight:600}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+    main.wrap{max-width:1100px;margin:18px auto;padding:0 18px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+    .card{background:var(--card);border:1px solid rgba(255,255,255,0.04);padding:16px;border-radius:10px}
+    .feature h4{margin:0 0 6px}
+    .lead{color:var(--muted)}
+    pre.cmd{background:#02102a;padding:12px;border-radius:8px;color:#cfe8ff;overflow:auto}
+    footer{color:#7b90b0;text-align:center;padding:26px 10px;font-size:13px}
+    @media (max-width:640px){h1{font-size:20px}.hero{flex-direction:column;align-items:flex-start}.cta{margin-left:0}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="hero">
+      <div class="brand">
+        <img src="/docs/assets/logo.svg" alt="Minecraft Survivors logo">
+        <div>
+          <h1>Minecraft Survivors</h1>
+          <div class="tag">Vampire‑Survivors‑inspirierter Minigame‑Modus für Paper/Spigot — Continuous Spawns, Klassen, Glyphen & Loot</div>
+        </div>
+      </div>
+      <div class="badges">
+        <img src="https://img.shields.io/badge/build-passing-brightgreen" alt="build" style="height:22px">
+        <img src="https://img.shields.io/badge/release-jar-blue" alt="release" style="height:22px">
+      </div>
+      <div class="cta">
+        <a class="btn" href="/README.md">Get started</a>
+        <a class="btn" href="/docs/wiki/Home.md">Wiki</a>
+        <a class="btn" href="/docs/wiki/API.md">API</a>
+        <a class="btn ghost" href="https://github.com/bySenom/Minecraft-Survivors">View on GitHub</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="card" style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+      <div style="flex:1;min-width:260px">
+        <h2 style="margin-top:0">Kurzfassung</h2>
+        <p class="lead">Minecraft Survivors ist ein leicht erweiterbares Plugin, das das Spielgefühl von Vampire Survivors in Minecraft bringt: kontinuierliche Gegner‑Spawns, Klassen mit einzigartigen Fähigkeiten, Level‑Ups mit Raritäten und ein Party/Shop/Stats System.</p>
+        <div style="margin-top:10px">
+          <a class="btn" href="/README.md">Install & run</a>
+          <a class="btn ghost" href="/docs/wiki/Installation.md">How to install</a>
+        </div>
+      </div>
+      <div style="width:360px;min-width:260px">
+        <div class="card">
+          <strong>Quick Install (Windows)</strong>
+          <pre class="cmd">cd C:\\Users\\SashaW\\IdeaProjects\\MinecraftSurvivors
+.\\gradlew.bat clean build
+copy build\\libs\\*.jar &lt;your-paper-server&gt;\\plugins\\</pre>
+          <div style="margin-top:8px;color:var(--muted);font-size:13px">Paper 1.21.4 empfohlen — starte dann den Server und nutze <code>/msmenu</code></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>Highlights</h3>
+      <div class="grid">
+        <div class="feature card"><h4>Klassen</h4><div>Shaman, Pyromancer, Ranger, Paladin — jede mit eigenen Fähigkeiten und Progression.</div></div>
+        <div class="feature card"><h4>Continuous Spawns</h4><div>Vampire Survivors‑like Spawns mit Enrage und Elite‑Mobs.</div></div>
+        <div class="feature card"><h4>Glyphen & Loot</h4><div>Pick‑ups, socketing und automatische Ability‑Levelups bei vollen Sockeln.</div></div>
+        <div class="feature card"><h4>Party & Ready Flow</h4><div>Party‑Leader start Ready‑Vote, gemeinsame Klassenwahl und synchroner Start.</div></div>
+        <div class="feature card"><h4>Stats & Meter</h4><div>DPS/HPS Meter (ActionBar/BossBar/Scoreboard) mit Sliding Window.</div></div>
+        <div class="feature card"><h4>Shop & Meta</h4><div>Daily Offers, permanent upgrades & NPC Shop.</div></div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h3>Preview</h3>
+        <img src="/docs/assets/screenshot-placeholder.png" alt="screenshot" style="width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.04)">
+      </div>
+
+      <div class="card">
+        <h3>Documentation</h3>
+        <p class="lead">Detaillierte Anleitungen, Config‑Referenz und API finden sich im Wiki und der API‑Sektion.</p>
+        <ul>
+          <li><a href="/docs/wiki/Home.md">Wiki Startseite</a></li>
+          <li><a href="/docs/wiki/Config-Reference.md">Config Reference</a></li>
+          <li><a href="/docs/wiki/API.md">API Reference</a></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>Support & Contribute</h3>
+      <p class="lead">Issues und PRs sind willkommen — siehe das Repository auf GitHub für Issues, Roadmap und Releases.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a class="btn" href="https://github.com/bySenom/Minecraft-Survivors/issues">Open Issue</a>
+        <a class="btn ghost" href="https://github.com/bySenom/Minecraft-Survivors/pulls">Open PR</a>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    © 2025 bySenom — MIT License • Recommend Paper 1.21.4
+  </footer>
+</body>
+</html>

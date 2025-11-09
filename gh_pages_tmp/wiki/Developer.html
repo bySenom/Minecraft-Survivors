@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Developer / Beitragende — Minecraft Survivors</title>
+<style>body{font-family:Inter,system-ui,Arial,sans-serif;margin:24px;max-width:980px;color:#112;line-height:1.5} pre{background:#f6f8fa;padding:12px;border-radius:6px;overflow:auto} code{background:#eef;padding:2px 4px;border-radius:4px}</style>
+</head>
+<body>
+<article>
+<h1>Developer / Beitragende</h1>
+<h1 id="developer-%2F-beitragende" tabindex="-1">Developer / Beitragende</h1>
+<p>Projektstruktur (Kurz)</p>
+<ul>
+<li><code>src/main/java/org/bysenom/minecraftSurvivors/manager</code> — Kernlogik (GameManager, SpawnManager...)</li>
+<li><code>src/main/java/org/bysenom/minecraftSurvivors/gui</code> — GUI/Inventar‑UIs</li>
+<li><code>src/main/java/org/bysenom/minecraftSurvivors/listener</code> — Event‑Listener</li>
+<li><code>src/main/java/org/bysenom/minecraftSurvivors/glyph</code> — Glyph‑Catalog</li>
+</ul>
+<p>Lokales Entwickeln</p>
+<ul>
+<li>Formatieren: <code>./gradlew spotlessApply</code></li>
+<li>Build: <code>./gradlew clean build</code></li>
+<li>Tests: <code>./gradlew test</code></li>
+</ul>
+<p>Code‑Style &amp; PR</p>
+<ul>
+<li>Bitte <code>spotlessApply</code> vor jedem Commit ausführen.</li>
+<li>PRs: Kleiner Umfang, erklärender Description, ggf. Screenshots/Logs.</li>
+</ul>
+<p>Debug Tipps</p>
+<ul>
+<li>Verwende <code>plugin.getLogger().info(...)</code> an relevanten Stellen.</li>
+<li>Bei Problemen: starte den Server lokal, reproduziere das Problem und hänge <code>logs/latest.log</code> an den PR/Issue.</li>
+</ul>
+
+</article>
+<p><a href="/">Zur Startseite</a> • <a href="/docs/wiki/Home.html">Wiki</a></p>
+</body>
+</html>

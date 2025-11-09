@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="64" viewBox="0 0 240 64">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1">
+      <stop offset="0" stop-color="#1f6feb" />
+      <stop offset="1" stop-color="#8cc4ff" />
+    </linearGradient>
+  </defs>
+  <rect width="240" height="64" rx="8" fill="#071226" />
+  <g transform="translate(12,8)">
+    <rect width="48" height="48" rx="8" fill="url(#g)" />
+    <text x="24" y="33" font-family="Segoe UI, Roboto, Arial" font-size="28" text-anchor="middle" fill="#02131f" font-weight="700">MS</text>
+  </g>
+  <text x="76" y="36" font-family="Segoe UI, Roboto, Arial" font-size="20" fill="#e6eef8">Minecraft Survivors</text>
+</svg>
+
