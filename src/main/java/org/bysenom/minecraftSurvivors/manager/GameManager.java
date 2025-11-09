@@ -262,7 +262,12 @@ public class GameManager {
         try {
             for (var sp : playerManager.getAll()) {
                 if (sp == null) continue;
-                sp.removeStatModifiersIf(m -> m.type == org.bysenom.minecraftSurvivors.model.StatType.MAX_HEALTH && m.source != null && m.source.startsWith("lootchest:"));
+                java.util.List<org.bysenom.minecraftSurvivors.model.StatModifier> mods = sp.getModifiersFor(org.bysenom.minecraftSurvivors.model.StatType.MAX_HEALTH);
+                for (var m : new java.util.ArrayList<>(mods)) {
+                    if (m != null && m.source != null && m.source.startsWith("lootchest:")) {
+                        try { sp.removeStatModifier(m.id); } catch (Throwable ignored) {}
+                    }
+                }
             }
         } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "remove MAX_HEALTH lootchest modifiers failed: ", t); }
         // survivorsContext NICHT löschen, damit Scoreboard sichtbar bleibt bis Spieler bewusst zurückkehrt
