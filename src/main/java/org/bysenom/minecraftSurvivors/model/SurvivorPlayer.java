@@ -926,6 +926,9 @@ public class SurvivorPlayer {
 
     private double hpRegen = 0.0; // regen pro Sekunde
     public void addHpRegen(double v){ this.hpRegen = Math.max(0.0, this.hpRegen + v); }
+    // Base hpRegen accessors (base value without stat modifiers) for persistence
+    public double getBaseHpRegen() { return Math.max(0.0, this.hpRegen); }
+    public void setBaseHpRegen(double v) { this.hpRegen = Math.max(0.0, v); }
     public double getHpRegen(){ return Math.max(0.0, this.hpRegen + getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.HP_REGEN)); }
 
     // --- Readiness & Unlock APIs (restored) ---

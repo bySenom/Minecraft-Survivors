@@ -30,13 +30,14 @@ Was implementiert wurde:
 
 Anmerkung: Balancing (Schadenswerte, Spawn-Counts) und finale QA sind weiterhin offen; diese Arbeit ist konfigurierbar und wird getrennt als Balancing-Iteration durchgeführt.
 
-### 2. Neue Stats in UI/Progression verfügbar
+### 2. Neue Stats in UI/Progression verfügbar (IN ARBEIT - 2025-11-10)
 Beschreibung: LevelUp/Shop/Loot bieten und zeigen neue Stats (Max Health, HP Regen, Shield, Armor, Evasion, Lifesteal, Thorns, Crit Chance, Crit Damage, Projectile Count, Attack Speed, Projectile Bounce, Size, Duration, Damage vs. Elites/Bosses, Knockback, Jump Height, XP Gain, Elite Spawn Increase, Powerup Multiplier).
-Akzeptanzkriterien:
-- Anzeigen im LevelUp-/Shop-Menü. (UI noch ausstehend)
-- Persistenz in PlayerData.  # (Grundlegende Persistenz implementiert)
-- Tooltips kurz und verständlich. (OFFEN)
-- Statistics after each round: Chat summary + GUI mit Details (Damage breakdown, Kills, Coins, Lootchests). (OFFEN)
+Status: In Arbeit — Basis-Implementierung vorhanden (LevelUp-Menü zeigt Stat-Picks, `GuiManager` zeigt Stat-Overview, `GameManager` ActionBar-HUD zeigt XP + Level).
+Was noch fehlt / ToDo (kleinere, gezielte Tasks):
+- Persistenz: Basiswerte (z. B. hpRegen) sicher speichern & laden (teilweise erledigt; hpRegen-Base noch fehlend).
+- Tooltips: kurze Beschreibungen zu Stats im LevelUp-Menü (bereits vorhanden, Feintuning möglich).
+- Rundungs-/Anzeige-Verbesserungen im HUD (z. B. präzisere Prozentanzeigen).
+- QA: Überprüfen, dass Stat-Modifikatoren von Glyphen/Items korrekt wirken und in UI reflektiert werden.
 
 ### 3. Performance & FX-Throttling
 Beschreibung: FX abhängig von Distanz/FX-Setting drosseln.

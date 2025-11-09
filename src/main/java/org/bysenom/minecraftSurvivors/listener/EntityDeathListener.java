@@ -118,6 +118,12 @@ public class EntityDeathListener implements Listener {
             }
             if (afterLevel > beforeLevel) player.sendMessage(Component.text("§aLevel up! Du bist jetzt Level " + afterLevel));
             else player.sendMessage(Component.text("§aLevel up!"));
+            try {
+                // Show quick ActionBar with core stat snapshot
+                String snapshot = String.format("DMG: +%.0f%%  Crit: %.0f%%/x%.0f  Shield: %.1f  HP/s: %.2f",
+                        sp.getEffectiveDamageMult()*100.0, sp.getCritChance()*100.0, sp.getCritDamage()*100.0, sp.getShieldMax(), sp.getHpRegen());
+                try { player.sendActionBar(Component.text(snapshot)); } catch (Throwable ignored) {}
+            } catch (Throwable ignored) {}
         }
     }
 

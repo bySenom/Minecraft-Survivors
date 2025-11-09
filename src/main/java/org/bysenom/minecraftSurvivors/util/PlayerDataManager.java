@@ -41,6 +41,8 @@ public class PlayerDataManager {
         cfg.set("extraHearts", sp.getExtraHearts());
         cfg.set("moveSpeedMult", sp.getMoveSpeedMult());
         cfg.set("attackSpeedMult", sp.getAttackSpeedMult());
+        // persist base HP regen so players keep their level-up choices
+        try { cfg.set("hpRegenBase", sp.getBaseHpRegen()); } catch (Throwable ignored) {}
         cfg.set("damageResist", sp.getDamageResist());
         cfg.set("luck", sp.getLuck());
         // unlocked abilities and glyphs
@@ -95,6 +97,7 @@ public class PlayerDataManager {
             sp.setExtraHearts(cfg.getInt("extraHearts", 0));
             sp.setMoveSpeedMult(cfg.getDouble("moveSpeedMult", 0.0));
             sp.setAttackSpeedMult(cfg.getDouble("attackSpeedMult", 0.0));
+            try { sp.setBaseHpRegen(cfg.getDouble("hpRegenBase", sp.getBaseHpRegen())); } catch (Throwable ignored) {}
             sp.setDamageResist(cfg.getDouble("damageResist", 0.0));
             sp.setLuck(cfg.getDouble("luck", 0.0));
             java.util.List<String> uas = cfg.getStringList("unlockedAbilities");
