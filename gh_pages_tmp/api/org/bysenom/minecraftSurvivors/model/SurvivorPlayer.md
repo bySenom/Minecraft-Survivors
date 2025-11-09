@@ -116,6 +116,7 @@ Package: `org.bysenom.minecraftSurvivors.model`
 - `setCounter(String key, int v)`
 - `incCounter(String key, int d)`
 - `removeStatModifier(java.util.UUID id)`
+- `removeStatModifiersIf(java.util.function.Predicate<org.bysenom.minecraftSurvivors.model.StatModifier> pred)`
 - `getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType t)`
 - `getEffectiveDamageMult()`
 - `getEffectiveDamageAdd()`
@@ -150,3 +151,9 @@ Package: `org.bysenom.minecraftSurvivors.model`
 - `getXpGain()`
 - `getDamageEliteBoss()`
 - `getKnockbackEffective()`
+- `setPerRunCount(String key, int val)`
+- `setPerDayCount(String key, int val)`
+- `setShopPurchasesRun(int v)`
+- `setAbilityLevel(String key, int level)`
+- `setSkillLevel(String key, int level)`
+- `setWeaponLevel(String key, int level)`

@@ -23,3 +23,4 @@ Package: `org.bysenom.minecraftSurvivors.listener`
 - `setNoReopenFor(java.util.UUID playerUuid, int seconds)`
 - `isNoReopen(java.util.UUID playerUuid)`
 - `clearNoReopen(java.util.UUID playerUuid)`
+- `stopAll()`

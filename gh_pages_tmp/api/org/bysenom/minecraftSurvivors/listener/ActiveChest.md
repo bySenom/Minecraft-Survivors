@@ -13,7 +13,9 @@ Package: `org.bysenom.minecraftSurvivors.listener`
 - `onInventoryClick(InventoryClickEvent e)`
 - `onInventoryClose(org.bukkit.event.inventory.InventoryCloseEvent e)`
 - `run()`
+- `cancel()`
 - `onDisplayInteract(org.bukkit.event.player.PlayerInteractAtEntityEvent e)`
 - `despawnAll()`
 - `despawnAllInWorld(org.bukkit.World world)`
+- `stopAll()`
 - `onPlayerDeath(PlayerDeathEvent e)`
