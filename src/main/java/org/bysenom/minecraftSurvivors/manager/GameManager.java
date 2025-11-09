@@ -270,6 +270,18 @@ public class GameManager {
         } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "remove transient modifiers failed: ", t); }
         // survivorsContext NICHT löschen, damit Scoreboard sichtbar bleibt bis Spieler bewusst zurückkehrt
         try { bossManager.forceEnd(); } catch (Throwable ignored) {}
+        // Extra safety: clear hotbar slots 0..4 for all online players (remove temporary run-only items)
+        try {
+            for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
+                try {
+                    org.bukkit.inventory.PlayerInventory inv = p.getInventory();
+                    for (int i = 0; i < 5; i++) inv.setItem(i, null);
+                    try { p.updateInventory(); } catch (Throwable ignored) {}
+                } catch (Throwable ignored) {}
+            }
+        } catch (Throwable ignored) {}
+        // Persist all player data after run end to ensure choices are saved
+        try { plugin.getPlayerDataManager().saveAll(); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "saveAll failed at stopGame: ", t); }
         plugin.getLogger().info("Game stopped");
     }
 

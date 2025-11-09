@@ -33,11 +33,16 @@ Anmerkung: Balancing (Schadenswerte, Spawn-Counts) und finale QA sind weiterhin 
 ### 2. Neue Stats in UI/Progression verfügbar (IN ARBEIT - 2025-11-10)
 Beschreibung: LevelUp/Shop/Loot bieten und zeigen neue Stats (Max Health, HP Regen, Shield, Armor, Evasion, Lifesteal, Thorns, Crit Chance, Crit Damage, Projectile Count, Attack Speed, Projectile Bounce, Size, Duration, Damage vs. Elites/Bosses, Knockback, Jump Height, XP Gain, Elite Spawn Increase, Powerup Multiplier).
 Status: In Arbeit — Basis-Implementierung vorhanden (LevelUp-Menü zeigt Stat-Picks, `GuiManager` zeigt Stat-Overview, `GameManager` ActionBar-HUD zeigt XP + Level).
-Was noch fehlt / ToDo (kleinere, gezielte Tasks):
-- Persistenz: Basiswerte (z. B. hpRegen) sicher speichern & laden — hpRegenBase persisted (ERLEDIGT).
-- Tooltips: kurze Beschreibungen zu Stats im LevelUp-Menü (bereits implementiert).
-- Rundungs-/Anzeige-Verbesserungen im HUD (z. B. präzisere Prozentanzeigen). (ERLEDIGT)
-- QA: Überprüfen, dass Stat-Modifikatoren von Glyphen/Items korrekt wirken und in UI reflektiert werden.
+Was wurde bereits implementiert:
+- LevelUp-Menü zeigt Stat-Picks + kurze Beschreibungen (LevelUpMenu).
+- Basis-Persistenz für wichtige Basis-Stats (`hpRegenBase`, `damageMult`, `flatDamage`, `extraHearts`, u.a.) implementiert in `PlayerDataManager`.
+- UI Rundung/Format: HUD/Stats/LevelUp vereinheitlicht (1 Dezimalstelle).
+- LevelUp → automatische Speicherung (saveAsync) nach Auswahl / beim LevelUp (LevelUpMenu + EntityDeathListener).
+
+Offene/zu priorisierende Tasks (klein, gezielt):
+- QA: Verifizieren, dass Stat-Modifikatoren von Glyphen/Items korrekt wirken und in UI reflektiert werden (Mehrspieler, Disconnect/Reconnect).
+- Persistenz & Reset: Sicherstellen, dass temporäre Run-Boni zurückgesetzt werden und nur gewünschte Basis-Stats dauerhaft bleiben; insbesondere: Clear Inventory / Entfernen temporärer Items nach Run-Ende oder Player-Death.
+- Glyphen-Logik (Verbesserung): Wenn Ability-Glyph-Slots voll sind, sinnvollere Auswahl/Levelup-Mechanik anzeigen (OFFEN).
 
 ### 3. Performance & FX-Throttling
 Beschreibung: FX abhängig von Distanz/FX-Setting drosseln.
@@ -51,6 +56,7 @@ Akzeptanzkriterien:
 - PlayerData migriert (Backward-Compat).  # (Grundlegende Migration & Backwards-Compat-Handling implementiert)
 - Start eines Runs setzt temporäre Boni korrekt zurück.  # (softReset / softResetPreserveSkills vorhanden und genutzt)
 - Bessere Glyphen-Logik: wenn alle Slots belegt, dann Levelup der Fähigkeit; nur Glyphen anzeigen, die noch nicht gesockelt sind. (OFFEN)
+- Clear Inventory: After Round End / playerDeath
 
 ### 5. (entfernt) Stabilität Wellen/Continuous Mode
 - Implementiert: Stop/Cancel-Logik der wichtigsten BukkitRunnables (Lootchest, GlyphPickup, SkillListener, SpawnManager continuous/scaling/aggro) und `MinecraftSurvivors.onDisable()` ruft `gameManager.stopGame()`; verbleibende Aufgaben sind QA/Verifikation, keine weiteren Code-Änderungen nötig.
