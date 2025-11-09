@@ -6,10 +6,6 @@ Package: `org.bysenom.minecraftSurvivors.manager`
 ## Public Methods
 
 - `getNearbyWaveMobs(Location center, double radius)`
-- `freezeSingleMobForPlayer(UUID playerUuid, LivingEntity mob)`
-- `freezeMobsForPlayer(UUID playerUuid, Location center, double radius)`
-- `unfreezeMobsForPlayer(UUID playerUuid)`
-- `run()`
 - `strikeLightningAtTarget(LivingEntity target, double damage, Player source)`
 - `startContinuousIfEnabled()`
 - `startContinuous()`
