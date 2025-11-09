@@ -45,6 +45,29 @@ public class LevelUpMenuListener implements Listener {
         } catch (Exception ignored) {
         }
 
+        if (display.getItemMeta() != null) {
+            var meta = display.getItemMeta();
+            var pdc = meta.getPersistentDataContainer();
+            if (pdc.has(new org.bukkit.NamespacedKey(org.bysenom.minecraftSurvivors.MinecraftSurvivors.getInstance(), "ms_stat_pick"), org.bukkit.persistence.PersistentDataType.STRING)) {
+                String raw = pdc.get(new org.bukkit.NamespacedKey(org.bysenom.minecraftSurvivors.MinecraftSurvivors.getInstance(), "ms_stat_pick"), org.bukkit.persistence.PersistentDataType.STRING);
+                try {
+                    String[] parts = raw.split(":" );
+                    org.bysenom.minecraftSurvivors.model.StatType st = org.bysenom.minecraftSurvivors.model.StatType.valueOf(parts[0]);
+                    double val = Double.parseDouble(parts[1]);
+                    org.bysenom.minecraftSurvivors.model.SurvivorPlayer spObj = org.bysenom.minecraftSurvivors.MinecraftSurvivors.getInstance().getPlayerManager().get(player.getUniqueId());
+                    if (spObj != null) {
+                        org.bysenom.minecraftSurvivors.model.StatModifier mod = new org.bysenom.minecraftSurvivors.model.StatModifier(st, val, "levelup:"+st.name());
+                        spObj.addStatModifier(mod);
+                        player.sendMessage("§a+"+val+" " + st.name());
+                    }
+                } catch (Throwable ignored) {}
+                guiManager.getGameManager().resumeForPlayer(player.getUniqueId());
+                player.closeInventory();
+                guiManager.getGameManager().tryOpenNextQueued(player.getUniqueId());
+                return;
+            }
+        }
+
         if (display.getItemMeta() != null && display.getItemMeta().hasDisplayName()) {
             guiManager.handleLevelChoice(player, display, level);
         } else {

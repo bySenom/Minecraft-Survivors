@@ -16,6 +16,7 @@ public class LevelUpMenu {
     private final org.bysenom.minecraftSurvivors.MinecraftSurvivors plugin = org.bysenom.minecraftSurvivors.MinecraftSurvivors.getInstance();
     private final org.bukkit.NamespacedKey rarKey = new org.bukkit.NamespacedKey(plugin, "ms_rarmult");
     private final org.bukkit.NamespacedKey abilityKey = new org.bukkit.NamespacedKey(plugin, "ms_ability_pick");
+    private final org.bukkit.NamespacedKey statKey = new org.bukkit.NamespacedKey(plugin, "ms_stat_pick");
 
     public LevelUpMenu(org.bukkit.entity.Player player, org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp, int level) {
         this.sp = sp;
@@ -100,6 +101,57 @@ public class LevelUpMenu {
             int slot = idxs.get(i);
             inv.setItem(slot, chosen.get(i));
         }
+        // After ability options prepared, also prepare stat picks
+        java.util.List<org.bysenom.minecraftSurvivors.model.StatType> statPool = java.util.Arrays.asList(
+                org.bysenom.minecraftSurvivors.model.StatType.MAX_HEALTH,
+                org.bysenom.minecraftSurvivors.model.StatType.HP_REGEN,
+                org.bysenom.minecraftSurvivors.model.StatType.SHIELD,
+                org.bysenom.minecraftSurvivors.model.StatType.ARMOR,
+                org.bysenom.minecraftSurvivors.model.StatType.EVASION,
+                org.bysenom.minecraftSurvivors.model.StatType.LIFESTEAL,
+                org.bysenom.minecraftSurvivors.model.StatType.THORNS,
+                org.bysenom.minecraftSurvivors.model.StatType.CRIT_CHANCE,
+                org.bysenom.minecraftSurvivors.model.StatType.CRIT_DAMAGE,
+                org.bysenom.minecraftSurvivors.model.StatType.PROJECTILE_COUNT,
+                org.bysenom.minecraftSurvivors.model.StatType.PROJECTILE_BOUNCE,
+                org.bysenom.minecraftSurvivors.model.StatType.ATTACK_SPEED,
+                org.bysenom.minecraftSurvivors.model.StatType.SIZE,
+                org.bysenom.minecraftSurvivors.model.StatType.DURATION,
+                org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ELITE_BOSS,
+                org.bysenom.minecraftSurvivors.model.StatType.KNOCKBACK,
+                org.bysenom.minecraftSurvivors.model.StatType.JUMP_HEIGHT,
+                org.bysenom.minecraftSurvivors.model.StatType.XP_GAIN,
+                org.bysenom.minecraftSurvivors.model.StatType.ELITE_SPAWN_INCREASE,
+                org.bysenom.minecraftSurvivors.model.StatType.POWERUP_MULT
+        );
+        java.util.Collections.shuffle(statPool, random);
+        int statChoices = Math.min(3, 1 + (level / 3));
+        java.util.List<org.bysenom.minecraftSurvivors.model.StatType> statPicks = statPool.subList(0, Math.min(statChoices, statPool.size()));
+        java.util.List<Integer> statSlots = java.util.List.of(2, 6, 18); // flank positions
+        for (int i=0;i<statPicks.size();i++) {
+            org.bysenom.minecraftSurvivors.model.StatType st = statPicks.get(i);
+            double baseVal = baseValueFor(st);
+            Rarity rar = rollRarity(random);
+            double mult = multByRarity(rar);
+            double value = round2(baseVal * mult);
+            org.bukkit.Material icon = iconFor(st);
+            String display = displayFor(st);
+            java.util.List<net.kyori.adventure.text.Component> lore = new java.util.ArrayList<>();
+            lore.add(net.kyori.adventure.text.Component.text("✦ "+rar.name()+" ✦").color(rarColor(mult)));
+            lore.add(net.kyori.adventure.text.Component.text(shortDescFor(st, value)).color(net.kyori.adventure.text.format.NamedTextColor.GRAY));
+            lore.add(net.kyori.adventure.text.Component.text("§8———"));
+            lore.add(net.kyori.adventure.text.Component.text("Wert: "+value, net.kyori.adventure.text.format.NamedTextColor.AQUA));
+            org.bukkit.inventory.ItemStack item = new org.bukkit.inventory.ItemStack(icon);
+            org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
+            if (meta != null) {
+                meta.displayName(net.kyori.adventure.text.Component.text(display).color(rarColor(mult)));
+                meta.lore(lore);
+                meta.getPersistentDataContainer().set(statKey, org.bukkit.persistence.PersistentDataType.STRING, st.name()+":"+value);
+                item.setItemMeta(meta);
+            }
+            int slot = statSlots.get(i);
+            if (inv.getItem(slot) == null) inv.setItem(slot, item); // don't overwrite ability border if present
+        }
         // Fill border and some flourish
         // Use GuiTheme border via GuiManager.fillBorder when opened
     }
@@ -109,4 +161,101 @@ public class LevelUpMenu {
 
     public Inventory getInventory() { return inv; }
     public int getLevel() { return level; }
+
+    private double baseValueFor(org.bysenom.minecraftSurvivors.model.StatType st) {
+        return switch (st) {
+            case MAX_HEALTH -> 1.0; // hearts bonus (converted later)
+            case HP_REGEN -> 0.6; // hp/sec
+            case SHIELD -> 4.0;
+            case ARMOR -> 0.05;
+            case EVASION -> 0.05;
+            case LIFESTEAL -> 0.04;
+            case THORNS -> 0.08;
+            case CRIT_CHANCE -> 0.06;
+            case CRIT_DAMAGE -> 0.25;
+            case PROJECTILE_COUNT -> 1.0;
+            case PROJECTILE_BOUNCE -> 1.0;
+            case ATTACK_SPEED -> 0.07;
+            case SIZE -> 0.08;
+            case DURATION -> 0.10;
+            case DAMAGE_ELITE_BOSS -> 0.12;
+            case KNOCKBACK -> 0.25;
+            case JUMP_HEIGHT -> 0.15;
+            case XP_GAIN -> 0.12;
+            case ELITE_SPAWN_INCREASE -> 0.10;
+            case POWERUP_MULT -> 0.05;
+            default -> 0.05;
+        };
+    }
+    private String displayFor(org.bysenom.minecraftSurvivors.model.StatType st) { return switch (st) {
+        case MAX_HEALTH -> "Max Health";
+        case HP_REGEN -> "HP Regen";
+        case SHIELD -> "Shield";
+        case ARMOR -> "Armor";
+        case EVASION -> "Evasion";
+        case LIFESTEAL -> "Lifesteal";
+        case THORNS -> "Thorns";
+        case CRIT_CHANCE -> "Crit Chance";
+        case CRIT_DAMAGE -> "Crit Damage";
+        case PROJECTILE_COUNT -> "Projectile Count";
+        case PROJECTILE_BOUNCE -> "Projectile Bounce";
+        case ATTACK_SPEED -> "Attack Speed";
+        case SIZE -> "Size";
+        case DURATION -> "Duration";
+        case DAMAGE_ELITE_BOSS -> "Vs Elite/Boss";
+        case KNOCKBACK -> "Knockback";
+        case JUMP_HEIGHT -> "Jump Height";
+        case XP_GAIN -> "XP Gain";
+        case ELITE_SPAWN_INCREASE -> "Elite Spawn";
+        case POWERUP_MULT -> "Powerup Mult";
+        default -> st.name();
+    }; }
+    private org.bukkit.Material iconFor(org.bysenom.minecraftSurvivors.model.StatType st) { return switch (st) {
+        case MAX_HEALTH -> org.bukkit.Material.APPLE;
+        case HP_REGEN -> org.bukkit.Material.GHAST_TEAR;
+        case SHIELD -> org.bukkit.Material.SHIELD;
+        case ARMOR -> org.bukkit.Material.IRON_CHESTPLATE;
+        case EVASION -> org.bukkit.Material.FEATHER;
+        case LIFESTEAL -> org.bukkit.Material.RED_DYE;
+        case THORNS -> org.bukkit.Material.CACTUS;
+        case CRIT_CHANCE -> org.bukkit.Material.ARROW;
+        case CRIT_DAMAGE -> org.bukkit.Material.SPECTRAL_ARROW;
+        case PROJECTILE_COUNT -> org.bukkit.Material.FIREWORK_ROCKET;
+        case PROJECTILE_BOUNCE -> org.bukkit.Material.SLIME_BALL;
+        case ATTACK_SPEED -> org.bukkit.Material.GOLDEN_SWORD;
+        case SIZE -> org.bukkit.Material.SLIME_BLOCK;
+        case DURATION -> org.bukkit.Material.CLOCK;
+        case DAMAGE_ELITE_BOSS -> org.bukkit.Material.NETHERITE_SCRAP;
+        case KNOCKBACK -> org.bukkit.Material.PISTON;
+        case JUMP_HEIGHT -> org.bukkit.Material.RABBIT_FOOT;
+        case XP_GAIN -> org.bukkit.Material.EXPERIENCE_BOTTLE;
+        case ELITE_SPAWN_INCREASE -> org.bukkit.Material.WITHER_ROSE;
+        case POWERUP_MULT -> org.bukkit.Material.ENCHANTED_BOOK;
+        default -> org.bukkit.Material.BOOK;
+    }; }
+    private String shortDescFor(org.bysenom.minecraftSurvivors.model.StatType st, double v) { return switch (st) {
+        case MAX_HEALTH -> "+"+v+" Herz(e)";
+        case HP_REGEN -> "+"+v+" HP/s";
+        case SHIELD -> "+"+v+" Schild";
+        case ARMOR -> "+"+percent(v)+" weniger Schaden";
+        case EVASION -> "+"+percent(v)+" Ausweichchance";
+        case LIFESTEAL -> "+"+percent(v)+" Lifesteal";
+        case THORNS -> "+"+percent(v)+" Rückschaden";
+        case CRIT_CHANCE -> "+"+percent(v)+" Crit";
+        case CRIT_DAMAGE -> "+"+percent(v)+" Crit Dmg Mult";
+        case PROJECTILE_COUNT -> "+"+((int)Math.round(v))+" Projektil(e)";
+        case PROJECTILE_BOUNCE -> "+"+((int)Math.round(v))+" Bounce";
+        case ATTACK_SPEED -> "+"+percent(v)+" Angriffsrate";
+        case SIZE -> "+"+percent(v)+" AoE Größe";
+        case DURATION -> "+"+percent(v)+" Effektdauer";
+        case DAMAGE_ELITE_BOSS -> "+"+percent(v)+" Elite/Boss Schaden";
+        case KNOCKBACK -> "+"+percent(v)+" Knockback";
+        case JUMP_HEIGHT -> "+"+percent(v)+" Sprunghöhe";
+        case XP_GAIN -> "+"+percent(v)+" XP";
+        case ELITE_SPAWN_INCREASE -> "+"+percent(v)+" Elite Spawn";
+        case POWERUP_MULT -> "+"+percent(v)+" Powerup Mult";
+        default -> "+"+v;
+    }; }
+    private String percent(double v){ return (int)Math.round(v*100.0)+"%"; }
+    private double round2(double v){ return Math.round(v*100.0)/100.0; }
 }
