@@ -1,0 +1,42 @@
+name: Auto Generate API Markdown
+
+on:
+  push:
+    paths:
+      - 'src/main/java/**'
+      - 'tools/**'
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install tools deps
+        working-directory: ./tools
+        run: npm install --no-audit --no-fund
+
+      - name: Run API generator
+        run: node ./tools/generate-api-md.js
+
+      - name: Commit & push generated API
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/api docs/wiki/API.md || true
+          git commit -m "docs: regenerate API markdown" || echo "no changes"
+          git push origin HEAD:main || echo "push failed"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
