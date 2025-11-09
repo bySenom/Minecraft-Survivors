@@ -1,4 +1,4 @@
-# ConfigUtil
+# Keys
 
 Package: `org.bysenom.minecraftSurvivors.util`
 

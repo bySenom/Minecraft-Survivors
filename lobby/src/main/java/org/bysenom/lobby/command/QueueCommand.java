@@ -5,7 +5,6 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
-import org.bysenom.lobby.LobbySystem;
 import org.bysenom.lobby.QueueManager;
 import org.jetbrains.annotations.NotNull;
 
