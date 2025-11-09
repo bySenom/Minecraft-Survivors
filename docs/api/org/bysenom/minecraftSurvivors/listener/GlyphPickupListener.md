@@ -24,3 +24,4 @@ Glyphen-Pickup wie Lootchests: schwebende Items mit Hologramm, bei Berührung ö
 - `setNoReopenFor(java.util.UUID playerUuid, int seconds)`
 - `isNoReopen(java.util.UUID playerUuid)`
 - `clearNoReopen(java.util.UUID playerUuid)`
+- `stopAll()`

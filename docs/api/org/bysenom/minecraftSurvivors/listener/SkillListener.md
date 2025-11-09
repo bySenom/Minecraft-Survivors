@@ -7,3 +7,4 @@ Package: `org.bysenom.minecraftSurvivors.listener`
 
 - `onUse(PlayerInteractEvent e)`
 - `run()`
+- `stopAll()`
