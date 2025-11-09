@@ -200,7 +200,7 @@ public class SkillManager {
         double radius = 8.0 * (1.0 + sp.getRadiusMult());
         List<org.bukkit.entity.LivingEntity> mobs = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(p.getLocation(), radius);
         if (mobs.isEmpty()) return;
-        org.bukkit.entity.LivingEntity target = mobs.get(new java.util.Random().nextInt(mobs.size()));
+        org.bukkit.entity.LivingEntity target = mobs.iterator().next();
         try {
             target.getWorld().strikeLightningEffect(target.getLocation());
             target.damage(damage * (1.0 + sp.getDamageMult()), p);
@@ -278,7 +278,7 @@ public class SkillManager {
         double damage = 1.8 + lvl * 0.6 + sp.getFlatDamage() * 0.6;
         List<org.bukkit.entity.LivingEntity> mobs = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(p.getLocation(), range);
         if (mobs.isEmpty()) return;
-        org.bukkit.entity.LivingEntity target = mobs.get(0);
+        org.bukkit.entity.LivingEntity target = mobs.iterator().next();
         org.bukkit.Location eye = p.getEyeLocation();
         org.bukkit.util.Vector dir = target.getLocation().toVector().subtract(eye.toVector()).normalize();
         org.bukkit.Location cur = eye.clone();
@@ -650,9 +650,7 @@ public class SkillManager {
             org.bukkit.Particle particle = org.bukkit.Particle.END_ROD; // default
             String suffix = glyphKey.contains(":") ? glyphKey.substring(glyphKey.indexOf(":") + 1) : glyphKey;
             // group suffixes by visual
-            if (suffix.endsWith("genkidama") || suffix.endsWith("aegis") || suffix.endsWith("pulse") || suffix.endsWith("beacon") || suffix.endsWith("consecration")) {
-                particle = org.bukkit.Particle.END_ROD;
-            } else if (suffix.endsWith("storm_chain") || suffix.endsWith("electric")) {
+            if (suffix.endsWith("storm_chain") || suffix.endsWith("electric")) {
                 particle = org.bukkit.Particle.ELECTRIC_SPARK;
             } else if (suffix.endsWith("overcharge") || suffix.endsWith("multishot") || suffix.endsWith("ricochet") || suffix.endsWith("headshot")) {
                 particle = org.bukkit.Particle.CRIT;

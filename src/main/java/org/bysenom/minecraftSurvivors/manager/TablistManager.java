@@ -132,7 +132,7 @@ public class TablistManager {
             try { org.bukkit.attribute.AttributeInstance ai = pl.getAttribute(Attribute.MAX_HEALTH); if (ai != null) max = ai.getBaseValue(); } catch (Throwable ignored) {}
             try { hp = pl.getHealth(); } catch (Throwable ignored) {}
         }
-        String bar = makeBar(hp / Math.max(1.0, max), 12);
+        String bar = makeBar(hp / Math.max(1.0, max));
         Component barC = Component.text(bar, NamedTextColor.GREEN);
         Component hpC = Component.text(String.format(" %d%%", (int)Math.round((hp/Math.max(1.0,max))*100.0)), NamedTextColor.GRAY);
         // Klasse/Icon
@@ -185,6 +185,5 @@ public class TablistManager {
         return sb.toString();
     }
 
-    // Convenience overload using default length 12 (used by tablist footer)
     private String makeBar(double ratio) { return makeBar(ratio, 12); }
 }
