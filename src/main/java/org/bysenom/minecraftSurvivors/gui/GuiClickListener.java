@@ -143,11 +143,8 @@ public class GuiClickListener implements Listener {
                 player.sendMessage("§aKlasse gewählt: §f" + chosen.name());
                 try { player.playSound(player.getLocation(), org.bukkit.Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.3f); } catch (Throwable ignored) {}
                 try { plugin.getScoreboardManager().forceUpdate(player); } catch (Throwable ignored) {}
-                // Autostart-Countdown anstoßen (idempotent)
-                try {
-                    int cd = Math.max(1, plugin.getConfigUtil().getInt("lobby.autostart-countdown-seconds", 3));
-                    plugin.getGameManager().startGameWithCountdown(cd);
-                } catch (Throwable ignored) {}
+                // Autostart nur wenn alle bereit sind
+                try { plugin.getGameManager().requestAutoStartIfAllReady(); } catch (Throwable ignored) {}
             }
             guiManager.openMainMenu(player);
             return;

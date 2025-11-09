@@ -467,4 +467,30 @@ public class GameManager {
     public void tryOpenNextQueuedDelayed(java.util.UUID uuid) {
         Bukkit.getScheduler().runTaskLater(plugin, () -> tryOpenNextQueued(uuid), 1L);
     }
+
+    private boolean isCountdownRunning() { return countdownTask != null; }
+
+    public synchronized void requestAutoStartIfAllReady() {
+        if (state == GameState.RUNNING || starting) return;
+        // Sammle Online Spieler im Survivors Kontext
+        java.util.List<org.bukkit.entity.Player> online = new java.util.ArrayList<>(org.bukkit.Bukkit.getOnlinePlayers());
+        if (online.isEmpty()) return;
+        int totalRelevant = 0;
+        int readyCount = 0;
+        for (org.bukkit.entity.Player p : online) {
+            org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = playerManager.get(p.getUniqueId());
+            if (sp == null) continue;
+            // Berücksichtige nur Spieler, die den Survivors-Kontext betreten haben (enterSurvivorsContext), optional könnte man scoreboard checken
+            if (!isInSurvivorsContext(p.getUniqueId())) continue;
+            totalRelevant++;
+            if (sp.getSelectedClass() != null && sp.isReady()) readyCount++;
+        }
+        if (totalRelevant == 0) return; // niemand im Kontext
+        if (readyCount < totalRelevant) return; // nicht alle bereit
+        // alle bereit -> Countdown starten falls nicht aktiv
+        if (!isCountdownRunning()) {
+            int cd = Math.max(3, plugin.getConfigUtil().getInt("lobby.autostart-countdown-seconds", 5));
+            startGameWithCountdown(cd);
+        }
+    }
 }
