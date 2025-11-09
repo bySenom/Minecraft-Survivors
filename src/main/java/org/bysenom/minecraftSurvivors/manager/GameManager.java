@@ -87,8 +87,10 @@ public class GameManager {
         if (p != null && p.isOnline()) {
             // Scoreboard sichtbar halten
             try { plugin.getScoreboardManager().forceUpdateAll(); } catch (Throwable ignored) {}
-            // Klassenfähigkeit sicherstellen und Hotbar vorbereiten
-            try { ensureClassAbility(uuid); } catch (Throwable ignored) {}
+            // Klassenfähigkeit nur erzwingen, falls Spiel bereits läuft (RUNNING) und Klasse gewählt ist
+            if (state == GameState.RUNNING) {
+                try { ensureClassAbility(uuid); } catch (Throwable ignored) {}
+            }
             try { giveInitialKit(p); } catch (Throwable ignored) {}
         }
     }

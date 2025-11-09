@@ -45,7 +45,8 @@ public class PlayerDataListener implements Listener {
                     if (loaded != null) {
                         sp.setKills(loaded.getKills());
                         sp.setCoins(loaded.getCoins());
-                        sp.setSelectedClass(loaded.getSelectedClass()); // Klasse nur laden, nicht auto-bereit
+                        // Klassenstatus NICHT aus save übernehmen
+                        // sp.setSelectedClass(loaded.getSelectedClass());
                         sp.setClassLevel(loaded.getClassLevel());
                         sp.setXp(loaded.getXp());
                         sp.setXpToNext(loaded.getXpToNext());
@@ -57,8 +58,7 @@ public class PlayerDataListener implements Listener {
                         sp.setAttackSpeedMult(loaded.getAttackSpeedMult());
                         sp.setDamageResist(loaded.getDamageResist());
                         sp.setLuck(loaded.getLuck());
-                        // Spieler bleibt NICHT ready; Kontext wird separat betreten
-                        p.sendMessage(Component.text("Profil geladen (Klasse: " + (sp.getSelectedClass()==null?"Keine":""+sp.getSelectedClass().name()) + ")").color(NamedTextColor.GREEN));
+                        p.sendMessage(Component.text("Profil geladen").color(NamedTextColor.GREEN));
                     } else {
                         p.sendMessage(Component.text("Neues Profil erstellt. Wähle eine Klasse im Survivors Menü.").color(NamedTextColor.YELLOW));
                     }

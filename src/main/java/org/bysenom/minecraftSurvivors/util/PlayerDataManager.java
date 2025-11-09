@@ -62,11 +62,13 @@ public class PlayerDataManager {
             SurvivorPlayer sp = new SurvivorPlayer(uuid);
             sp.setKills(cfg.getInt("kills", 0));
             sp.setCoins(cfg.getInt("coins", 0));
-            String cls = cfg.getString("selectedClass", null);
-            if (cls != null) {
-                try {
-                    sp.setSelectedClass(PlayerClass.valueOf(cls));
-                } catch (IllegalArgumentException ignored) {}
+            // Klasse NICHT automatisch laden (verhindert erzwungene Auswahl). Optional via Config aktivierbar.
+            boolean loadClass = plugin.getConfigUtil().getBoolean("profile.load-class", false);
+            if (loadClass) {
+                String cls = cfg.getString("selectedClass", null);
+                if (cls != null) {
+                    try { sp.setSelectedClass(PlayerClass.valueOf(cls)); } catch (IllegalArgumentException ignored) {}
+                }
             }
             sp.setClassLevel(cfg.getInt("classLevel", 1));
             sp.setXp(cfg.getInt("xp", 0));

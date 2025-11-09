@@ -34,12 +34,18 @@ public class SkillManager {
 
     private void tick() {
         long now = System.currentTimeMillis();
+        org.bysenom.minecraftSurvivors.model.GameState gs = null;
+        try { gs = plugin.getGameManager().getState(); } catch (Throwable ignored) {}
+        boolean running = gs == org.bysenom.minecraftSurvivors.model.GameState.RUNNING;
         for (Player p : Bukkit.getOnlinePlayers()) {
             SurvivorPlayer sp = plugin.getPlayerManager().get(p.getUniqueId());
             if (sp == null) continue;
             if (plugin.getGameManager().isPlayerPaused(p.getUniqueId())) continue;
-
-            // Unified Abilities: max 5; render Hotbar & tick
+            // Vor Spielstart keine automatischen Klassenfähigkeiten ticken
+            if (!running || sp.getSelectedClass() == null) {
+                renderHotbar(p, sp); // nur Anzeige, keine Fähigkeiten
+                continue;
+            }
             renderHotbar(p, sp);
             for (String ab : sp.getAbilities()) {
                 int lvl = sp.getAbilityLevel(ab);
