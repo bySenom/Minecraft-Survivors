@@ -22,7 +22,7 @@ jobs:
 
       - name: Install tools deps
         working-directory: ./tools
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Generate config MD
         working-directory: ./tools
@@ -37,4 +37,3 @@ jobs:
           git push origin HEAD:main || echo "push failed"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
