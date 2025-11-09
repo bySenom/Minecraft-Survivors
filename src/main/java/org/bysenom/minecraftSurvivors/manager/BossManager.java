@@ -353,6 +353,15 @@ public class BossManager {
                 }
             } catch (Throwable ignored) {}
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                // Spawn falling block meteor entity briefly for impact visual
+                try {
+                    org.bukkit.entity.FallingBlock fb = strike.getWorld().spawn(strike.clone().add(0, 12, 0), org.bukkit.entity.FallingBlock.class, f -> {
+                        f.setBlockData(org.bukkit.Material.MAGMA_BLOCK.createBlockData());
+                        f.setDropItem(false); f.setHurtEntities(false); f.setGravity(true);
+                    });
+                    fb.setVelocity(new org.bukkit.util.Vector(0, -1.2, 0));
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> { try { fb.remove(); } catch (Throwable ignored) {} }, 30L);
+                } catch (Throwable ignored) {}
                 try { strike.getWorld().playSound(strike, org.bukkit.Sound.ENTITY_GENERIC_EXPLODE, 0.9f, 0.8f);} catch (Throwable ignored) {}
                 try { strike.getWorld().spawnParticle(Particle.EXPLOSION, strike.clone().add(0,0.6,0), 1); } catch (Throwable ignored) {}
                 for (Player pl : strike.getWorld().getPlayers()) {
@@ -387,6 +396,15 @@ public class BossManager {
         // Einschlag nach Delay
         double dmg = Math.max(8.0, 8.0 + Math.log1p(power)*4.0);
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            // Falling block meteor
+            try {
+                org.bukkit.entity.FallingBlock fb = strike.getWorld().spawn(strike.clone().add(0, 14, 0), org.bukkit.entity.FallingBlock.class, f -> {
+                    f.setBlockData(org.bukkit.Material.MAGMA_BLOCK.createBlockData());
+                    f.setDropItem(false); f.setHurtEntities(false); f.setGravity(true);
+                });
+                fb.setVelocity(new org.bukkit.util.Vector(0, -1.25, 0));
+                Bukkit.getScheduler().runTaskLater(plugin, () -> { try { fb.remove(); } catch (Throwable ignored) {} }, 40L);
+            } catch (Throwable ignored) {}
             try { strike.getWorld().playSound(strike, org.bukkit.Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 0.9f);} catch (Throwable ignored) {}
             try { strike.getWorld().spawnParticle(Particle.EXPLOSION, strike.clone().add(0,0.6,0), 1); } catch (Throwable ignored) {}
             for (Player pl : strike.getWorld().getPlayers()) {

@@ -56,6 +56,17 @@ public class MsStatsCommand implements CommandExecutor {
                 }
                 showTop(sender, which, n);
                 return true;
+            case "detail":
+                if (sender instanceof Player self && args.length == 1) {
+                    showPlayerStats(self, self);
+                } else if (args.length >= 2) {
+                    Player target = Bukkit.getPlayerExact(args[1]);
+                    if (target == null) { sender.sendMessage("§cSpieler nicht gefunden: "+args[1]); return true; }
+                    showPlayerStats(sender, target);
+                } else {
+                    sender.sendMessage("§e/msstats detail [Spieler]");
+                }
+                return true;
             default:
                 sender.sendMessage("§cUnbekannt: " + sub);
                 return true;
@@ -86,5 +97,30 @@ public class MsStatsCommand implements CommandExecutor {
         for (Pair p : vals) {
             sender.sendMessage(" §e" + (i++) + ". §a" + p.name + " §7- §f" + String.format("%.1f", p.val));
         }
+    }
+
+    private void showPlayerStats(CommandSender viewer, Player target) {
+        var sp = plugin.getPlayerManager().get(target.getUniqueId());
+        if (sp == null) { viewer.sendMessage("§cKeine Survivors-Daten für "+target.getName()); return; }
+        viewer.sendMessage("§6Stats von §e"+target.getName()+"§6:");
+        // Offensiv
+        viewer.sendMessage(String.format(" §fDamage +: §a%.2f  §7(mult: +%.0f%%)", sp.getEffectiveDamageAdd(), sp.getEffectiveDamageMult()*100.0));
+        viewer.sendMessage(String.format(" §fElite/Boss-DMG: §a+%.0f%%", sp.getDamageEliteBoss()*100.0));
+        viewer.sendMessage(String.format(" §fCrit: §aChance %.0f%%%% §7| §aDamage +%.0f%%%%", sp.getCritChance()*100.0, sp.getCritDamage()*100.0));
+        // Projektil
+        double pc = Math.max(0.0, sp.getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.PROJECTILE_COUNT));
+        double pb = Math.max(0.0, sp.getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.PROJECTILE_BOUNCE));
+        viewer.sendMessage(String.format(" §fProjectiles: §a+%.0f §7| Bounces: §a+%.0f", pc, pb));
+        // Kontrolle/Größe
+        viewer.sendMessage(String.format(" §fRadius mult: §a+%.0f%%%%  §7| Duration: §a+%.0f%%%%", sp.getEffectiveRadiusMult()*100.0, Math.max(0.0, sp.getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.DURATION))*100.0));
+        // Defensiv
+        viewer.sendMessage(String.format(" §fArmor: §a%.0f%%%%  §7| Evasion: §a%.0f%%%%  §7| Thorns: §a+%.0f%%%%", sp.getArmor()*100.0, sp.getEvasion()*100.0, sp.getThorns()*100.0));
+        viewer.sendMessage(String.format(" §fShield: §a%.1f  §7| HP-Regen: §a%.2f/s  §7| Lifesteal: §a%.0f%%%%", sp.getShieldMax(), sp.getHpRegen(), sp.getLifesteal()*100.0));
+        // Beweglichkeit
+        viewer.sendMessage(String.format(" §fSpeed: §a+%.0f%%%%  §7| AttackSpeed: §a+%.0f%%%%  §7| Knockback: §a+%.0f", sp.getEffectiveMoveSpeedMult()*100.0, sp.getEffectiveAttackSpeedMult()*100.0, sp.getKnockbackEffective()));
+        // Leben
+        viewer.sendMessage(String.format(" §fExtra Hearts: §a+%d  §7| MaxHealth(Hearts): §a+%.1f", sp.getEffectiveExtraHearts(), sp.getMaxHealthBonusHearts()));
+        // Progression
+        viewer.sendMessage(String.format(" §fXP Gain: §a+%.0f%%%%  §7| Powerup Mult: §a+%.0f%%%%", sp.getXpGain()*100.0, sp.getPowerupMult()*100.0));
     }
 }
