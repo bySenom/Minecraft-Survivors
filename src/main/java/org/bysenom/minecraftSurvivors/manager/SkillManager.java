@@ -307,20 +307,22 @@ public class SkillManager {
         boolean fancyAll = plugin.getConfigUtil().getBoolean("visuals.fancy-enabled", true);
         boolean fancyRanged = plugin.getConfigUtil().getBoolean("visuals.ranged.fancy", true);
         boolean sonicTrail = plugin.getConfigUtil().getBoolean("visuals.ranged.sonic", true);
+        int sonicPts = plugin.getConfigUtil().getInt("visuals.ranged.sonic-points", 14);
+        int sonicEvery = Math.max(1, plugin.getConfigUtil().getInt("visuals.ranged.sonic-every-ticks", 4));
+        double sonicBase = plugin.getConfigUtil().getDouble("visuals.ranged.sonic-base-radius", 0.6);
+        double sonicGrowth = plugin.getConfigUtil().getDouble("visuals.ranged.sonic-growth-per-tick", 0.02);
+        double sonicMax = plugin.getConfigUtil().getDouble("visuals.ranged.sonic-max-radius", 1.6);
         new org.bukkit.scheduler.BukkitRunnable() {
             int t = 0; @Override public void run() {
                 if (!p.isOnline()) { cancel(); return; }
                 cur.add(dir.clone().multiply(speed));
                 cur.getWorld().spawnParticle(Particle.CRIT, cur, 2, 0.02,0.02,0.02, 0.0);
                 if (fancyAll && fancyRanged) {
-                    // small spiral around current projectile point
                     org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSpiral(cur.getWorld(), cur.clone().add(0,-0.2,0), 0.35, 0.6, 10, org.bukkit.Particle.END_ROD, 1.0);
-                    if (sonicTrail && t % 4 == 0) {
-                        // sonic ring expanding slightly
-                        int pts = 14;
-                        double r = 0.6 + t * 0.02;
-                        for (int i=0;i<pts;i++) {
-                            double ang = 2*Math.PI*i/pts;
+                    if (sonicTrail && t % sonicEvery == 0) {
+                        double r = Math.min(sonicBase + t * sonicGrowth, sonicMax);
+                        for (int i=0;i<Math.max(3, sonicPts);i++) {
+                            double ang = 2*Math.PI*i/Math.max(3, sonicPts);
                             double x = cur.getX()+Math.cos(ang)*r;
                             double z = cur.getZ()+Math.sin(ang)*r;
                             org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafe(cur.getWorld(), org.bukkit.Particle.CRIT, new org.bukkit.Location(cur.getWorld(), x, cur.getY()+0.05, z), 1, 0.01,0.01,0.01,0.0);

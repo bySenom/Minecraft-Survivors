@@ -18,6 +18,7 @@ public class FxTestCommand implements CommandExecutor {
         if (args.length == 0) {
             p.sendMessage("§e/fx testgenkidama §7- Zeigt einen Meteor/Genkidama Effekt");
             p.sendMessage("§e/fx meteor <height> <speed> <radius> <damage> §7- Custom Meteor");
+            p.sendMessage("§e/fx lightning | holy | venom | ranged | fire §7- Demo der FX-Visuals");
             return true;
         }
         String sub = args[0].toLowerCase();
@@ -78,6 +79,34 @@ public class FxTestCommand implements CommandExecutor {
                 org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnBurst(p.getWorld(), center.clone().add(0,0.3,0), slimeParticle, 18, 0.4);
                 p.playSound(center, org.bukkit.Sound.BLOCK_SLIME_BLOCK_PLACE, 0.6f, 1.0f);
                 p.sendMessage("§aVenom Spire Fog Test.");
+            }
+            case "ranged" -> {
+                // Simuliere eine kurze Flugbahn in Blickrichtung mit Spiral + Sonic-Ringen
+                org.bukkit.Location cur = p.getEyeLocation().clone();
+                org.bukkit.util.Vector dir = p.getLocation().getDirection().normalize();
+                new org.bukkit.scheduler.BukkitRunnable() {
+                    int t=0; @Override public void run() {
+                        cur.add(dir.clone().multiply(1.1));
+                        org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSpiral(cur.getWorld(), cur.clone().add(0,-0.2,0), 0.35, 0.6, 10, org.bukkit.Particle.END_ROD, 1.0);
+                        if (t % 4 == 0) {
+                            int pts = 14; double r = 0.6 + t*0.02;
+                            for (int i=0;i<pts;i++) {
+                                double ang = 2*Math.PI*i/pts;
+                                double x = cur.getX()+Math.cos(ang)*r;
+                                double z = cur.getZ()+Math.sin(ang)*r;
+                                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafe(cur.getWorld(), org.bukkit.Particle.CRIT, new org.bukkit.Location(cur.getWorld(), x, cur.getY()+0.05, z), 1, 0.01,0.01,0.01,0.0);
+                            }
+                        }
+                        if (++t>24) { cancel(); p.sendMessage("§aRanged FX Demo beendet."); }
+                    }
+                }.runTaskTimer(plugin, 0L, 1L);
+            }
+            case "fire" -> {
+                // Zeige eine stationäre Flammen-Doppelhelix beim Spieler
+                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnHelix(p.getWorld(), p.getLocation().add(0,0.2,0), 0.6, 1.2, 24, org.bukkit.Particle.FLAME, 2);
+                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnHelix(p.getWorld(), p.getLocation().add(0,0.2,0), 0.3, 1.2, 24, org.bukkit.Particle.SMOKE, 2);
+                p.playSound(p.getLocation(), org.bukkit.Sound.ITEM_FLINTANDSTEEL_USE, 0.4f, 1.8f);
+                p.sendMessage("§aFire FX Demo ausgelöst.");
             }
             default -> p.sendMessage("§cUnbekannter Subcommand. Nutze /fx für Hilfe.");
         }
