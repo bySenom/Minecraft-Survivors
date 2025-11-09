@@ -290,9 +290,7 @@ public class SurvivorPlayer {
 
     public boolean addXp(int amount) {
         if (amount <= 0) return false;
-        int gained = (int)Math.round(amount * (1.0 + getXpGain()));
-        if (gained <= 0) return false;
-        xp += gained;
+        xp += amount;
         boolean leveled = false;
         while (xp >= xpToNext) {
             xp -= xpToNext;
@@ -917,12 +915,4 @@ public class SurvivorPlayer {
     public boolean hasUnlockedGlyph(String glyphKey) { return glyphKey != null && unlockedGlyphs.contains(glyphKey); }
     public boolean unlockGlyph(String glyphKey) { if (glyphKey == null) return false; if (unlockedGlyphs.contains(glyphKey)) return false; unlockedGlyphs.add(glyphKey); return true; }
     public boolean lockGlyph(String glyphKey) { if (glyphKey == null) return false; return unlockedGlyphs.remove(glyphKey); }
-
-    // --- New base stat integration (POWERUP_MULT amplification) ---
-    public double getPowerupMult() { return Math.max(0.0, getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.POWERUP_MULT)); }
-    private double amp(double base) { double m = 1.0 + getPowerupMult(); return base * Math.max(0.0, m); }
-    public double getMaxHealthBonusHearts() { return Math.max(0.0, amp(getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.MAX_HEALTH))); }
-    public double getXpGain() { return Math.max(0.0, amp(getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.XP_GAIN))); }
-    public double getDamageEliteBoss() { return Math.max(0.0, amp(getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.DAMAGE_ELITE_BOSS))); }
-    public double getKnockbackEffective() { return Math.max(0.0, this.knockbackBonus + amp(getStatModifierSum(org.bysenom.minecraftSurvivors.model.StatType.KNOCKBACK))); }
 }

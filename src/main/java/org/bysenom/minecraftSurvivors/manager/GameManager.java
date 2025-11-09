@@ -127,6 +127,20 @@ public class GameManager {
                     org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = playerManager.get(p.getUniqueId());
                     if (sp == null) continue;
 
+                    // Apply MAX_HEALTH bonus dynamically
+                    try {
+                        double base = 20.0;
+                        var attr = p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+                        if (attr != null) base = attr.getBaseValue();
+                        int heartsExtra = sp.getEffectiveExtraHearts();
+                        double maxHealthBonusHearts = sp.getMaxHealthBonusHearts();
+                        double target = Math.max(1.0, 20.0 + heartsExtra * 1.0 + maxHealthBonusHearts * 2.0);
+                        if (attr != null && Math.abs(attr.getBaseValue() - target) > 0.1) {
+                            attr.setBaseValue(target);
+                            if (p.getHealth() > target) p.setHealth(target);
+                        }
+                    } catch (Throwable ignored) {}
+
                     // Periodic regeneration (HP + Shield)
                     try {
                         double hpRegenPerSec = sp.getHpRegen();

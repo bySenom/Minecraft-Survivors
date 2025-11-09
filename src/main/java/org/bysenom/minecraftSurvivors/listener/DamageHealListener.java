@@ -68,6 +68,19 @@ public class DamageHealListener implements Listener {
                 } catch (Throwable ignored) {}
                 // Lifesteal: heal after damage application approximation (use current event damage)
                 try { damagerPlayer.setMetadata("ms_last_hit_damage", new org.bukkit.metadata.FixedMetadataValue(plugin, Math.max(0.0, e.getDamage()))); } catch (Throwable ignored) {}
+                // Apply elite/boss damage bonus post-crit pre-final
+                try {
+                    if (e.getEntity() instanceof org.bukkit.entity.LivingEntity target) {
+                        boolean elite = target.getPersistentDataContainer().has(new org.bukkit.NamespacedKey(plugin, "ms_elite"), org.bukkit.persistence.PersistentDataType.BYTE);
+                        boolean boss = target.getPersistentDataContainer().has(new org.bukkit.NamespacedKey(plugin, "ms_boss"), org.bukkit.persistence.PersistentDataType.BYTE);
+                        if (elite || boss) {
+                            double bonus = sp.getDamageEliteBoss();
+                            if (bonus > 0.0) {
+                                e.setDamage(e.getDamage() * (1.0 + Math.min(3.0, bonus))); // cap x4 total
+                            }
+                        }
+                    }
+                } catch (Throwable ignored) {}
             }
         }
 
@@ -156,6 +169,16 @@ public class DamageHealListener implements Listener {
         if (damagerPlayer != null) {
             var sp = plugin.getPlayerManager().get(damagerPlayer.getUniqueId());
             if (sp != null) {
+                // Enhanced knockback if projectile/melee hit (simple velocity push on entity victim if living)
+                try {
+                    if (e.getEntity() instanceof org.bukkit.entity.LivingEntity victim && !e.isCancelled()) {
+                        double kb = sp.getKnockbackEffective();
+                        if (kb > 0.0) {
+                            org.bukkit.util.Vector dir = victim.getLocation().toVector().subtract(damagerPlayer.getLocation().toVector()).normalize();
+                            victim.setVelocity(dir.multiply(Math.min(4.0, 0.4 + kb)).setY(0.35 + Math.min(0.8, kb*0.15)));
+                        }
+                    }
+                } catch (Throwable ignored) {}
                 double ls = sp.getLifesteal();
                 if (ls > 0.0) {
                     double dealt = 0.0;
