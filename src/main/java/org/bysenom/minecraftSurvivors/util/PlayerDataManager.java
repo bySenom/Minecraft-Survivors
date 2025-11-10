@@ -173,6 +173,35 @@ public class PlayerDataManager {
     }
 
     /**
+     * QA helper: load the player's YAML and log a compact snapshot of persisted keys.
+     */
+    public void logPlayerData(java.util.UUID uuid) {
+        if (uuid == null) return;
+        try {
+            File f = new File(playersDir, uuid.toString() + ".yml");
+            if (!f.exists()) { plugin.getLogger().info("Player data not found for " + uuid); return; }
+            FileConfiguration cfg = YamlConfiguration.loadConfiguration(f);
+            StringBuilder sb = new StringBuilder();
+            sb.append("PlayerData[").append(uuid).append("]: ");
+            sb.append("hpRegenBase=").append(cfg.getDouble("hpRegenBase", Double.NaN)).append(", ");
+            sb.append("damageMult=").append(cfg.getDouble("damageMult", Double.NaN)).append(", ");
+            sb.append("flatDamage=").append(cfg.getDouble("flatDamage", Double.NaN)).append(", ");
+            sb.append("extraHearts=").append(cfg.getInt("extraHearts", -1)).append(", ");
+            sb.append("igniteBonusTicks=").append(cfg.getInt("igniteBonusTicks", -1)).append(", ");
+            sb.append("knockbackBonus=").append(cfg.getDouble("knockbackBonus", Double.NaN)).append(", ");
+            sb.append("moveSpeedMult=").append(cfg.getDouble("moveSpeedMult", Double.NaN)).append(", ");
+            java.util.List<String> abilities = cfg.getStringList("abilities");
+            sb.append("abilities=").append(abilities == null ? "[]" : abilities.toString()).append(", ");
+            java.util.List<String> uabs = cfg.getStringList("unlockedAbilities");
+            sb.append("unlockedAbilities=").append(uabs == null ? "[]" : uabs.toString()).append(", ");
+            sb.append("shieldCurrent=").append(cfg.getDouble("shieldCurrent", Double.NaN));
+            plugin.getLogger().info(sb.toString());
+        } catch (Throwable t) {
+            plugin.getLogger().log(java.util.logging.Level.WARNING, "Failed to log player data for " + uuid + ": ", t);
+        }
+    }
+
+    /**
      * Persist a single player's full data asynchronously to avoid blocking the main thread.
      */
     public void saveAsync(SurvivorPlayer sp) {
