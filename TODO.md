@@ -42,8 +42,10 @@ Was wurde bereits implementiert (P1.2 - erledigt):
 
 Offene/zu priorisierende Tasks (klein, gezielt):
 - QA: Verifizieren, dass Stat-Modifikatoren von Glyphen/Items korrekt wirken und in UI reflektiert werden (Mehrspieler, Disconnect/Reconnect).
-- Persistenz & Reset: Sicherstellen, dass temporäre Run-Boni zurückgesetzt werden und nur gewünschte Basis-Stats dauerhaft bleiben; insbesondere: Clear Inventory / Entfernen temporärer Items nach Run-Ende oder Player-Death.
-- Glyphen-Logik (Verbesserung): Wenn Ability-Glyph-Slots voll sind, sinnvollere Auswahl/Levelup-Mechanik anzeigen (OFFEN).
+- Glyphen-Logik: Replacement-Flow implementiert (GlyphReplaceMenu, GuiClickListener handling). Manual QA recommended.
+
+Implementiert / Notes:
+- Persistenz & Reset: Basis-Persistenz + Run-Reset-Mechanik implementiert (PlayerDataManager.savePersistent, GameManager.stopGame entfernt transient modifiers + hotbar cleanup). Manual QA recommended.
 
 ### 3. Performance & FX-Throttling
 Beschreibung: FX abhängig von Distanz/FX-Setting drosseln.

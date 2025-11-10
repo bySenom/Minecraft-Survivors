@@ -373,6 +373,32 @@ public class GuiClickListener implements Listener {
             return;
         }
 
+        if (action.startsWith("glyph_replace_confirm:")) {
+            try {
+                // format: glyph_replace_confirm:abilityKey:slot:newGlyphKey
+                String[] parts = action.split(":", 4);
+                if (parts.length < 4) return;
+                String abilityKey = parts[1];
+                int slot = Integer.parseInt(parts[2]);
+                String newGlyph = parts[3];
+                var sp = plugin.getPlayerManager().get(player.getUniqueId()); if (sp == null) return;
+                boolean ok = sp.replaceGlyph(abilityKey, slot, newGlyph);
+                if (ok) {
+                    plugin.getPlayerDataManager().saveAsync(sp);
+                    org.bysenom.minecraftSurvivors.util.Msg.ok(player, "Glyph ersetzt: " + newGlyph);
+                } else {
+                    org.bysenom.minecraftSurvivors.util.Msg.err(player, "Konnte Glyph nicht ersetzen");
+                }
+                // close and resume
+                org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.markSelectionHandled(player.getUniqueId());
+                org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.setSelectionOpen(player.getUniqueId(), false);
+                org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.clearSelectionContext(player.getUniqueId());
+                try { plugin.getGameManager().resumeForPlayer(player.getUniqueId()); } catch (Throwable ignored) {}
+                try { player.closeInventory(); } catch (Throwable ignored) {}
+            } catch (Throwable ignored) {}
+            return;
+        }
+
         if (action.startsWith("glyph_remove:")) {
             try {
                 String[] parts = action.split(":", 3);
