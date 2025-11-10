@@ -560,9 +560,7 @@ public class SkillManager {
                     if (!le.isValid()) continue;
                     try {
                         double dmgTick = damage/Math.max(4, ticks/20.0);
-                        // temporarily tag player with ability key so CombatEngine attributes damage to the ability source
-                        try { p.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, "ab_void_nova")); } catch (Throwable ignored) {}
-                        try { le.damage(dmgTick, p); } finally { try { p.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }
+                        try { org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttributionNullable(plugin, p, le, dmgTick, "ab_void_nova"); } catch (Throwable ignored) {}
                     } catch (Throwable ignored) {}
                     if (gravityWell) {
                         org.bukkit.util.Vector pull = center.toVector().subtract(le.getLocation().toVector()).normalize().multiply(0.15);

@@ -120,7 +120,7 @@ public final class CombatEngine {
                         double ref = Math.max(0.0, Math.max(0.0, e.getDamage()) * Math.min(1.5, th));
                         if (ref > 0.0) {
                             org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> {
-                                try { le.damage(ref, victimPl); } catch (Throwable ignored) {}
+                                try { org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, victimPl, le, ref, "thorns"); } catch (Throwable ignored) {}
                                 try { le.getWorld().spawnParticle(org.bukkit.Particle.DAMAGE_INDICATOR, le.getLocation().add(0,1.0,0), 6, 0.2,0.2,0.2, 0.01);} catch (Throwable ignored) {}
                             });
                         }

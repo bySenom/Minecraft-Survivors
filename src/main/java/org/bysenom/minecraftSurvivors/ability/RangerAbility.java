@@ -109,13 +109,7 @@ public class RangerAbility implements Ability {
             double dist = pe.clone().subtract(closest).length();
             if (dist <= 1.0) { // Trefferbreite ~1 Block
                 drawLine(from, from.clone().add(closest), Particle.CRIT, 14);
-                try { e.damage(damage, src); } catch (Throwable ignored) {}
-                try {
-                    try { src.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(MinecraftSurvivors.getInstance(), "ab_ranged")); } catch (Throwable ignored) {}
-                    e.damage(damage, src);
-                } finally {
-                    try { org.bukkit.Bukkit.getScheduler().runTask(MinecraftSurvivors.getInstance(), () -> { try { src.removeMetadata("ms_ability_key", MinecraftSurvivors.getInstance()); } catch (Throwable ignored) {} }); } catch (Throwable ignored) {}
-                }
+                try { org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(MinecraftSurvivors.getInstance(), src, e, damage, "ab_ranged"); } catch (Throwable ignored) {}
                 // knockback
                 try { e.setVelocity(e.getVelocity().add(dir.clone().multiply(0.2))); } catch (Throwable ignored) {}
                 // sonic ring at hit

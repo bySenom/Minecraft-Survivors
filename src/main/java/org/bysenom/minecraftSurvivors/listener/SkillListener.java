@@ -88,7 +88,7 @@ public class SkillListener implements Listener {
         java.util.List<org.bukkit.entity.LivingEntity> mobs = MinecraftSurvivors.getInstance().getGameManager().getSpawnManager().getNearbyWaveMobs(loc, radius);
         for (org.bukkit.entity.LivingEntity le : mobs) {
             try {
-                le.damage(damage, p);
+                org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, le, damage, "shockwave");
                 org.bukkit.util.Vector v = le.getLocation().toVector().subtract(loc.toVector()).normalize().multiply(0.8).setY(0.25);
                 le.setVelocity(v);
             } catch (Throwable ignored) {}
@@ -209,7 +209,7 @@ public class SkillListener implements Listener {
         } catch (Throwable ignored) {}
         java.util.List<org.bukkit.entity.LivingEntity> mobs = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(at, radius);
         for (org.bukkit.entity.LivingEntity le : mobs) {
-            try { le.damage(damage, owner); } catch (Throwable ignored) {}
+            try { org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, owner, le, damage, "ab_genkidama"); } catch (Throwable ignored) {}
         }
     }
 

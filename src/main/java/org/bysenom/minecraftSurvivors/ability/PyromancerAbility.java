@@ -61,7 +61,7 @@ public class PyromancerAbility implements Ability {
                 if (sp != null && sp.isEvoPyroNova()) {
                     double novaR = Math.min(6.0, radius * 0.8);
                     for (LivingEntity m : spawnManager.getNearbyWaveMobs(loc, novaR)) {
-                        try { m.damage(Math.max(1.0, damage * 0.25), player); } catch (Throwable ignored) {}
+                        try { org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, player, m, Math.max(1.0, damage * 0.25), "ab_fire:nova"); } catch (Throwable ignored) {}
                         try { m.setFireTicks(Math.max(m.getFireTicks(), igniteTicks/2)); } catch (Throwable ignored) {}
                     }
                     for (int i = 0; i < 24; i++) {
@@ -119,11 +119,8 @@ public class PyromancerAbility implements Ability {
             } catch (Throwable ignored) {}
 
             try {
-                try { player.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, "ab_fire")); } catch (Throwable ignored) {}
-                target.damage(damage, player);
-            } finally {
-                try { org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> { try { player.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }); } catch (Throwable ignored) {}
-            }
+                org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, player, target, damage, "ab_fire");
+            } catch (Throwable ignored) {}
             try { target.setFireTicks(Math.max(target.getFireTicks(), igniteTicks)); } catch (Throwable ignored) {}
             hit++;
         }

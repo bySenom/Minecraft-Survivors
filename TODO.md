@@ -28,6 +28,14 @@ Kurz: Viele P1.3-Features rund um RoundStats wurden implementiert; verbleibende 
 ## Offene P1 (Release-kritisch) Tasks
 Diese Tasks müssen vor Release adressiert werden.
 
+Hinweis: Mehrere P1 Punkte wurden bereits im Code umgesetzt und sind nun als erledigt markiert (siehe Abschnitt "Erledigt" weiter oben):
+- Einheitliche Damage Attribution (`ms_ability_key`) für Fähigkeiten und Projektilen (DamageUtil).
+- Glyph Visibility & Reporting (glyphProcNotify + RoundStatsManager.recordSourceObserved an relevanten Stellen).
+- Robustere FX-Aufrufe (ParticleUtil.spawnSafeThrottled-Fallbacks) und Genkidama/Meteor FX sichtbar gemacht.
+- Meteor AoE und Lingering Void Attribution sowie exports in `exports/` Verzeichnis.
+
+Bleibende kritische Punkte (Priorität P1):
+
 1) QA & Bugfixes Endboss
    - Finales Balancing prüfen (Spawn Counts, Schäden, Phase-Trigger).
    - Visuelle Telegraphs und Cleanup unter Last verifizieren (inkl. Projectile/FallingBlock-Cleanup).
@@ -48,6 +56,14 @@ Diese Tasks müssen vor Release adressiert werden.
 5) Balancing-Iteration (Konfigurierbar)
    - Tuning: Crit/Lifesteal/Shield Caps (defaults prüfen). Weitere Feintuning + defaults prüfen.
 
+---
+
+Zusatz: Kleine ToDos, die ich als nächste Schritte angehen werde (P1.3 Quick Wins)
+- Implementiere `ab_ranged:headshot` glyph (Chance auf erhöhten Schaden, glyphProcNotify + RoundStats record).
+- Prüfe alle Glyph-FX auf Sichtbarkeit (Genkidama, Meteor, Inferno) und stelle sicher, dass jene FX, die speziell gebaut wurden, auch wirklich getriggert werden.
+- Ergänze RoundStats Export-JSON um Rundenlänge und Durchschnitts-Player-Level (für Balancing-Analysen).
+
+Wenn Du willst, setze ich sofort Option A (Headshot + Minimal Fire procs + Projectile metadata) um; ansonsten mache ich die TODO Bereinigung und gehe Schritt-für-Schritt die P1.3 Quick Wins durch.
 
 ---
 
@@ -59,6 +75,11 @@ Diese Sektion fasst Änderungen zusammen, die ich für Release-kritisch bzw. wic
 - Glyph‑Visibility & Reporting: Jede Glyphe, die proct (auch wenn kein Schaden entsteht), muss `glyphProcNotify(...)` und `RoundStatsManager.recordSourceObserved(...)` aufrufen, damit Reports vollständig sind.
 - Robustere FX: Partikelerzeugung über `ParticleUtil.spawnSafeThrottled(...)` mit Fallbacks; fehlende FX (z. B. Genkidama) prüfen und sicherstellen, dass zentral sichtbare Partikel/Sound abgespielt werden.
 - Config‑Driven Tuning: Alle Basis‑Werte (Damage, Cooldowns, Multipliers) müssen via `config.yml` überschreibbar sein (Release‑Konfig: `skills.*` keys). Kein harter Code‑Tuning kurz vor Release.
+- When leveling up abilities also add 3 random stats include it within the tooltip lore
+- Cap the Ability levels to 15
+- UI POLISH:
+  - ability tooltip (lore, with new stats from)
+- when a ability cap is reached it will not show up inside the levelup window it will be replace with a stat increase
 
 ### B. Kurzfristig (P1/P2) — Quick‑Wins (low risk)
 - Implementiere folgende Glyph‑Procs, die momentan nur als StatModifier registriert sind:
@@ -68,6 +89,7 @@ Diese Sektion fasst Änderungen zusammen, die ich für Release-kritisch bzw. wic
 - Standard Single‑Target Multiplier: bereits implementiert; expose `skills.single_target.multiplier` in default config und setze Default auf 1.20 (done).
 
 ### C. Mittelfristig (P2) — Architektur & Sauberkeit
+
 - Trennung von StatModifier vs Proc‑Behavior:
   - Führe ein `GlyphBehavior` Interface (onHit/onTick/onKill/onActivate) ein und registriere Implementierungen in `GlyphCatalog` oder einer neuen Registry.
   - `SkillManager` ruft die Behaviors zentral statt verstreuter `if glyphs.contains(...)` Blöcke.

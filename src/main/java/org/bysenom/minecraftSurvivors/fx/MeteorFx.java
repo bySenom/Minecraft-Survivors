@@ -76,9 +76,7 @@ public final class MeteorFx {
                     for (LivingEntity le : w.getEntitiesByClass(LivingEntity.class)) {
                         if (le.isDead() || le.getWorld() != w) continue;
                         if (le.getLocation().distanceSquared(dest) <= rad*rad) {
-                            try {
-                                if (source != null) le.damage(damage, source); else le.damage(damage);
-                            } catch (Throwable ignored) {}
+                            try { org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttributionNullable(plugin, source, le, damage, source == null ? "meteor" : "ab_lightning:genkidama"); } catch (Throwable ignored) {}
                         }
                     }
                 }

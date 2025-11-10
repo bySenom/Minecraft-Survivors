@@ -52,12 +52,7 @@ public class PaladinAbility implements Ability {
             List<LivingEntity> mobs = spawnManager.getTargetsIncludingBoss(loc, radius);
             for (LivingEntity target : mobs) {
                 if (target == null || !target.isValid()) continue;
-                try {
-                    try { player.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, "ab_holy")); } catch (Throwable ignored) {}
-                    target.damage(damage, player);
-                } finally {
-                    try { org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> { try { player.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }); } catch (Throwable ignored) {}
-                }
+                try { org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, player, target, damage, "ab_holy"); } catch (Throwable ignored) {}
             }
             // Allies heal per repeat
             try {

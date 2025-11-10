@@ -519,7 +519,7 @@ public class SpawnManager {
             } catch (Throwable ignored) {
             }
             try {
-                target.damage(damage, source);
+                org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttributionNullable(plugin, source, target, damage, source == null ? "strike_lightning" : "ab_lightning");
             } catch (Throwable ex) {
                 plugin.getLogger().warning("strikeLightningAtTarget: " + ex.getMessage());
             }
