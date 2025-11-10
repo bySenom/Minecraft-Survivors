@@ -107,8 +107,8 @@ public class RoundStatsCommand implements CommandExecutor {
             try {
                 java.nio.file.Path out = rsm.writeAggregateReportExport();
                 if (out != null) {
-                    if (sender instanceof Player p) p.sendMessage(org.bysenom.minecraftSurvivors.util.TextUtil.clickableComponent("Open summary file: " + out.getFileName().toString(), "/say report path: " + out.toAbsolutePath().toString()));
-                    sender.sendMessage(Component.text("Summary written: " + out.toAbsolutePath().toString()).color(NamedTextColor.GREEN));
+                    if (sender instanceof Player p) p.sendMessage(org.bysenom.minecraftSurvivors.util.TextUtil.clickableComponent("Open summary file: " + out.getFileName(), "/say report path: " + out.toAbsolutePath()));
+                    sender.sendMessage(Component.text("Summary written: " + out.toAbsolutePath()).color(NamedTextColor.GREEN));
                 } else {
                     sender.sendMessage(Component.text("Summary generation failed or no export files.").color(NamedTextColor.RED));
                 }
@@ -129,8 +129,8 @@ public class RoundStatsCommand implements CommandExecutor {
                 else if ("html".equals(fmt)) out = rsm.writeHtmlReportExport(snap);
                 else out = rsm.getLastReportPathJsonExport();
                 if (out != null) {
-                    if (sender instanceof Player p) p.sendMessage(org.bysenom.minecraftSurvivors.util.TextUtil.clickableComponent("Open report file: " + out.getFileName().toString(), "/say report path: " + out.toAbsolutePath().toString()));
-                    sender.sendMessage(Component.text("Report written: " + out.toAbsolutePath().toString()).color(NamedTextColor.GREEN));
+                    if (sender instanceof Player p) p.sendMessage(org.bysenom.minecraftSurvivors.util.TextUtil.clickableComponent("Open report file: " + out.getFileName(), "/say report path: " + out.toAbsolutePath()));
+                    sender.sendMessage(Component.text("Report written: " + out.toAbsolutePath()).color(NamedTextColor.GREEN));
                 } else {
                     sender.sendMessage(Component.text("Export failed.").color(NamedTextColor.RED));
                 }
