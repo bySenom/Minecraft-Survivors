@@ -34,6 +34,7 @@ This section contains automatically generated API documentation (basic).
 - [org.bysenom.minecraftSurvivors.glyph.Def](../api/org/bysenom/minecraftSurvivors/glyph/Def.md)
 - [org.bysenom.minecraftSurvivors.glyph.GlyphCatalog](../api/org/bysenom/minecraftSurvivors/glyph/GlyphCatalog.md)
 - [org.bysenom.minecraftSurvivors.gui.abilities](../api/org/bysenom/minecraftSurvivors/gui/abilities.md)
+- [org.bysenom.minecraftSurvivors.gui.GlyphReplaceMenu](../api/org/bysenom/minecraftSurvivors/gui/GlyphReplaceMenu.md)
 - [org.bysenom.minecraftSurvivors.gui.GlyphSocketMenu](../api/org/bysenom/minecraftSurvivors/gui/GlyphSocketMenu.md)
 - [org.bysenom.minecraftSurvivors.gui.GuiClickListener](../api/org/bysenom/minecraftSurvivors/gui/GuiClickListener.md)
 - [org.bysenom.minecraftSurvivors.gui.GuiManager](../api/org/bysenom/minecraftSurvivors/gui/GuiManager.md)
