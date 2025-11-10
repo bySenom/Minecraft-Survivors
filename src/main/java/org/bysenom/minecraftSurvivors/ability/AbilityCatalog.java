@@ -39,7 +39,8 @@ public final class AbilityCatalog {
                     double aps = 1000.0 / effCd;
                     double dmg = 2.0 + level * 0.8 + (sp!=null?sp.getFlatDamage():0.0);
                     double rad = 8.0 * (1.0 + (sp!=null?sp.getRadiusMult():0.0));
-                    return new Stats(dmg * (1.0 + (sp!=null?sp.getDamageMult():0.0)), aps, rad, 1.0, 0.0);
+                    // buff early-game lightning by ~20%
+                    return new Stats(dmg * 1.20 * (1.0 + (sp!=null?sp.getDamageMult():0.0)), aps, rad, 1.0, 0.0);
                 }
                 case "ab_fire": {
                     long baseCd = Math.max(400, 1400 - level * 100L);
@@ -47,7 +48,8 @@ public final class AbilityCatalog {
                     double aps = 1000.0 / effCd;
                     double rad = (4.0 + level * 0.5) * (1.0 + (sp!=null?sp.getRadiusMult():0.0));
                     double dmg = 0.8 + level * 0.4 + (sp!=null?sp.getFlatDamage():0.0) * 0.3;
-                    return new Stats(dmg * (1.0 + (sp!=null?sp.getDamageMult():0.0)), aps, rad, 1.0, 2.0);
+                    // buff fire base damage slightly for early-game
+                    return new Stats(dmg * 1.20 * (1.0 + (sp!=null?sp.getDamageMult():0.0)), aps, rad, 1.0, 2.0);
                 }
                 case "ab_ranged": {
                     long baseCd = Math.max(300, 900 - level * 60L);
@@ -55,7 +57,8 @@ public final class AbilityCatalog {
                     double aps = 1000.0 / effCd;
                     double rad = (16.0 + level * 2.0) * (1.0 + (sp!=null?sp.getRadiusMult():0.0));
                     double dmg = 1.8 + level * 0.6 + (sp!=null?sp.getFlatDamage():0.0) * 0.6;
-                    return new Stats(dmg * (1.0 + (sp!=null?sp.getDamageMult():0.0)), aps, rad, 1.0, 0.0);
+                    // buff ranged single-target baseline
+                    return new Stats(dmg * 1.20 * (1.0 + (sp!=null?sp.getDamageMult():0.0)), aps, rad, 1.0, 0.0);
                 }
                 case "ab_holy": {
                     long baseCd = Math.max(600, 1800 - level * 120L);
@@ -63,7 +66,8 @@ public final class AbilityCatalog {
                     double aps = 1000.0 / effCd;
                     double rad = (5.0 + level * 0.6 + (sp!=null?sp.getRadiusMult():0.0) * 2.0);
                     double dmg = 1.2 + level * 0.5 + (sp!=null?sp.getFlatDamage():0.0) * 0.4;
-                    return new Stats(dmg * (1.0 + (sp!=null?sp.getDamageMult():0.0)), aps, rad, 1.0, 0.0);
+                    // buff holy slightly for early-game survivability
+                    return new Stats(dmg * 1.20 * (1.0 + (sp!=null?sp.getDamageMult():0.0)), aps, rad, 1.0, 0.0);
                 }
                 case "ab_shockwave": {
                     long baseCd = 800 - Math.min(600, level * 60L);

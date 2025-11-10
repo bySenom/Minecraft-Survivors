@@ -205,7 +205,7 @@ public class SkillManager {
         boolean fancyLightning = plugin.getConfigUtil().getBoolean("visuals.lightning.fancy", true);
         try {
             target.getWorld().strikeLightningEffect(target.getLocation());
-            double singleMult = plugin.getConfigUtil().getDouble("skills.single_target.multiplier", 1.10);
+            double singleMult = plugin.getConfigUtil().getDouble("skills.single_target.multiplier", 1.20);
             try { p.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, "ab_lightning")); } catch (Throwable ignored) {}
             try { target.damage(damage * singleMult * (1.0 + sp.getDamageMult()), p); } finally { try { p.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }
             org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(target.getWorld(), Particle.ELECTRIC_SPARK, target.getLocation().add(0,1.0,0), 14, 0.3,0.3,0.3, 0.02);
@@ -360,7 +360,7 @@ public class SkillManager {
                 if (cur.distanceSquared(tgt.getLocation()) < 1.0) {
                     try {
                         try { p.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, "ab_ranged")); } catch (Throwable ignored) {}
-                        double singleMult = plugin.getConfigUtil().getDouble("skills.single_target.multiplier", 1.10);
+                        double singleMult = plugin.getConfigUtil().getDouble("skills.single_target.multiplier", 1.20);
                         try { tgt.damage(damage * singleMult * (1.0 + sp.getDamageMult()), p); } finally { try { p.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }
                     } catch (Throwable t1) { plugin.getLogger().log(java.util.logging.Level.FINE, "shootRangedProjectile hit damage failed for player " + p.getUniqueId() + ": ", t1); }
                     try { p.playSound(cur, org.bukkit.Sound.ENTITY_ARROW_HIT_PLAYER, 0.5f, 1.6f); } catch (Throwable ignored) {}
