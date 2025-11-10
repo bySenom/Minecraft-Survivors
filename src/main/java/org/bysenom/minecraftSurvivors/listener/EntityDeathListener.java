@@ -124,6 +124,8 @@ public class EntityDeathListener implements Listener {
                         sp.getEffectiveDamageMult()*100.0, sp.getCritChance()*100.0, sp.getCritDamage()*100.0, sp.getShieldMax(), sp.getHpRegen());
                 try { player.sendActionBar(Component.text(snapshot)); } catch (Throwable ignored) {}
             } catch (Throwable ignored) {}
+            // Persist player data asynchronously so rewards/choices are saved immediately
+            try { org.bysenom.minecraftSurvivors.MinecraftSurvivors.getInstance().getPlayerDataManager().saveAsync(sp); } catch (Throwable ignored) {}
         }
     }
 

@@ -33,13 +33,12 @@ Anmerkung: Balancing (Schadenswerte, Spawn-Counts) und finale QA sind weiterhin 
 ### 2. Neue Stats in UI/Progression verfügbar (IN ARBEIT - 2025-11-10)
 Beschreibung: LevelUp/Shop/Loot bieten und zeigen neue Stats (Max Health, HP Regen, Shield, Armor, Evasion, Lifesteal, Thorns, Crit Chance, Crit Damage, Projectile Count, Attack Speed, Projectile Bounce, Size, Duration, Damage vs. Elites/Bosses, Knockback, Jump Height, XP Gain, Elite Spawn Increase, Powerup Multiplier).
 Status: In Arbeit — Basis-Implementierung vorhanden (LevelUp-Menü zeigt Stat-Picks, `GuiManager` zeigt Stat-Overview, `GameManager` ActionBar-HUD zeigt XP + Level).
-Was wurde bereits implementiert:
-- UI Polish (Abilties Items on Hotbar, fix broken elements)
-- Rework Meta Shop for persistent stats (OFFEN)
+Was wurde bereits implementiert (P1.2 - erledigt):
 - LevelUp-Menü zeigt Stat-Picks + kurze Beschreibungen (LevelUpMenu).
 - Basis-Persistenz für wichtige Basis-Stats (`hpRegenBase`, `damageMult`, `flatDamage`, `extraHearts`, u.a.) implementiert in `PlayerDataManager`.
 - UI Rundung/Format: HUD/Stats/LevelUp vereinheitlicht (1 Dezimalstelle).
 - LevelUp → automatische Speicherung (saveAsync) nach Auswahl / beim LevelUp (LevelUpMenu + EntityDeathListener).
+- Clear Inventory & final save on run end implemented (GameManager.stopGame).
 
 Offene/zu priorisierende Tasks (klein, gezielt):
 - QA: Verifizieren, dass Stat-Modifikatoren von Glyphen/Items korrekt wirken und in UI reflektiert werden (Mehrspieler, Disconnect/Reconnect).
