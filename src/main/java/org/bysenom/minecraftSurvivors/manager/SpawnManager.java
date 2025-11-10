@@ -58,9 +58,12 @@ public class SpawnManager {
     private static final org.bukkit.NamespacedKey FOLLOW_RANGE = org.bukkit.NamespacedKey.minecraft("generic.follow_range");
 
     // PDC Keys für Baseline-Attribute
-    private static final org.bukkit.NamespacedKey BASE_MAX_HP = new org.bukkit.NamespacedKey("minecraftsurvivors", "base_max_hp");
-    private static final org.bukkit.NamespacedKey BASE_SPEED = new org.bukkit.NamespacedKey("minecraftsurvivors", "base_speed");
-    private static final org.bukkit.NamespacedKey BASE_DAMAGE = new org.bukkit.NamespacedKey("minecraftsurvivors", "base_damage");
+    private final org.bukkit.NamespacedKey BASE_MAX_HP = new org.bukkit.NamespacedKey("minecraftsurvivors", "base_max_hp");
+    private final org.bukkit.NamespacedKey BASE_SPEED = new org.bukkit.NamespacedKey("minecraftsurvivors", "base_speed");
+    private final org.bukkit.NamespacedKey BASE_DAMAGE = new org.bukkit.NamespacedKey("minecraftsurvivors", "base_damage");
+
+    // Owner key: stores the UUID string of the player (or party leader) that 'owns' this wave mob
+    private final org.bukkit.NamespacedKey waveOwnerKey = new org.bukkit.NamespacedKey("minecraftsurvivors", "wave_owner");
 
     public SpawnManager(MinecraftSurvivors plugin, @SuppressWarnings("unused") PlayerManager playerManager) {
         this.plugin = plugin;
@@ -204,12 +207,16 @@ public class SpawnManager {
         int glowTicks = plugin.getConfigUtil().getInt("spawn.glowing-duration-ticks", 20 * 60 * 5);
 
         for (Player player : Bukkit.getOnlinePlayers()) {
+            // compute owner: if player is in a party, use the party leader as owner so party members share waves
+            java.util.UUID ownerUuid = getOwnerUuidForPlayer(player);
             for (int i = 0; i < perPlayer; i++) {
                 Location spawnLoc = randomNearby(player.getLocation(), minDist, maxDist);
                 LivingEntity mob = (LivingEntity) player.getWorld().spawnEntity(spawnLoc, EntityType.ZOMBIE);
 
                 // mark as wave mob
                 mob.getPersistentDataContainer().set(waveKey, PersistentDataType.BYTE, (byte) 1);
+                // tag owner so we can filter per-player/party visibility
+                try { if (ownerUuid != null) mob.getPersistentDataContainer().set(waveOwnerKey, PersistentDataType.STRING, ownerUuid.toString()); } catch (Throwable ignored) {}
                 captureBaselineIfMissing(mob);
 
                 if (shouldGlow) {
@@ -365,12 +372,33 @@ public class SpawnManager {
         java.util.ArrayList<LivingEntity> out = new java.util.ArrayList<>();
         if (center == null || center.getWorld() == null) return out;
         double rsq = radius * radius;
+        // viewer resolution: try to find player near center to determine ownership visibility
+        java.util.UUID viewer = findNearbyPlayerUuid(center);
         for (Entity e : center.getWorld().getEntities()) {
             if (!(e instanceof LivingEntity)) continue;
             LivingEntity le = (LivingEntity) e;
             if (!le.getPersistentDataContainer().has(waveKey, PersistentDataType.BYTE)) continue;
             if (le.getLocation().distanceSquared(center) > rsq) continue;
-            out.add(le);
+            // owner filtering: if mob has owner tag, include only when viewer matches owner or shares party
+            if (le.getPersistentDataContainer().has(waveOwnerKey, PersistentDataType.STRING)) {
+                String ownerStr = le.getPersistentDataContainer().get(waveOwnerKey, PersistentDataType.STRING);
+                if (ownerStr == null) continue;
+                try {
+                    java.util.UUID owner = java.util.UUID.fromString(ownerStr);
+                    if (viewer == null) continue; // cannot determine viewer -> don't leak owner restricted mobs
+                    if (owner.equals(viewer)) { out.add(le); continue; }
+                    // allow if viewer is in same party as owner
+                    try {
+                        var pm = plugin.getPartyManager();
+                        var party = pm != null ? pm.getPartyOf(viewer) : null;
+                        if (party != null && party.isMember(owner)) { out.add(le); }
+                    } catch (Throwable ignored) {}
+                } catch (Throwable ignored) {
+                    // ignore malformed owner
+                }
+            } else {
+                out.add(le);
+            }
         }
         return out;
     }
@@ -792,6 +820,8 @@ public class SpawnManager {
                  } catch (Throwable ignored) {
                  }
                 mob.getPersistentDataContainer().set(waveKey, PersistentDataType.BYTE, (byte) 1);
+                // in continuous spawn also tag the owner (same logic as above)
+                try { java.util.UUID ownerUuid = getOwnerUuidForPlayer(p); if (ownerUuid != null) mob.getPersistentDataContainer().set(waveOwnerKey, PersistentDataType.STRING, ownerUuid.toString()); } catch (Throwable ignored) {}
                 captureBaselineIfMissing(mob);
                 // Elite roll
                 maybeMakeElite(mob);
@@ -829,12 +859,38 @@ public class SpawnManager {
         if (center == null || center.getWorld() == null) return 0;
         double r2 = radius * radius;
         int count = 0;
+        // Determine viewer/player near the center to filter by owner (if present)
+        java.util.UUID viewer = findNearbyPlayerUuid(center);
         for (Entity e : center.getWorld().getEntities()) {
             if (!(e instanceof LivingEntity)) continue;
             if (!e.getPersistentDataContainer().has(waveKey, PersistentDataType.BYTE)) continue;
             if (e.getLocation().distanceSquared(center) <= r2) count++;
         }
         return count;
+    }
+
+    // Helper: determines owner UUID for a player (party leader if in party, otherwise player uuid)
+    private java.util.UUID getOwnerUuidForPlayer(Player p) {
+        if (p == null) return null;
+        try {
+            var pm = plugin.getPartyManager();
+            if (pm != null) {
+                var party = pm.getPartyOf(p.getUniqueId());
+                if (party != null) return party.getLeader();
+            }
+        } catch (Throwable ignored) {}
+        return p.getUniqueId();
+    }
+
+    // Helper: find a nearby player whose location matches the center (within small radius)
+    private java.util.UUID findNearbyPlayerUuid(Location center) {
+        if (center == null || center.getWorld() == null) return null;
+        double maxDistSq = 4.0; // within 2 blocks
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (p.getWorld() != center.getWorld()) continue;
+            if (p.getLocation().distanceSquared(center) <= maxDistSq) return p.getUniqueId();
+        }
+        return null;
     }
 
     private void applyScaling(LivingEntity mob, double minutes) {
