@@ -252,6 +252,8 @@ public class GameManager {
         state = GameState.ENDED;
         if (currentWaveTask != null) currentWaveTask.cancel();
         spawnManager.stopContinuous();
+        // Extra safety: cancel any scheduled tasks SpawnManager might have registered (delayed equips, animations, enforcer, etc.)
+        try { spawnManager.cancelAllScheduledTasks(); } catch (Throwable ignored) {}
         spawnManager.clearWaveMobs();
         abilityManager.stop();
         try { plugin.getSkillManager().clearLingeringEffects(); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "skillManager.clearLingeringEffects failed: ", t); }

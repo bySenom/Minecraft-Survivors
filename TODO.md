@@ -127,24 +127,26 @@ Ziel: Vorbereitung auf finalen Release-Block; Fokus auf QA, Balancing, CI-Stabil
 Erledigt (P1.3 - laufende Arbeiten)
 - FX / Particle Throttling: per-player FX toggle berücksichtigt (Code: `org.bysenom.minecraftSurvivors.util.ParticleUtil.shouldThrottle` angepasst). (2025-11-10)
 - Boss UI / Scheduling Safety: Alle `runTaskLater`/`runTaskTimer` Aufrufe im `BossManager` werden jetzt in `scheduledTasks` registriert und sauber in `clearUi()` gecancelt; Meteor/FallingBlock-Cleanup verbessert. (2025-11-10)
+- SpawnManager scheduling: `SpawnManager` trackt jetzt `runTaskTimer`/`runTaskLater`-Aufrufe (scalingTask, aggroTask, continuousTask, delayed equips, freezeEnforcerTask, spawn animation) und bietet `cancelAllScheduled()`; `stopContinuous()` ruft das Cleanup. (2025-11-10)
 - Code-Formatierung (Spotless): `:spotlessApply` ausgeführt; `SurvivorPlayerTest` und Formatierungsprobleme behoben. (2025-11-10)
+- CI: Minimaler GitHub Actions Workflow hinzugefügt (`.github/workflows/ci.yml`) zur automatischen Prüfung von Spotless + Build (noch nicht auf Remote ausgeführt). (2025-11-10)
 
 Priorisierte verbleibende Tasks (P1.3):
 1. QA & Bugfixes Endboss
-   - Finales Balancing prüfen (Spawn Counts, Schäden, Phase-Trigger).
-   - Visuelle Telegraphs und Cleanup verifizieren unter Last (inkl. Projectile/FallingBlock-Cleanup).  # (Cleanup verbessert, QA noch offen)
-   - Smoke-tests: Boss-Spawn + Kill unter 1–8 Spieler-Szenarien.
+   - Finales Balancing prüfen (Spawn Counts, Schäden, Phase-Trigger).  # offen
+   - Visuelle Telegraphs und Cleanup verifizieren unter Last (inkl. Projectile/FallingBlock-Cleanup).  # offen
+   - Smoke-tests: Boss-Spawn + Kill unter 1–8 Spieler-Szenarien.  (Teilweise erledigt: `/msboss smoketest` helper hinzugefügt — manuelle Runs erforderlich)
 2. Wellen / Continuous Mode Stabilität
-   - Reproduzierbare QA-Szenarien für Continuous Mode erstellen; edge-cases (mid-run restart, player reconnect) prüfen.
-   - Verify: alle laufenden Schedulers werden beim Stop gecancelt (no leaking runnables).  # (SpawnManager/ensureScalingTask/aggroTask/continuousTask nutzen tracking; QA notwendig)
+   - Reproduzierbare QA-Szenarien für Continuous Mode erstellen; edge-cases (mid-run restart, player reconnect) prüfen.  # offen
+   - Verify: alle laufenden Schedulers werden beim Stop gecancelt (no leaking runnables).  (Erledigt: `SpawnManager` und `BossManager` tracken jetzt scheduled tasks und canceln sie; QA empfohlen)
 3. Tests & CI
-   - Stabilisierung von `SurvivorPlayerTest` und zentralen CombatEngine-Tests.
-   - Sicherstellen, dass CI (Build, Spotless, Tests) grün läuft.
+   - Stabilisierung von `SurvivorPlayerTest` und zentralen CombatEngine-Tests.  # offen
+   - Sicherstellen, dass CI (Build, Spotless, Tests) grün läuft (Remote-Run nach Push prüfen).  (Teilweise: CI-Workflow `.github/workflows/ci.yml` hinzugefügt)
 4. Dokumentation & Release-Checklist
-   - README: Getting Started, Config-Cheatsheet, neue Stats.
-   - Release-Checklist: smoke-tests, TPS-check, Endboss QA, DB/PlayerData Backup-Plan.
+   - README: Getting Started, Config-Cheatsheet, neue Stats.  # offen
+   - Release-Checklist: smoke-tests, TPS-check, Endboss QA, DB/PlayerData Backup-Plan.  # offen
 5. Balancing-Iteration
-   - Konfigurierbare Caps (Crit/Lifesteal/Shield) in `ConfigUtil` prüfen und dokumentieren.
+   - Konfigurierbare Caps (Crit/Lifesteal/Shield) in `ConfigUtil` prüfen und dokumentieren.  # offen
 
 Akzeptanzkriterien P1.3:
 - CI: Build, Tests & Spotless grün.
