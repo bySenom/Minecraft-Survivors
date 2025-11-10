@@ -129,8 +129,8 @@ Priorisierte Tasks:
    - Finales Balancing prüfen (Spawn Counts, Schäden, Phase-Trigger).
    - Visuelle Telegraphs und Cleanup verifizieren unter Last (inkl. Projectile/FallingBlock-Cleanup).
    - Smoke-tests: Boss-Spawn + Kill unter 1–8 Spieler-Szenarien.
-2. FX / Particle Throttling
-   - Rate-Limiter Feintuning in `ParticleUtil` (per-player / per-world / distance-based throttling).
+2. FX / Particle Throttling (TEILWEISE ERLEDIGT)
+   - Rate-Limiter Feintuning in `ParticleUtil` (per-player / per-world / distance-based throttling).  # (Änderung: per-player FX toggle berücksichtigt — `ParticleUtil` aktualisiert)
    - Globaler Config-Regler + Spieler-Toggle testen.
 3. Wellen / Continuous Mode Stabilität
    - Reproduzierbare QA-Szenarien für Continuous Mode erstellen; edge-cases (mid-run restart, player reconnect) prüfen.
