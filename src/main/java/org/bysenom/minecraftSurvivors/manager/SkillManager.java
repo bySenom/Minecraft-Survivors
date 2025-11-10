@@ -731,10 +731,19 @@ public class SkillManager {
             org.bukkit.entity.Player ownerPl = f.owner == null ? null : org.bukkit.Bukkit.getPlayer(f.owner);
             for (org.bukkit.entity.LivingEntity le : plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(f.center, f.radius)) {
                 try {
+                    double dmg = f.damage/2.0;
                     if (ownerPl != null && ownerPl.isOnline()) {
-                        le.damage(f.damage/2.0, ownerPl); // triggert EntityDamageByEntityEvent -> StatsMeterManager.recordDamage
+                        // Temporarily set ms_ability_key on owner so CombatEngine attributes damage to the ability source
+                        try {
+                            ownerPl.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, "ab_void_nova:lingering_void"));
+                        } catch (Throwable ignored) {}
+                        try {
+                            le.damage(dmg, ownerPl);
+                        } finally {
+                            try { ownerPl.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {}
+                        }
                     } else {
-                        le.damage(f.damage/2.0); // Fallback ohne Attribution
+                        le.damage(dmg); // Fallback ohne Attribution
                     }
                 } catch (Throwable ignored) {}
             }
