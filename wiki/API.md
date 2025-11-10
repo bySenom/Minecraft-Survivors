@@ -25,6 +25,7 @@ This section contains automatically generated API documentation (basic).
 - [org.bysenom.minecraftSurvivors.command.Pair](../api/org/bysenom/minecraftSurvivors/command/Pair.md)
 - [org.bysenom.minecraftSurvivors.command.PartyCommand](../api/org/bysenom/minecraftSurvivors/command/PartyCommand.md)
 - [org.bysenom.minecraftSurvivors.command.PartyTabCompleter](../api/org/bysenom/minecraftSurvivors/command/PartyTabCompleter.md)
+- [org.bysenom.minecraftSurvivors.command.PlayerDataCommand](../api/org/bysenom/minecraftSurvivors/command/PlayerDataCommand.md)
 - [org.bysenom.minecraftSurvivors.command.SpawnGlyphCommand](../api/org/bysenom/minecraftSurvivors/command/SpawnGlyphCommand.md)
 - [org.bysenom.minecraftSurvivors.command.SpawnGlyphTabCompleter](../api/org/bysenom/minecraftSurvivors/command/SpawnGlyphTabCompleter.md)
 - [org.bysenom.minecraftSurvivors.command.StartCommand](../api/org/bysenom/minecraftSurvivors/command/StartCommand.md)
