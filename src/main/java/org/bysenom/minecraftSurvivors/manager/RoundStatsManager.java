@@ -83,6 +83,18 @@ public class RoundStatsManager {
         snap.killsByPlayer = new HashMap<>(killsByPlayer);
         snap.coinsByPlayer = new HashMap<>(coinsByPlayer);
         snap.lootchestsByPlayer = new HashMap<>(lootchestsByPlayer);
+        // populate player name map for offline-friendly reports
+        Map<java.util.UUID, String> names = new HashMap<>();
+        for (java.util.UUID id : snap.damageByPlayer.keySet()) {
+            String name = null;
+            try { var pm = plugin.getPlayerManager().get(id); if (pm != null) name = pm.getName(); } catch (Throwable ignored) {}
+            if (name == null) {
+                try { var off = org.bukkit.Bukkit.getOfflinePlayer(id); if (off != null) name = off.getName(); } catch (Throwable ignored) {}
+            }
+            if (name == null) name = "<unknown>";
+            names.put(id, name);
+        }
+        snap.playerNames = names;
         lastSnapshot = snap;
         // write admin file (auto-generated, will be cleared on server start)
         try { writeJsonReportAuto(snap); } catch (Throwable ignored) {}
@@ -135,6 +147,8 @@ public class RoundStatsManager {
                     pw.println("section,key,value");
                     for (var en : snap.damageBySource.entrySet()) pw.println("damageSource," + escapeCsv(en.getKey()) + "," + String.format(java.util.Locale.ROOT, "%.3f", en.getValue()));
                     for (var en : snap.damageByPlayer.entrySet()) pw.println("damagePlayer," + en.getKey().toString() + "," + String.format(java.util.Locale.ROOT, "%.3f", en.getValue()));
+                    // write player name mapping (uuid -> name) for easier parsing
+                    for (var pn : snap.playerNames.entrySet()) pw.println("playerName," + pn.getKey().toString() + "," + escapeCsv(pn.getValue()));
                     for (var en : snap.killsByPlayer.entrySet()) pw.println("kills," + en.getKey().toString() + "," + en.getValue());
                     for (var en : snap.coinsByPlayer.entrySet()) pw.println("coins," + en.getKey().toString() + "," + en.getValue());
                     for (var en : snap.lootchestsByPlayer.entrySet()) pw.println("lootchests," + en.getKey().toString() + "," + en.getValue());
@@ -184,8 +198,7 @@ public class RoundStatsManager {
                     pw.println("<table><tr><th>Player UUID</th><th>Name</th><th>Damage</th><th>Kills</th><th>Coins</th><th>Lootchests</th></tr>");
                     snap.damageByPlayer.entrySet().stream().sorted((a,b)-> Double.compare(b.getValue(), a.getValue())).forEach(en -> {
                         try {
-                            String name = "<unknown>";
-                            try { var pl = org.bukkit.Bukkit.getPlayer(en.getKey()); if (pl != null) name = pl.getName(); } catch (Throwable ignored) {}
+                            String name = snap.playerNames != null ? snap.playerNames.getOrDefault(en.getKey(), "<unknown>") : "<unknown>";
                             int kills = snap.killsByPlayer.getOrDefault(en.getKey(), 0);
                             int coins = snap.coinsByPlayer.getOrDefault(en.getKey(), 0);
                             int loot = snap.lootchestsByPlayer.getOrDefault(en.getKey(), 0);
@@ -246,6 +259,7 @@ public class RoundStatsManager {
         public Map<UUID, Integer> killsByPlayer = Collections.emptyMap();
         public Map<UUID, Integer> coinsByPlayer = Collections.emptyMap();
         public Map<UUID, Integer> lootchestsByPlayer = Collections.emptyMap();
+        public Map<UUID, String> playerNames = Collections.emptyMap(); // new field for player name mapping
 
         public String toJson() {
             StringBuilder sb = new StringBuilder();
@@ -258,6 +272,10 @@ public class RoundStatsManager {
                 if (i++ > 0) sb.append(',');
                 sb.append('"').append(escape(en.getKey())).append('"').append(':').append(String.format(Locale.ROOT, "%.3f", en.getValue()));
             }
+            sb.append("},");
+            // player name mapping
+            sb.append("\"playerNames\":{"); i = 0;
+            for (var en : playerNames.entrySet()) { if (i++>0) sb.append(','); sb.append('"').append(en.getKey().toString()).append('"').append(':').append('"').append(escape(en.getValue())).append('"'); }
             sb.append("},");
             sb.append("\"damageByPlayer\":{"); i = 0;
             for (var en : damageByPlayer.entrySet()) { if (i++>0) sb.append(','); sb.append('"').append(en.getKey().toString()).append('"').append(':').append(String.format(Locale.ROOT, "%.3f", en.getValue())); }

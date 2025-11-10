@@ -16,6 +16,9 @@ Status-Update (2025-11-10)
 Erledigt (Code)
 - RoundStats: per-round exports (JSON/CSV/HTML) + `exports/YYYY-MM-DD/` folder.
 - RoundStats: `/msroundstats export|summary|show` + GUI skeleton implemented.
+- RoundStats: player name mapping added to exports (JSON/CSV/HTML) for offline-friendly reports.
+- RoundStats: lingering_void damage attribution implemented (ab_void_nova:lingering_void) via temporary metadata so DPS breakdown is accurate.
+- RoundStats: `openfile` command now searches `exports/` recursively; command uses recursive export lookup for recent JSONs.
 - Auto-report cleanup on plugin start for `roundstats_auto_*` files.
 - Balancing config keys added and applied: crit cap, lifesteal cap, shield regen delay (tick-based fallback to seconds).
 - README: RoundStats admin documentation added.
