@@ -91,61 +91,89 @@ public class BossDebugCommand implements CommandExecutor {
                 }
             }
             case "smoketest", "testcleanup" -> {
-                // Spawn boss if not active, then after a delay report meteorEntities and scheduledTasks, force-end and recheck cleanup
-                try {
-                    if (!bm.isBossActive()) {
-                        bm.debugSpawnBoss();
-                        p.sendMessage("§aBoss gespawnt für Smoketest...");
-                    } else {
-                        p.sendMessage("§eBoss bereits aktiv — Smoketest startet...");
-                    }
-                } catch (Throwable t) { p.sendMessage("§cSpawn fehlgeschlagen: " + t.getMessage()); continue; }
+                // Optional: /msboss smoketest [N] -> run N iterations (default 1, max 20)
+                int iterations = 1;
+                if (args.length > 1) {
+                    try { iterations = Integer.parseInt(args[1]); } catch (Throwable ignored) {}
+                }
+                iterations = Math.max(1, Math.min(20, iterations));
+                final int iters = iterations;
+                p.sendMessage("§aSmoketest: starte " + iters + " Durchläufe (jeweils ~10s + Cleanup)");
 
-                long delay = 200L; // 10s
-                org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                java.util.List<String> reports = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+                final java.util.concurrent.atomic.AtomicInteger idx = new java.util.concurrent.atomic.AtomicInteger(0);
+
+                // Runner: executes one iteration and schedules the next until done
+                final Runnable[] runner = new Runnable[1];
+                runner[0] = () -> {
+                    int i = idx.getAndIncrement();
+                    if (i >= iters) {
+                        // finished: send aggregated reports
+                        p.sendMessage("§6[Smoketest-Ergebnis] Gesamtreport:");
+                        for (String r : reports) {
+                            try { p.sendMessage(r); } catch (Throwable ignored) {}
+                        }
+                        p.sendMessage("§aSmoketest abgeschlossen.");
+                        return;
+                    }
+                    final int runNo = i + 1;
                     try {
-                        int meteorCount = -1;
-                        int scheduledCount = -1;
+                        if (!bm.isBossActive()) {
+                            try { bm.debugSpawnBoss(); } catch (Throwable ignoreSpawn) { p.sendMessage("§cSpawn fehlgeschlagen: " + ignoreSpawn.getMessage()); }
+                        }
+                        p.sendMessage("§e[Smoketest] Run " + runNo + "/" + iters + " gestartet...");
+                    } catch (Throwable t) { p.sendMessage("§cSmoketest Start-Fehler: " + t.getMessage()); }
+
+                    long delay = 200L; // 10s
+                    org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
                         try {
-                            java.lang.reflect.Field fm = BossManager.class.getDeclaredField("meteorEntities");
-                            fm.setAccessible(true);
-                            Object obj = fm.get(bm);
-                            if (obj instanceof java.util.Collection<?> c) meteorCount = c.size();
-                        } catch (Throwable ignored) {}
-                        try {
-                            java.lang.reflect.Field fs = BossManager.class.getDeclaredField("scheduledTasks");
-                            fs.setAccessible(true);
-                            Object obj = fs.get(bm);
-                            if (obj instanceof java.util.Collection<?> c) scheduledCount = c.size();
-                        } catch (Throwable ignored) {}
-                        boolean active = bm.isBossActive();
-                        p.sendMessage("§6[Smoketest] Nach " + (delay/20) + "s: BossActive=" + active + ", Meteors=" + meteorCount + ", ScheduledTasks=" + scheduledCount);
-                        // Force end
-                        try { bm.forceEnd(); } catch (Throwable ignored) {}
-                        // Re-check after short delay
-                        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                            int meteorCount = -1;
+                            int scheduledCount = -1;
                             try {
-                                int meteorCount2 = -1;
-                                int scheduledCount2 = -1;
+                                java.lang.reflect.Field fm = BossManager.class.getDeclaredField("meteorEntities");
+                                fm.setAccessible(true);
+                                Object obj = fm.get(bm);
+                                if (obj instanceof java.util.Collection<?> c) meteorCount = c.size();
+                            } catch (Throwable ignored) {}
+                            try {
+                                java.lang.reflect.Field fs = BossManager.class.getDeclaredField("scheduledTasks");
+                                fs.setAccessible(true);
+                                Object obj = fs.get(bm);
+                                if (obj instanceof java.util.Collection<?> c) scheduledCount = c.size();
+                            } catch (Throwable ignored) {}
+                            boolean active = bm.isBossActive();
+                            reports.add("[Run " + runNo + "] Vor Cleanup: BossActive=" + active + ", Meteors=" + meteorCount + ", ScheduledTasks=" + scheduledCount);
+                            // Force end
+                            try { bm.forceEnd(); } catch (Throwable ignored) {}
+                            // Re-check after short delay
+                            org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
                                 try {
-                                    java.lang.reflect.Field fm2 = BossManager.class.getDeclaredField("meteorEntities");
-                                    fm2.setAccessible(true);
-                                    Object obj2 = fm2.get(bm);
-                                    if (obj2 instanceof java.util.Collection<?> c2) meteorCount2 = c2.size();
-                                } catch (Throwable ignored) {}
-                                try {
-                                    java.lang.reflect.Field fs2 = BossManager.class.getDeclaredField("scheduledTasks");
-                                    fs2.setAccessible(true);
-                                    Object obj2 = fs2.get(bm);
-                                    if (obj2 instanceof java.util.Collection<?> c2) scheduledCount2 = c2.size();
-                                } catch (Throwable ignored) {}
-                                boolean active2 = bm.isBossActive();
-                                p.sendMessage("§6[Smoketest] Nach Cleanup: BossActive=" + active2 + ", Meteors=" + meteorCount2 + ", ScheduledTasks=" + scheduledCount2);
-                            } catch (Throwable t2) { p.sendMessage("§cSmoketest ReCheck Fehler: " + t2.getMessage()); }
-                        }, 40L);
-                    } catch (Throwable t) { p.sendMessage("§cSmoketest Fehler: " + t.getMessage()); }
-                }, delay);
-                p.sendMessage("§aSmoketest läuft — Ergebnis in ~" + (delay/20) + "s.");
+                                    int meteorCount2 = -1;
+                                    int scheduledCount2 = -1;
+                                    try {
+                                        java.lang.reflect.Field fm2 = BossManager.class.getDeclaredField("meteorEntities");
+                                        fm2.setAccessible(true);
+                                        Object obj2 = fm2.get(bm);
+                                        if (obj2 instanceof java.util.Collection<?> c2) meteorCount2 = c2.size();
+                                    } catch (Throwable ignored) {}
+                                    try {
+                                        java.lang.reflect.Field fs2 = BossManager.class.getDeclaredField("scheduledTasks");
+                                        fs2.setAccessible(true);
+                                        Object obj2 = fs2.get(bm);
+                                        if (obj2 instanceof java.util.Collection<?> c2) scheduledCount2 = c2.size();
+                                    } catch (Throwable ignored) {}
+                                    boolean active2 = bm.isBossActive();
+                                    reports.add("[Run " + runNo + "] Nach Cleanup: BossActive=" + active2 + ", Meteors=" + meteorCount2 + ", ScheduledTasks=" + scheduledCount2);
+                                } catch (Throwable t2) { reports.add("[Run " + runNo + "] ReCheck Fehler: " + t2.getMessage()); }
+                                // schedule next run (1 tick delay to yield)
+                                org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> { try { runner[0].run(); } catch (Throwable ignored) {} });
+                            }, 40L);
+                        } catch (Throwable t) { p.sendMessage("§cSmoketest Fehler: " + t.getMessage()); org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> { try { runner[0].run(); } catch (Throwable ignored) {} }); }
+                    }, delay);
+                };
+
+                // start the chain
+                org.bukkit.Bukkit.getScheduler().runTask(plugin, runner[0]);
             }
             case "aggro" -> {
                 if (!bm.isBossActive()) { p.sendMessage("§7Kein Boss aktiv."); }
