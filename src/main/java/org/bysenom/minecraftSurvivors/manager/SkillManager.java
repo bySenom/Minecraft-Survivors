@@ -205,8 +205,9 @@ public class SkillManager {
         boolean fancyLightning = plugin.getConfigUtil().getBoolean("visuals.lightning.fancy", true);
         try {
             target.getWorld().strikeLightningEffect(target.getLocation());
+            double singleMult = plugin.getConfigUtil().getDouble("skills.single_target.multiplier", 1.10);
             try { p.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, "ab_lightning")); } catch (Throwable ignored) {}
-            try { target.damage(damage * (1.0 + sp.getDamageMult()), p); } finally { try { p.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }
+            try { target.damage(damage * singleMult * (1.0 + sp.getDamageMult()), p); } finally { try { p.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }
             org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(target.getWorld(), Particle.ELECTRIC_SPARK, target.getLocation().add(0,1.0,0), 14, 0.3,0.3,0.3, 0.02);
             p.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.2f, 2.0f);
             if (fancyAll && fancyLightning) {
@@ -241,16 +242,24 @@ public class SkillManager {
             // Genkidama: kleine Chance, großen Meteor zu rufen
             if (glyphs.contains("ab_lightning:genkidama") && java.util.concurrent.ThreadLocalRandom.current().nextInt(20) == 0) {
                 org.bukkit.Location center = target.getLocation();
+                // meteor visual: spawn several particles high above and add central explosion/cloud for visibility
                 for (int i=0;i<6;i++) {
                     org.bukkit.Location l = center.clone().add((java.util.concurrent.ThreadLocalRandom.current().nextDouble()-0.5)*3, 8+i*0.6, (java.util.concurrent.ThreadLocalRandom.current().nextDouble()-0.5)*3);
-                    org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafe(center.getWorld(), Particle.END_ROD, l, 6, 0.08, 0.08, 0.08, 0.0);
+                    try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(center.getWorld(), Particle.END_ROD, l, 6, 0.08, 0.08, 0.08, 0.0); } catch (Throwable ignored) {}
                 }
+                // stronger central visuals to ensure Genkidama is visible
+                try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(center.getWorld(), Particle.SONIC_BOOM, center, 3, 0.4,0.4,0.4, 0.0); } catch (Throwable ignored) {}
+                try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(center.getWorld(), Particle.CLOUD, center, 24, Math.min(2.0, 1.0), 0.6, Math.min(2.0, 1.0), 0.01); } catch (Throwable ignored) {}
+                // apply damage with explicit ability attribution so RoundStats picks this as genkidama
                 for (org.bukkit.entity.LivingEntity le : mobs) {
                     if (le.getLocation().distanceSquared(center) < 6*6) {
-                        le.damage(damage * 2.2 * (1.0 + sp.getDamageMult()), p);
+                        try {
+                            try { p.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, "ab_lightning:genkidama")); } catch (Throwable ignored) {}
+                            try { le.damage(damage * 2.2 * (1.0 + sp.getDamageMult()), p); } finally { try { p.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }
+                        } catch (Throwable ignored) {}
                     }
                 }
-                try { p.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 0.7f, 0.8f);} catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWLightning genkidama sound failed: ", t); }
+                try { p.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 0.9f, 0.9f);} catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWLightning genkidama sound failed: ", t); }
                 glyphProcNotify(p, "ab_lightning:genkidama", target.getLocation());
             }
             // Sturmkette
@@ -351,7 +360,8 @@ public class SkillManager {
                 if (cur.distanceSquared(tgt.getLocation()) < 1.0) {
                     try {
                         try { p.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, "ab_ranged")); } catch (Throwable ignored) {}
-                        try { tgt.damage(damage * (1.0 + sp.getDamageMult()), p); } finally { try { p.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }
+                        double singleMult = plugin.getConfigUtil().getDouble("skills.single_target.multiplier", 1.10);
+                        try { tgt.damage(damage * singleMult * (1.0 + sp.getDamageMult()), p); } finally { try { p.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }
                     } catch (Throwable t1) { plugin.getLogger().log(java.util.logging.Level.FINE, "shootRangedProjectile hit damage failed for player " + p.getUniqueId() + ": ", t1); }
                     try { p.playSound(cur, org.bukkit.Sound.ENTITY_ARROW_HIT_PLAYER, 0.5f, 1.6f); } catch (Throwable ignored) {}
                     // Bounce to next target if available
@@ -560,7 +570,7 @@ public class SkillManager {
                     if (!le.isValid()) continue;
                     try {
                         double dmgTick = damage/Math.max(4, ticks/20.0);
-                        // temporarily tag player with ability key so CombatEngine attributes properly
+                        // temporarily tag player with ability key so CombatEngine attributes damage to the ability source
                         try { p.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, "ab_void_nova")); } catch (Throwable ignored) {}
                         try { le.damage(dmgTick, p); } finally { try { p.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }
                     } catch (Throwable ignored) {}
