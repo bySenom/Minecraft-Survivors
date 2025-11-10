@@ -127,7 +127,8 @@ public class RoundStatsCommand implements CommandExecutor {
                 java.nio.file.Path out = null;
                 if ("csv".equals(fmt)) out = rsm.writeCsvReportExport(snap);
                 else if ("html".equals(fmt)) out = rsm.writeHtmlReportExport(snap);
-                else out = rsm.getLastReportPathJsonExport();
+                else if ("json".equals(fmt)) out = rsm.writeJsonReportExport(snap);
+                else out = rsm.getLastReportPathJsonExportRecursive();
                 if (out != null) {
                     if (sender instanceof Player p) p.sendMessage(org.bysenom.minecraftSurvivors.util.TextUtil.clickableComponent("Open report file: " + out.getFileName(), "/say report path: " + out.toAbsolutePath()));
                     sender.sendMessage(Component.text("Report written: " + out.toAbsolutePath()).color(NamedTextColor.GREEN));

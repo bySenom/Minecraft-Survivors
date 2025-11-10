@@ -111,9 +111,19 @@ public class RoundStatsManager {
     private java.nio.file.Path writeReportFile(RoundSnapshot snap, String prefix, String ext) {
         try {
             if (snap == null) return null;
-            // Exports go into 'exports' subfolder; auto reports stay in data folder root
+            // Exports go into 'exports/YYYY-MM-DD' subfolder; auto reports stay in data folder root
             File baseDir = plugin.getDataFolder();
-            File dir = (prefix != null && prefix.startsWith("roundstats_export_")) ? new File(baseDir, "exports") : baseDir;
+            boolean isExport = prefix != null && prefix.startsWith("roundstats_export_");
+            File dir;
+            if (isExport) {
+                // create per-day folder for exports for better organization
+                java.time.Instant instant = Instant.ofEpochMilli(snap.endMs);
+                java.time.LocalDate ld = instant.atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+                String day = ld.toString(); // YYYY-MM-DD
+                dir = new File(new File(baseDir, "exports"), day);
+            } else {
+                dir = baseDir;
+            }
             if (!dir.exists() && !dir.mkdirs()) { plugin.getLogger().warning("Failed to create data folder: " + dir.getAbsolutePath()); }
             String ts = DateTimeFormatter.ISO_INSTANT.format(Instant.ofEpochMilli(snap.endMs));
             String safeTs = ts.replaceAll("[:\\\\/\\s]", "_");
@@ -129,8 +139,7 @@ public class RoundStatsManager {
                     for (var en : snap.coinsByPlayer.entrySet()) pw.println("coins," + en.getKey().toString() + "," + en.getValue());
                     for (var en : snap.lootchestsByPlayer.entrySet()) pw.println("lootchests," + en.getKey().toString() + "," + en.getValue());
                 } else {
-                    // HTML: add simple CSS and an inline SVG bar chart for top sources
-                    boolean isExport = prefix != null && prefix.startsWith("roundstats_export_");
+                    // HTML: add simple CSS and an inline SVG bar chart for top sources (re-use isExport declared above)
                     pw.println("<html><head><meta charset='utf-8'><title>RoundStats " + safeTs + "</title>");
                     pw.println("<style>body{font-family:Arial,Helvetica,sans-serif;color:#222} table{border-collapse:collapse} th,td{padding:6px 8px;border:1px solid #ccc} .title{color:#2b6dad} .chart{margin:10px 0 20px}</style>");
                     pw.println("</head><body>");
@@ -277,15 +286,20 @@ public class RoundStatsManager {
      */
     public java.nio.file.Path writeAggregateReportExport() {
         try {
-            File base = plugin.getDataFolder(); File dir = new File(base, "exports");
-            if (!dir.exists() && !dir.mkdirs()) { plugin.getLogger().warning("Failed to create exports folder: " + dir.getAbsolutePath()); }
-            java.io.File[] files = dir.listFiles((d, name) -> name != null && name.startsWith("roundstats_export_") && name.endsWith(".json"));
-            if (files == null || files.length == 0) return null;
+            File base = plugin.getDataFolder(); File exportsRoot = new File(base, "exports");
+            if (!exportsRoot.exists() && !exportsRoot.mkdirs()) { plugin.getLogger().warning("Failed to create exports folder: " + exportsRoot.getAbsolutePath()); }
+            // search recursively for exported JSON files under exportsRoot
+            List<File> found = new ArrayList<>();
+            try (java.util.stream.Stream<java.nio.file.Path> walk = java.nio.file.Files.walk(exportsRoot.toPath())) {
+                walk.filter(p -> java.nio.file.Files.isRegularFile(p) && p.getFileName().toString().startsWith("roundstats_export_") && p.getFileName().toString().endsWith(".json"))
+                        .forEach(p -> found.add(p.toFile()));
+            } catch (Throwable ignored) {}
+            if (found.isEmpty()) return null;
             Map<String, Double> totalDamageBySource = new HashMap<>();
             long totalKills = 0, totalCoins = 0, totalLoot = 0;
             int rounds = 0;
             Pattern mapPattern = Pattern.compile("\"([^\"]+)\"\\s*:\\s*([0-9.+\\-eE]+)");
-            for (File f : files) {
+            for (File f : found) {
                 try {
                     String s = Files.readString(f.toPath());
                     // extract damageBySource block
@@ -329,7 +343,7 @@ public class RoundStatsManager {
             double totalDamageSum = 0.0;
             for (var en : totalDamageBySource.entrySet()) { avgDamageBySource.put(en.getKey(), en.getValue() / rounds); totalDamageSum += en.getValue(); }
             String ts = DateTimeFormatter.ISO_INSTANT.format(Instant.now()).replaceAll("[:\\\\/\\s]","_");
-            File outJson = new File(dir, "roundstats_export_summary_" + ts + ".json");
+            File outJson = new File(exportsRoot, "roundstats_export_summary_" + ts + ".json");
             Map<String,Object> summary = new LinkedHashMap<>();
             summary.put("rounds", rounds);
             summary.put("totalDamageBySource", totalDamageBySource);
@@ -343,7 +357,7 @@ public class RoundStatsManager {
                 pw.println(toJsonSummary(summary));
             }
             // write simple HTML
-            File outHtml = new File(dir, "roundstats_export_summary_" + ts + ".html");
+            File outHtml = new File(exportsRoot, "roundstats_export_summary_" + ts + ".html");
             try (java.io.PrintWriter pw = new java.io.PrintWriter(new java.io.OutputStreamWriter(new java.io.FileOutputStream(outHtml), StandardCharsets.UTF_8))) {
                 pw.println("<html><head><meta charset='utf-8'><title>RoundStats Summary " + ts + "</title>");
                 pw.println("<style>body{font-family:Arial,Helvetica,sans-serif}table{border-collapse:collapse}th,td{padding:6px;border:1px solid #ccc}</style>");
@@ -376,13 +390,29 @@ public class RoundStatsManager {
         for (var en : map.entrySet()) {
             if (i++>0) sb.append(',');
             sb.append('"').append(en.getKey()).append('"').append(':');
-             Object v = en.getValue();
-             if (v instanceof Number) sb.append(v.toString());
-             else if (v instanceof Map) {
-                 sb.append('{'); int j=0; for (var e2 : ((Map<?,?>)v).entrySet()) { if (j++>0) sb.append(','); sb.append('"').append(e2.getKey().toString()).append('"').append(':').append(e2.getValue().toString()); } sb.append('}');
-             } else sb.append('"').append(String.valueOf(v)).append('"');
-         }
+            Object v = en.getValue();
+            if (v instanceof Number) sb.append(v);
+            else if (v instanceof Map) {
+                sb.append('{'); int j=0; for (var e2 : ((Map<?,?>)v).entrySet()) { if (j++>0) sb.append(','); sb.append('"').append(e2.getKey().toString()).append('"').append(':').append(e2.getValue().toString()); } sb.append('}');
+            } else sb.append('"').append(String.valueOf(v)).append('"');
+        }
         sb.append('}');
         return sb.toString();
+    }
+
+    /**
+     * Find the most recent exported JSON report under exports/ (searches recursively) and return its Path.
+     */
+    public java.nio.file.Path getLastReportPathJsonExportRecursive() {
+        try {
+            File base = plugin.getDataFolder(); File exportsRoot = new File(base, "exports");
+            if (!exportsRoot.exists() || !exportsRoot.isDirectory()) return null;
+            try (java.util.stream.Stream<java.nio.file.Path> walk = java.nio.file.Files.walk(exportsRoot.toPath())) {
+                java.util.Optional<java.nio.file.Path> latest = walk
+                        .filter(p -> java.nio.file.Files.isRegularFile(p) && p.getFileName().toString().startsWith("roundstats_export_") && p.getFileName().toString().endsWith(".json"))
+                        .max(java.util.Comparator.comparingLong(p -> p.toFile().lastModified()));
+                return latest.map(java.nio.file.Path::toAbsolutePath).orElse(null);
+            }
+        } catch (Throwable ignored) { return null; }
     }
 }
