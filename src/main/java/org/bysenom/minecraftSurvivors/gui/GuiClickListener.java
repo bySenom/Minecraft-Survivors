@@ -244,8 +244,14 @@ public class GuiClickListener implements Listener {
                                 }
                             } catch (Throwable ignored) {}
                          } else {
-                             // Could be duplicate or full
-                             try { org.bysenom.minecraftSurvivors.util.Msg.err(player, "Glyph konnte nicht hinzugefügt werden (bereits vorhanden oder volle Slots)"); } catch (Throwable ignored) {}
+                            // Could be duplicate or full -> open replace UI so player can swap glyphs
+                            try {
+                                org.bysenom.minecraftSurvivors.util.Msg.err(player, "Glyph konnte nicht hinzugefügt werden (bereits vorhanden oder volle Slots). Öffne Ersetzen-UI...");
+                            } catch (Throwable ignored) {}
+                            try {
+                                // Open replace menu so player can pick a slot to replace
+                                new org.bysenom.minecraftSurvivors.gui.GlyphReplaceMenu(player, sp, abilityKey, glyphKeyFull);
+                            } catch (Throwable ignored) {}
                          }
                      }
                  } catch (Throwable ex) {

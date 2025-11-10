@@ -42,4 +42,3 @@ public class PlayerDataCommand implements CommandExecutor {
         return true;
     }
 }
-

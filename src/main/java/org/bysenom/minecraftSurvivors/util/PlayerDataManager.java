@@ -157,6 +157,37 @@ public class PlayerDataManager {
     }
 
     /**
+     * Persist only durable/persistent player data (base stats, unlocks, abilityLevels).
+     * Use this at Run-End to avoid saving transient run-only fields like current coins/kills/weapons.
+     */
+    public void savePersistent(SurvivorPlayer sp) {
+        if (sp == null) return;
+        File f = new File(playersDir, sp.getUuid().toString() + ".yml");
+        FileConfiguration cfg = YamlConfiguration.loadConfiguration(f);
+        cfg.set("uuid", sp.getUuid().toString());
+        // Persist base upgrade stats only
+        cfg.set("flatDamage", sp.getFlatDamage());
+        cfg.set("damageMult", sp.getDamageMult());
+        cfg.set("radiusMult", sp.getRadiusMult());
+        cfg.set("extraHearts", sp.getExtraHearts());
+        cfg.set("igniteBonusTicks", sp.getIgniteBonusTicks());
+        cfg.set("knockbackBonus", sp.getKnockbackBonus());
+        cfg.set("healBonus", sp.getHealBonus());
+        cfg.set("moveSpeedMult", sp.getMoveSpeedMult());
+        cfg.set("attackSpeedMult", sp.getAttackSpeedMult());
+        try { cfg.set("hpRegenBase", sp.getBaseHpRegen()); } catch (Throwable ignored) {}
+        cfg.set("damageResist", sp.getDamageResist());
+        cfg.set("luck", sp.getLuck());
+        // Persist unlocked progression elements
+        cfg.set("unlockedAbilities", new java.util.ArrayList<>(sp.getUnlockedAbilities()));
+        cfg.set("unlockedGlyphs", new java.util.ArrayList<>(sp.getUnlockedGlyphs()));
+        // Persist ability levels map (progression)
+        cfg.set("abilityLevels", sp.getAbilityLevelsMap());
+        // Note: do NOT persist run-temporary lists such as "abilities" (current run loadout), weapons, skills, coins, kills
+        try { cfg.save(f); } catch (IOException e) { plugin.getLogger().severe("Failed to persist player data for " + sp.getUuid() + ": " + e.getMessage()); }
+    }
+
+    /**
      * Persist only coins for a player (used on death to preserve coins while other fields may reset).
      */
     public void saveCoins(UUID uuid, int coins) {

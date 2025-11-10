@@ -281,7 +281,12 @@ public class GameManager {
             }
         } catch (Throwable ignored) {}
         // Persist all player data after run end to ensure choices are saved
-        try { plugin.getPlayerDataManager().saveAll(); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "saveAll failed at stopGame: ", t); }
+        try {
+            // Only persist durable/tiered data (base stats/unlocks) to avoid saving run-transient fields
+            for (var sp : playerManager.getAll()) {
+                try { if (sp != null) plugin.getPlayerDataManager().savePersistent(sp); } catch (Throwable ignored) {}
+            }
+        } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "savePersistent failed at stopGame: ", t); }
         plugin.getLogger().info("Game stopped");
     }
 
