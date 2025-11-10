@@ -70,6 +70,22 @@ public class SpawnManager {
 
     private BukkitTask scalingTask;
     private BukkitTask aggroTask;
+    // Track scheduled tasks so we can cancel them on stop/cleanup (similar to BossManager)
+    private final java.util.Set<org.bukkit.scheduler.BukkitTask> scheduledTasks = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+
+    private void registerTask(org.bukkit.scheduler.BukkitTask t) {
+        if (t == null) return;
+        try { scheduledTasks.add(t); } catch (Throwable ignored) {}
+    }
+
+    private void cancelAllScheduled() {
+        try {
+            for (org.bukkit.scheduler.BukkitTask bt : new java.util.ArrayList<>(scheduledTasks)) {
+                try { if (bt != null && !bt.isCancelled()) bt.cancel(); } catch (Throwable ignored) {}
+                scheduledTasks.remove(bt);
+            }
+        } catch (Throwable ignored) {}
+    }
 
     private void ensureScalingTask() {
         if (scalingTask != null && !scalingTask.isCancelled()) return;
@@ -90,6 +106,7 @@ public class SpawnManager {
             } catch (Throwable ignored) {
             }
         }, periodTicks, periodTicks);
+        registerTask(scalingTask);
     }
 
     private void ensureAggroTask() {
@@ -137,6 +154,7 @@ public class SpawnManager {
                 } catch (Throwable ignored) {
                 }
             }, every, every);
+            registerTask(aggroTask);
         } catch (Throwable ignored) {
         }
     }
@@ -542,6 +560,8 @@ public class SpawnManager {
         }
     }
 
+    public void cancelAllScheduledTasks() { cancelAllScheduled(); }
+
     private void continuousTick() {
         // Global game paused? Avoid spawns when state is PAUSED
         try {
@@ -729,13 +749,13 @@ public class SpawnManager {
                         };
                         // apply now and reapply at several short intervals to counter server/equipment race conditions
                         applyEquip.run();
-                        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, applyEquip, 1L);
-                        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, applyEquip, 5L);
-                        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, applyEquip, 10L);
-                        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, applyEquip, 20L);
-                    }
-                } catch (Throwable ignored) {
-                }
+                        registerTask(org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, applyEquip, 1L));
+                        registerTask(org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, applyEquip, 5L));
+                        registerTask(org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, applyEquip, 10L));
+                        registerTask(org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, applyEquip, 20L));
+                     }
+                 } catch (Throwable ignored) {
+                 }
                 mob.getPersistentDataContainer().set(waveKey, PersistentDataType.BYTE, (byte) 1);
                 captureBaselineIfMissing(mob);
                 // Elite roll
@@ -1126,10 +1146,10 @@ public class SpawnManager {
 
             // apply now and reapply at several short intervals to counter server/equipment race conditions
             applyEquip.run();
-            org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, applyEquip, 1L);
-            org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, applyEquip, 5L);
-            org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, applyEquip, 10L);
-            org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, applyEquip, 20L);
+            registerTask(org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, applyEquip, 1L));
+            registerTask(org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, applyEquip, 5L));
+            registerTask(org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, applyEquip, 10L));
+            registerTask(org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, applyEquip, 20L));
         } catch (Throwable ignored) {}
     }
 }
