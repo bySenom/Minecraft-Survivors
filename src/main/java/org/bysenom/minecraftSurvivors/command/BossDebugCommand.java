@@ -90,6 +90,63 @@ public class BossDebugCommand implements CommandExecutor {
                     } catch (Throwable t) { p.sendMessage("§cLightning fehlgeschlagen: " + t.getMessage()); }
                 }
             }
+            case "smoketest", "testcleanup" -> {
+                // Spawn boss if not active, then after a delay report meteorEntities and scheduledTasks, force-end and recheck cleanup
+                try {
+                    if (!bm.isBossActive()) {
+                        bm.debugSpawnBoss();
+                        p.sendMessage("§aBoss gespawnt für Smoketest...");
+                    } else {
+                        p.sendMessage("§eBoss bereits aktiv — Smoketest startet...");
+                    }
+                } catch (Throwable t) { p.sendMessage("§cSpawn fehlgeschlagen: " + t.getMessage()); continue; }
+
+                long delay = 200L; // 10s
+                org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    try {
+                        int meteorCount = -1;
+                        int scheduledCount = -1;
+                        try {
+                            java.lang.reflect.Field fm = BossManager.class.getDeclaredField("meteorEntities");
+                            fm.setAccessible(true);
+                            Object obj = fm.get(bm);
+                            if (obj instanceof java.util.Collection<?> c) meteorCount = c.size();
+                        } catch (Throwable ignored) {}
+                        try {
+                            java.lang.reflect.Field fs = BossManager.class.getDeclaredField("scheduledTasks");
+                            fs.setAccessible(true);
+                            Object obj = fs.get(bm);
+                            if (obj instanceof java.util.Collection<?> c) scheduledCount = c.size();
+                        } catch (Throwable ignored) {}
+                        boolean active = bm.isBossActive();
+                        p.sendMessage("§6[Smoketest] Nach " + (delay/20) + "s: BossActive=" + active + ", Meteors=" + meteorCount + ", ScheduledTasks=" + scheduledCount);
+                        // Force end
+                        try { bm.forceEnd(); } catch (Throwable ignored) {}
+                        // Re-check after short delay
+                        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                            try {
+                                int meteorCount2 = -1;
+                                int scheduledCount2 = -1;
+                                try {
+                                    java.lang.reflect.Field fm2 = BossManager.class.getDeclaredField("meteorEntities");
+                                    fm2.setAccessible(true);
+                                    Object obj2 = fm2.get(bm);
+                                    if (obj2 instanceof java.util.Collection<?> c2) meteorCount2 = c2.size();
+                                } catch (Throwable ignored) {}
+                                try {
+                                    java.lang.reflect.Field fs2 = BossManager.class.getDeclaredField("scheduledTasks");
+                                    fs2.setAccessible(true);
+                                    Object obj2 = fs2.get(bm);
+                                    if (obj2 instanceof java.util.Collection<?> c2) scheduledCount2 = c2.size();
+                                } catch (Throwable ignored) {}
+                                boolean active2 = bm.isBossActive();
+                                p.sendMessage("§6[Smoketest] Nach Cleanup: BossActive=" + active2 + ", Meteors=" + meteorCount2 + ", ScheduledTasks=" + scheduledCount2);
+                            } catch (Throwable t2) { p.sendMessage("§cSmoketest ReCheck Fehler: " + t2.getMessage()); }
+                        }, 40L);
+                    } catch (Throwable t) { p.sendMessage("§cSmoketest Fehler: " + t.getMessage()); }
+                }, delay);
+                p.sendMessage("§aSmoketest läuft — Ergebnis in ~" + (delay/20) + "s.");
+            }
             case "aggro" -> {
                 if (!bm.isBossActive()) { p.sendMessage("§7Kein Boss aktiv."); }
                 else {
