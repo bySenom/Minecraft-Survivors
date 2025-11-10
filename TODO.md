@@ -34,6 +34,8 @@ Anmerkung: Balancing (Schadenswerte, Spawn-Counts) und finale QA sind weiterhin 
 Beschreibung: LevelUp/Shop/Loot bieten und zeigen neue Stats (Max Health, HP Regen, Shield, Armor, Evasion, Lifesteal, Thorns, Crit Chance, Crit Damage, Projectile Count, Attack Speed, Projectile Bounce, Size, Duration, Damage vs. Elites/Bosses, Knockback, Jump Height, XP Gain, Elite Spawn Increase, Powerup Multiplier).
 Status: In Arbeit — Basis-Implementierung vorhanden (LevelUp-Menü zeigt Stat-Picks, `GuiManager` zeigt Stat-Overview, `GameManager` ActionBar-HUD zeigt XP + Level).
 Was wurde bereits implementiert:
+- UI Polish (Abilties Items on Hotbar, fix broken elements)
+- Rework Meta Shop for persistent stats (OFFEN)
 - LevelUp-Menü zeigt Stat-Picks + kurze Beschreibungen (LevelUpMenu).
 - Basis-Persistenz für wichtige Basis-Stats (`hpRegenBase`, `damageMult`, `flatDamage`, `extraHearts`, u.a.) implementiert in `PlayerDataManager`.
 - UI Rundung/Format: HUD/Stats/LevelUp vereinheitlicht (1 Dezimalstelle).
@@ -47,6 +49,7 @@ Offene/zu priorisierende Tasks (klein, gezielt):
 ### 3. Performance & FX-Throttling
 Beschreibung: FX abhängig von Distanz/FX-Setting drosseln.
 Akzeptanzkriterien:
+- Match new FX effects with player abilites and Glpyhs
 - Globaler Regler / Spieler-FX Toggle ergänzt um Rate-Limiter.  # (Basis implementiert: `ParticleUtil` verwendet; Feintuning offen)
 - Große Kämpfe verursachen keine Lags. (Verify under load)
 

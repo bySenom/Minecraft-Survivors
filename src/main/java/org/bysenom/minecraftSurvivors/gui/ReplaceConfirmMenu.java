@@ -72,6 +72,8 @@ public class ReplaceConfirmMenu {
             sp.setAbilityOrigin(intent.newKey, "levelup");
             try { p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.9f, 1.0f); p.sendActionBar(Component.text("Ability ersetzt!").color(NamedTextColor.GREEN)); } catch (Throwable ignored) {}
             try { p.updateInventory(); } catch (Throwable ignored) {}
+            // Persist changed abilities immediately
+            try { plugin.getPlayerDataManager().saveAsync(sp); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "saveAsync failed after ability replace: ", t); }
         }
     }
 
@@ -108,6 +110,8 @@ public class ReplaceConfirmMenu {
                     sp.setAbilityOrigin(intent.newKey, "levelup");
                     try { p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.9f, 1.0f); p.sendActionBar(Component.text("Ability ersetzt!").color(NamedTextColor.GREEN)); } catch (Throwable ignored) {}
                     try { p.updateInventory(); } catch (Throwable ignored) {}
+                    // persist immediately
+                    try { plugin.getPlayerDataManager().saveAsync(sp); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "saveAsync failed after ability replace (listener): ", t); }
                 }
             }
         }
