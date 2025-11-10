@@ -80,6 +80,7 @@ This section contains automatically generated API documentation (basic).
 - [org.bysenom.minecraftSurvivors.manager.GuiRequest](../api/org/bysenom/minecraftSurvivors/manager/GuiRequest.md)
 - [org.bysenom.minecraftSurvivors.manager.HoloHpManager](../api/org/bysenom/minecraftSurvivors/manager/HoloHpManager.md)
 - [org.bysenom.minecraftSurvivors.manager.Invite](../api/org/bysenom/minecraftSurvivors/manager/Invite.md)
+- [org.bysenom.minecraftSurvivors.manager.level](../api/org/bysenom/minecraftSurvivors/manager/level.md)
 - [org.bysenom.minecraftSurvivors.manager.LingeringVoidField](../api/org/bysenom/minecraftSurvivors/manager/LingeringVoidField.md)
 - [org.bysenom.minecraftSurvivors.manager.MetaProgressionManager](../api/org/bysenom/minecraftSurvivors/manager/MetaProgressionManager.md)
 - [org.bysenom.minecraftSurvivors.manager.Mode](../api/org/bysenom/minecraftSurvivors/manager/Mode.md)

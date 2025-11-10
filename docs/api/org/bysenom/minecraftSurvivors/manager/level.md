@@ -1,4 +1,4 @@
-# RoundSnapshot
+# level
 
 Package: `org.bysenom.minecraftSurvivors.manager`
 
@@ -11,4 +11,6 @@ Package: `org.bysenom.minecraftSurvivors.manager`
 
 ## Public Methods
 
+- `getLastSnapshot()`
+- `clearAutoReports()`
 - `toJson()`
