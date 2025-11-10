@@ -142,13 +142,25 @@ public class RoundStatsCommand implements CommandExecutor {
             if (args.length < 2) { sender.sendMessage(Component.text("Usage: /msroundstats openfile <filename>").color(NamedTextColor.YELLOW)); return true; }
             String name = args[1];
             File f = new File(plugin.getDataFolder(), name);
-            if (!f.exists()) { sender.sendMessage(Component.text("File not found: " + f.getAbsolutePath()).color(NamedTextColor.RED)); return true; }
-            try {
-                sender.sendMessage(Component.text("Report file: " + f.getAbsolutePath()).color(NamedTextColor.GREEN));
-                if (sender instanceof Player p) p.sendMessage(org.bysenom.minecraftSurvivors.util.TextUtil.clickableComponent("Open in file-explorer: " + f.getName(), "/say open " + f.getAbsolutePath()));
-            } catch (Throwable ignored) { sender.sendMessage(Component.text("Report file: " + f.getAbsolutePath()).color(NamedTextColor.GREEN)); }
-            return true;
-        }
+            if (!f.exists()) {
+                // attempt to find under exports/ recursively (safe with try-with-resources)
+                try {
+                    java.nio.file.Path exportsRoot = new File(plugin.getDataFolder(), "exports").toPath();
+                    if (java.nio.file.Files.exists(exportsRoot)) {
+                        try (java.util.stream.Stream<java.nio.file.Path> walk = java.nio.file.Files.walk(exportsRoot)) {
+                            java.util.Optional<java.nio.file.Path> found = walk.filter(p -> java.nio.file.Files.isRegularFile(p) && p.getFileName().toString().equalsIgnoreCase(name)).findFirst();
+                            if (found.isPresent()) f = found.get().toFile();
+                        }
+                    }
+                } catch (Throwable ignored) {}
+            }
+            if (!f.exists()) { sender.sendMessage(Component.text("File not found: " + new File(plugin.getDataFolder(), name).getAbsolutePath()).color(NamedTextColor.RED)); return true; }
+             try {
+                 sender.sendMessage(Component.text("Report file: " + f.getAbsolutePath()).color(NamedTextColor.GREEN));
+                 if (sender instanceof Player p) p.sendMessage(org.bysenom.minecraftSurvivors.util.TextUtil.clickableComponent("Open in file-explorer: " + f.getName(), "/say open " + f.getAbsolutePath()));
+             } catch (Throwable ignored) { sender.sendMessage(Component.text("Report file: " + f.getAbsolutePath()).color(NamedTextColor.GREEN)); }
+             return true;
+         }
         sender.sendMessage(Component.text("Usage: /msroundstats show [page] | /msroundstats export [json|csv|html] | /msroundstats openfile <filename>"));
         return true;
     }
