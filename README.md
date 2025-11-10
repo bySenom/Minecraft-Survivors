@@ -49,6 +49,21 @@ Badges
 - Tests / Build (lokal): `./gradlew spotlessApply clean build`
 - Release: Tag push (`git tag vX.Y.Z && git push origin vX.Y.Z`) — CI erstellt das Release
 
+Developer Debug Commands (P1.3 QA helpers)
+
+- `/msboss spawn` — Spawnt den Endboss (Admin-only).
+- `/msboss kill` — Tötet den aktuell aktiven Boss (Admin-only).
+- `/msboss meteor|barrage|shockwave|lightning` — Löst einzelne Boss-Fähigkeiten manuell aus (Admin-only).
+- `/msboss smoketest` (neu) — Praktischer QA-Helper: spawnt den Boss (falls nicht aktiv), wartet ~10s und meldet die Anzahl noch aktiver Meteor-/Projectile-Entities sowie die Anzahl interner geplanten Tasks (`scheduledTasks`) in der Konsole / an den ausführenden Spieler; beendet anschliessend den Boss und prüft erneut, ob Projectiles/Tasks aufgeräumt wurden. Nützlich, um zu verifizieren, dass Meteore entfernt und scheduled Runnables gecancelt werden. (Niedrigrisiko, nur zum Reporten und Stoppen des Bosses.)
+
+Beispiel:
+
+1. Als OP im Spiel ausführen: `/msboss smoketest`
+2. Warte auf die Meldung: `[Smoketest] Nach 10s: BossActive=true, Meteors=3, ScheduledTasks=5` — diese Zahlen zeigen, wieviele Meteore noch existierten und wieviele interne Tasks registriert waren.
+3. Nach Cleanup: die zweite Meldung zeigt, ob alle Meteore und Tasks entfernt wurden.
+
+Hinweis: Dieser Befehl ist ein Helper für manuelle QA und testet nur das Aufrägen von Boss-bezogenen Entities/Tasks; komplette Lasttests sollten auf einem separaten Test-Server mit mehreren Clients durchgeführt werden.
+
 ---
 
 ## Konfiguration (Auszug)
