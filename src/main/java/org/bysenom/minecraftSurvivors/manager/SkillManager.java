@@ -241,6 +241,8 @@ public class SkillManager {
             // Genkidama: kleine Chance, großen Meteor zu rufen
             if (glyphs.contains("ab_lightning:genkidama") && java.util.concurrent.ThreadLocalRandom.current().nextInt(20) == 0) {
                 org.bukkit.Location center = target.getLocation();
+                // Call centralized FX implementation for genkidama
+                try { org.bysenom.minecraftSurvivors.fx.LightningFx.genkidamaVisual(plugin, p, center, damage * 2.2 * (1.0 + sp.getDamageMult())); } catch (Throwable ignored) {}
                 // meteor visual: spawn several particles high above and add central explosion/cloud for visibility
                 for (int i=0;i<6;i++) {
                     org.bukkit.Location l = center.clone().add((java.util.concurrent.ThreadLocalRandom.current().nextDouble()-0.5)*3, 8+i*0.6, (java.util.concurrent.ThreadLocalRandom.current().nextDouble()-0.5)*3);
@@ -365,6 +367,9 @@ public class SkillManager {
         final double sonicBase = plugin.getConfigUtil().getDouble("visuals.ranged.sonic-base-radius", 0.6);
         final double sonicGrowth = plugin.getConfigUtil().getDouble("visuals.ranged.sonic-growth-per-tick", 0.02);
         final double sonicMax = plugin.getConfigUtil().getDouble("visuals.ranged.sonic-max-radius", 1.6);
+        // initial sonic-wall at launch
+        try { org.bysenom.minecraftSurvivors.fx.RangedFx.onProjectileLaunch(plugin, p, start); } catch (Throwable ignored) {}
+
         new org.bukkit.scheduler.BukkitRunnable() {
             int t = 0;
             final org.bukkit.entity.LivingEntity tgt = target;
@@ -373,6 +378,7 @@ public class SkillManager {
                 if (!p.isOnline()) { cancel(); return; }
                 cur.add(dir.clone().multiply(speed));
                 try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRangedTrail(cur.getWorld(), cur, fancyAll && fancyRanged); } catch (Throwable ignored) {}
+                try { org.bysenom.minecraftSurvivors.fx.RangedFx.onProjectileTrail(plugin, p, cur); } catch (Throwable ignored) {}
                 if (fancyAll && fancyRanged) {
                     try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSpiral(cur.getWorld(), cur.clone().add(0,-0.2,0), 0.35, 0.6, 10, org.bukkit.Particle.END_ROD, 1.0); } catch (Throwable ignored) {}
                     if (sonicTrail && t % sonicEvery == 0) {
@@ -402,6 +408,7 @@ public class SkillManager {
                             }
                         } catch (Throwable ignored) {}
                         org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, tgt, baseDmg, abilityKey);
+                        try { org.bysenom.minecraftSurvivors.fx.RangedFx.onProjectileHit(plugin, p, tgt); } catch (Throwable ignored) {}
                     } catch (Throwable t1) { plugin.getLogger().log(java.util.logging.Level.FINE, "shootRangedProjectile hit damage failed for player " + p.getUniqueId() + ": ", t1); }
                     // Bounce to next target if available
                     if (remainingBounces > 0) {
@@ -482,6 +489,7 @@ public class SkillManager {
                         addAegisShield(other.getUniqueId(), shieldAmount);
                         org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(other.getWorld(), Particle.INSTANT_EFFECT, other.getLocation().add(0,1.0,0), 8, 0.3, 0.4, 0.3, 0.01);
                         other.playSound(other.getLocation(), org.bukkit.Sound.ITEM_TOTEM_USE, 0.5f, 1.2f);
+                        try { org.bysenom.minecraftSurvivors.fx.HealTotemFx.onAegisProc(plugin, p, other); } catch (Throwable ignored) {}
                         if (other.equals(p)) glyphProcNotify(p, "ab_heal_totem:aegis", p.getLocation());
                     } else {
                         double newH = Math.min(max, before + heal);
@@ -491,6 +499,7 @@ public class SkillManager {
                             try { plugin.getStatsMeterManager().recordHeal(p.getUniqueId(), healed); } catch (Throwable ignored) {}
                         }
                         other.spawnParticle(org.bukkit.Particle.HEART, other.getLocation().add(0,1.0,0), 4, 0.2, 0.2, 0.2, 0.0);
+                        try { org.bysenom.minecraftSurvivors.fx.HealTotemFx.onHealPulse(plugin, p, other); } catch (Throwable ignored) {}
                     }
                 } catch (Throwable ignored) {}
             }
@@ -629,6 +638,7 @@ public class SkillManager {
             temporalAnchors.put(p.getUniqueId(), map);
         }
         try { p.playSound(center, org.bukkit.Sound.BLOCK_ENCHANTMENT_TABLE_USE, 0.6f, 0.3f); } catch (Throwable ignored) {}
+        try { org.bysenom.minecraftSurvivors.fx.TimeRiftFx.onActivate(plugin, p, center, radius); } catch (Throwable ignored) {}
         // Haste Burst -> kurzer effekt
         if (hasteBurst) {
             try { p.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.HASTE, Math.max(40, ticks), 1, false, false, true)); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runTimeRift haste application failed for player " + p.getUniqueId() + ": ", t); }
@@ -703,6 +713,7 @@ public class SkillManager {
             final double spireRadius = (toxicBloom ? 1.6 : 1.2);
             final double perTickDamage = Math.max(0.05, baseDps / Math.max(5.0, totalTicks / 20.0));
             try { p.playSound(c, org.bukkit.Sound.BLOCK_BASALT_BREAK, 0.7f, 0.8f); } catch (Throwable ignored) {}
+            try { org.bysenom.minecraftSurvivors.fx.VenomSpireFx.onSpawn(plugin, p, c); } catch (Throwable ignored) {}
             final int[] t = {0};
             new org.bukkit.scheduler.BukkitRunnable() {
                 @Override public void run() {
