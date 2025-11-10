@@ -73,4 +73,3 @@ public class SurvivorPlayerTest {
         assertEquals(-1, sp.addAbilityAtFirstFreeIndex("ab3", 1));
     }
 }
-
