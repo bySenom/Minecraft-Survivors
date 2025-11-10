@@ -12,8 +12,11 @@ public final class VenomSpireFx {
     public static void onSpawn(MinecraftSurvivors plugin, Player source, Location center) {
         if (plugin == null || center == null) return;
         try {
-            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnBurstThrottled(center.getWorld(), center, Particle.PORTAL, 6, 0.3);
-            try { if (source != null) source.playSound(center, Sound.BLOCK_BASALT_BREAK, 0.6f, 0.8f); } catch (Throwable ignored) {}
+            Location c = center.clone();
+            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnBurstThrottled(c.getWorld(), c, Particle.ITEM_SLIME, 8, 0.4);
+            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRingThrottled(c.getWorld(), c.clone().add(0,0.2,0), 1.2, 18, Particle.DAMAGE_INDICATOR);
+            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(c.getWorld(), Particle.WITCH, c, 10, 0.6,0.3,0.6, 0.01);
+            try { c.getWorld().playSound(c, Sound.BLOCK_BASALT_BREAK, 0.7f, 0.8f); } catch (Throwable ignored) {}
         } catch (Throwable ignored) {}
     }
 }

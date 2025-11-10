@@ -12,8 +12,11 @@ public final class HolyFx {
     public static void onBurst(MinecraftSurvivors plugin, Player source, Location center, double radius) {
         if (plugin == null || source == null || center == null) return;
         try {
-            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(center.getWorld(), Particle.END_ROD, center.clone().add(0,1.0,0), 24, radius/2, 0.3, radius/2, 0.0);
-            try { source.playSound(center, Sound.BLOCK_BEACON_POWER_SELECT, 0.7f, 1.8f); } catch (Throwable ignored) {}
+            Location c = center.clone();
+            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRingThrottled(c.getWorld(), c.clone().add(0,0.7,0), Math.max(1.0, radius*0.6), 36, Particle.END_ROD);
+            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRingThrottled(c.getWorld(), c.clone().add(0,0.3,0), Math.max(0.8, radius*0.4), 30, Particle.CRIT);
+            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnBurstThrottled(c.getWorld(), c, Particle.HEART, 6, 0.6);
+            try { c.getWorld().playSound(c, Sound.BLOCK_BEACON_ACTIVATE, 0.9f, 1.3f); } catch (Throwable ignored) {}
         } catch (Throwable ignored) {}
     }
 }
