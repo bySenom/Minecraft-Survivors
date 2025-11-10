@@ -207,7 +207,8 @@ public class SkillManager {
             target.getWorld().strikeLightningEffect(target.getLocation());
             double singleMult = plugin.getConfigUtil().getDouble("skills.single_target.multiplier", 1.20);
             org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, target, damage * singleMult * (1.0 + sp.getDamageMult()), "ab_lightning");
-            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(target.getWorld(), Particle.ELECTRIC_SPARK, target.getLocation().add(0,1.0,0), 14, 0.3,0.3,0.3, 0.02);
+            // centralized lightning FX
+            try { org.bysenom.minecraftSurvivors.fx.LightningFx.onPrimaryHit(plugin, p, target); } catch (Throwable ignored) {}
             p.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.2f, 2.0f);
             if (fancyAll && fancyLightning) {
                 // Chain beams to a few additional nearby mobs
@@ -231,7 +232,7 @@ public class SkillManager {
                 try {
                     for (org.bukkit.entity.LivingEntity le : mobs) {
                         org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, le, damage * 3.0 * (1.0 + sp.getDamageMult()), "ab_lightning:overcharge");
-                        org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(le.getWorld(), Particle.CRIT, le.getLocation().add(0,1.0,0), 8, 0.3,0.3,0.3, 0.02);
+                        try { org.bysenom.minecraftSurvivors.fx.LightningFx.onPrimaryHit(plugin, p, le); } catch (Throwable ignored) {}
                     }
                     p.playSound(p.getLocation(), Sound.ITEM_TRIDENT_THUNDER, 0.6f, 0.6f);
                 } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWLightning overcharge effect failed for player " + p.getUniqueId() + ": ", t); }
@@ -256,8 +257,7 @@ public class SkillManager {
                     }
                     // big central impact visuals
                     org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnBurstThrottled(center.getWorld(), center, Particle.SONIC_BOOM, 1, 0.6);
-                    org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(center.getWorld(), Particle.CLOUD, center, 48, 2.0, 1.0, 2.0, 0.01);
-                    try { p.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 0.9f);} catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWLightning genkidama sound failed: ", t); }
+                    org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(center.getWorld(), Particle.CLOUD, center, 24, Math.min(2.0, 1.0), 0.6, Math.min(2.0, 1.0), 0.01);
                 } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWLightning genkidama visual spawn failed: ", t); }
                 // glyph proc + ensure RoundStats records the source
                 glyphProcNotify(p, "ab_lightning:genkidama", target.getLocation());
@@ -268,7 +268,7 @@ public class SkillManager {
             if (glyphs.contains("ab_lightning:storm_chain") && mobs.size() > 1) {
                 org.bukkit.entity.LivingEntity extra = mobs.get(java.util.concurrent.ThreadLocalRandom.current().nextInt(mobs.size()));
                 if (!extra.equals(target)) {
-                    try { org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, extra, damage * 0.6 * (1.0 + sp.getDamageMult()), "ab_lightning:storm_chain"); org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(extra.getWorld(), Particle.ELECTRIC_SPARK, extra.getLocation().add(0,1.0,0), 10, 0.2,0.2,0.2, 0.02);} catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWLightning storm_chain extra hit failed for player " + p.getUniqueId() + ": ", t); }
+                    try { org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, extra, damage * 0.6 * (1.0 + sp.getDamageMult()), "ab_lightning:storm_chain"); try { org.bysenom.minecraftSurvivors.fx.LightningFx.onPrimaryHit(plugin, p, extra); } catch (Throwable ignored) {} } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWLightning storm_chain extra hit failed for player " + p.getUniqueId() + ": ", t); }
                 }
                 glyphProcNotify(p, "ab_lightning:storm_chain", target.getLocation());
             }
@@ -305,6 +305,8 @@ public class SkillManager {
                     // inferno small AoE nudge damage
                     if (inferno) {
                         try {
+                            // small inferno pulse visuals
+                            try { org.bysenom.minecraftSurvivors.fx.FireFx.infernoPulse(plugin, p, le.getLocation()); } catch (Throwable ignored) {}
                             for (org.bukkit.entity.LivingEntity n : plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(le.getLocation(), 1.2)) {
                                 if (n == null || !n.isValid()) continue;
                                 org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, n, Math.max(0.05, damage * 0.15), "ab_fire:inferno");
@@ -317,7 +319,7 @@ public class SkillManager {
                         try { org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, le, Math.max(0.2, damage * 0.6), "ab_fire:combust"); glyphProcNotify(p, "ab_fire:combust", le.getLocation()); } catch (Throwable ignored) {}
                     }
                 } finally { try { p.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }
-                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(le.getWorld(), Particle.FLAME, le.getLocation().add(0,1.0,0), 6, 0.25,0.25,0.25, 0.01);
+                try { org.bysenom.minecraftSurvivors.fx.FireFx.onIgnite(plugin, p, le); } catch (Throwable ignored) {}
             } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWFire effect failed for player " + p.getUniqueId() + ": ", t); }
         }
         if (fancyAll && fancyFire && !mobs.isEmpty()) {
@@ -432,13 +434,7 @@ public class SkillManager {
             try { org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, le, damage, "ab_holy"); } catch (Throwable ignored) {}
         }
         try {
-            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(p.getWorld(), Particle.END_ROD, loc.clone().add(0,1.0,0), 28, radius/2, 0.3, radius/2, 0.0);
-            p.playSound(loc, Sound.BLOCK_BEACON_POWER_SELECT, 0.7f, 1.8f);
-            if (fancyAll && fancyHoly) {
-                int ringPts = plugin.getConfigUtil().getInt("visuals.holy.ring-points", 48);
-                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRing(loc.getWorld(), loc.clone().add(0,0.25,0), Math.max(2.0, radius*0.7), ringPts, Particle.END_ROD);
-                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRing(loc.getWorld(), loc.clone().add(0,0.3,0), Math.max(1.2, radius*0.4), ringPts/2, Particle.CRIT);
-            }
+            org.bysenom.minecraftSurvivors.fx.HolyFx.onBurst(plugin, p, loc, radius);
         } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWHoly failed for player " + p.getUniqueId() + ": ", t); }
         // synergy: holy burst on kill handled in EntityDeathListener optional (future)
     }
@@ -455,7 +451,7 @@ public class SkillManager {
         for (org.bukkit.entity.LivingEntity le : mobs) {
             try {
                 org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, le, damage, "shockwave");
-                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(p.getWorld(), Particle.SWEEP_ATTACK, loc.clone().add(0,1.0,0), 18, 1.0, 0.2, 1.0, 0.0);
+                org.bysenom.minecraftSurvivors.fx.ShockwaveFx.onHit(plugin, p, loc);
                 p.playSound(loc, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.6f, 1.0f);
              } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runShockwave hit failed for player " + p.getUniqueId() + ": ", t); }
          }
@@ -513,22 +509,7 @@ public class SkillManager {
         boolean fancyAll = plugin.getConfigUtil().getBoolean("visuals.fancy-enabled", true);
         boolean fancyFrost = plugin.getConfigUtil().getBoolean("visuals.frostnova.fancy", true);
         if (fancyAll && fancyFrost) {
-            int ringPts = Math.max(12, plugin.getConfigUtil().getInt("visuals.frostnova.ring-points", 36));
-            // Zwei Ringe: innen und außen
-            double inner = Math.max(1.0, radius * 0.6);
-            double outer = radius;
-            try {
-                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRing(loc.getWorld(), loc.clone().add(0, 0.2, 0), inner, ringPts, org.bukkit.Particle.SNOWFLAKE);
-                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRing(loc.getWorld(), loc.clone().add(0, 0.25, 0), outer, ringPts, org.bukkit.Particle.SNOWFLAKE);
-            } catch (Throwable ignored) {}
-            // Eissplitter: Richtungs-Impulse (nur Visuals)
-            int shards = Math.max(6, plugin.getConfigUtil().getInt("visuals.frostnova.shards", 12));
-            for (int i = 0; i < shards; i++) {
-                double ang = 2 * Math.PI * i / shards;
-                double dx = Math.cos(ang), dz = Math.sin(ang);
-                org.bukkit.Location tip = loc.clone().add(dx * (inner + 0.5), 0.3, dz * (inner + 0.5));
-                try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnBurst(loc.getWorld(), tip, org.bukkit.Particle.CRIT, 4, 0.08); } catch (Throwable ignored) {}
-            }
+            try { org.bysenom.minecraftSurvivors.fx.FrostNovaFx.onExplode(plugin, p, loc, radius); } catch (Throwable ignored) {}
         }
         java.util.List<org.bukkit.entity.LivingEntity> mobs = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(loc, radius);
         for (org.bukkit.entity.LivingEntity le : mobs) {
@@ -552,6 +533,7 @@ public class SkillManager {
         org.bukkit.Location center = p.getLocation();
         // Ensure the round stats include this source even if no damage occurs
         try { if (plugin.getRoundStatsManager() != null) plugin.getRoundStatsManager().recordSourceObserved("ab_void_nova"); } catch (Throwable ignored) {}
+        try { org.bysenom.minecraftSurvivors.fx.VoidFx.onPulse(plugin, p, center, radius); } catch (Throwable ignored) {}
         java.util.List<org.bukkit.entity.LivingEntity> mobs = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(center, radius);
         // Glyphen
         java.util.List<String> glyphs = sp.getGlyphs("ab_void_nova");
@@ -585,7 +567,8 @@ public class SkillManager {
                         // record the lingering void source so it appears in breakdown even if no damage occurred
                         try { if (plugin.getRoundStatsManager() != null) plugin.getRoundStatsManager().recordSourceObserved("ab_void_nova:lingering_void"); } catch (Throwable ignored) {}
                         glyphProcNotify(p, "ab_void_nova:lingering_void", center);
-                    }
+                        try { org.bysenom.minecraftSurvivors.fx.VoidFx.spawnLingeringField(plugin, center, Math.max(2.5, radius * 0.6)); } catch (Throwable ignored) {}
+                     }
                     return;
                 }
                 double prog = t[0] / (double) ticks; // 0..1
