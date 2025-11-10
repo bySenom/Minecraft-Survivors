@@ -9,6 +9,7 @@ Exposes a snapshot after round end and writes an admin JSON report to disk.
 
 - `long startMs`
 - `long endMs`
+- `double roundLengthSec`
 
 ## Public Methods
 
