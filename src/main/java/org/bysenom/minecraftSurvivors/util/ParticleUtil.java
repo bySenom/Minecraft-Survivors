@@ -31,6 +31,11 @@ public final class ParticleUtil {
                 for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
                     if (!p.isOnline()) continue;
                     if (p.getWorld() != loc.getWorld()) continue;
+                    // Respect per-player FX toggle: if player disabled FX, don't count them as a viewer
+                    try {
+                        org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = pl.getPlayerManager().get(p.getUniqueId());
+                        if (sp != null && !sp.isFxEnabled()) continue;
+                    } catch (Throwable ignoredInner) { /* ignore and continue */ }
                     if (p.getLocation().distanceSquared(loc) <= view*view) return false; // found viewer nearby
                 }
                 return true; // no viewers nearby
