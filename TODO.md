@@ -124,14 +124,16 @@ Release, wenn P1 abgeschlossen.
 ## P1.3 (In Arbeit - 2025-11-10)
 Ziel: Vorbereitung auf finalen Release-Block; Fokus auf QA, Balancing, CI-Stabilität, Tests und Doku.
 
-Erledigt (P1.3 - laufende Arbeiten)
+Erledigt (P1.3)
 - FX / Particle Throttling: per-player FX toggle berücksichtigt (Code: `org.bysenom.minecraftSurvivors.util.ParticleUtil.shouldThrottle` angepasst). (2025-11-10)
-- Boss UI / Scheduling Safety: Alle `runTaskLater`/`runTaskTimer` Aufrufe im `BossManager` werden jetzt in `scheduledTasks` registriert und sauber in `clearUi()` gecancelt; Meteor/FallingBlock-Cleanup verbessert. (2025-11-10)
-- SpawnManager scheduling: `SpawnManager` trackt jetzt `runTaskTimer`/`runTaskLater`-Aufrufe (scalingTask, aggroTask, continuousTask, delayed equips, freezeEnforcerTask, spawn animation) und bietet `cancelAllScheduled()`; `stopContinuous()` ruft das Cleanup. (2025-11-10)
-- Code-Formatierung (Spotless): `:spotlessApply` ausgeführt; `SurvivorPlayerTest` und Formatierungsprobleme behoben. (2025-11-10)
-- CI: Minimaler GitHub Actions Workflow hinzugefügt (`.github/workflows/ci.yml`) zur automatischen Prüfung von Spotless + Build (noch nicht auf Remote ausgeführt). (2025-11-10)
-- Smoketest Runner: `/msboss smoketest [N]` hinzugefügt — führt N Iterationen (max 20) aus, sammelt Vor-/Nach-Cleanup-Metriken (Meteors, scheduledTasks) und gibt aggregierten Report an den OP aus. (2025-11-10)
-- Extra safety on stop/disable: `GameManager.stopGame()` ruft `spawnManager.cancelAllScheduledTasks()`; `MinecraftSurvivors.onDisable()` ruft defensiv `gameManager.getSpawnManager().cancelAllScheduledTasks()` und `gameManager.getBossManager().forceEnd()`. (2025-11-10)
+- Spotless / Formatting: `:spotlessApply` ausgeführt; Formatierungsprobleme behoben. (2025-11-10)
+- Round Statistics (ERLEDIGT - 2025-11-10): Implementiert in `RoundStatsManager`.
+  - Rundendaten werden am Ende einer Runde als JSON/CSV geschrieben.
+  - Admin GUI `/msroundstats show` + pagination und clickable navigation implementiert.
+  - `/msroundstats export [json|csv|html]` erzeugt jetzt persistente Export-Dateien im `exports/`-Unterordner.
+  - HTML-Export enthält einfache CSS und ein eingebettetes SVG-Balkendiagramm für Top-Quellen.
+  - Nicht-damaging-Sources werden mit `recordSourceObserved(...)` erfasst (z. B. `ab_void_nova:lingering_void`, `ab_time_rift:slow_field`).
+- CI helper: ein minimaler GitHub Actions Workflow wurde hinzugefügt (lokal vorbereitet), sowie ein Smoketest-Runner-Command `/msboss smoketest` (2025-11-10).
 
 Verbleibende P1.3-Aufgaben (offen)
 1. QA & Bugfixes Endboss
@@ -154,3 +156,7 @@ Akzeptanzkriterien P1.3:
 - CI: Build, Tests & Spotless grün.
 - Keine kritischen Bugs in Endboss/Waves unter Last.
 - Minimale Dokumentation für Server-Admins vorhanden (README Update).
+
+---
+
+(Die Lobby-spezifischen TODOs sind in `lobby/TODO.md`.)

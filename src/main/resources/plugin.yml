@@ -107,6 +107,19 @@ commands:
       /msboss lightning
     permission: minecraftsurvivors.admin
     permission-message: "§cKeine Berechtigung."
+  msroundstats:
+    description: |-
+      Zeigt Round-Statistics an und exportiert Reports.
+      Subcommands:
+        show [page]                - Öffnet GUI mit Round-Stats (page 1=Sources, 2=Players)
+        export [json|csv|html]     - Exportiert letzten Round-Report
+        openfile <filename>        - Zeigt Pfad der Report-Datei
+    usage: |-
+      /msroundstats show [page]
+      /msroundstats export [json|csv|html]
+      /msroundstats openfile <filename>
+    permission: minecraftsurvivors.admin
+    permission-message: "§cKeine Berechtigung."
 permissions:
   minecraftsurvivors.admin:
     description: "Erlaubnis für Admin-/Management-Kommandos"

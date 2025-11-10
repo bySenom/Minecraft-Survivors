@@ -304,7 +304,37 @@ public class SpawnManager {
                             int r = plugin.getConfigUtil().getInt("spawn.redstone-r", 255);
                             int g = plugin.getConfigUtil().getInt("spawn.redstone-g", 255);
                             int b = plugin.getConfigUtil().getInt("spawn.redstone-b", 255);
-                            // Spawn dust via ParticleUtil.spawnDust (fallbacks handled), throttled
+                            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnDust(world, p, Math.max(1, count), r/255.0, g/255.0, b/255.0, 1.0f);
+                        } else {
+                            org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(world, particle, p, count, spread, spread, spread, 0.0);
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+                tick++;
+            }
+        };
+        org.bukkit.scheduler.BukkitTask spawnAnimTask = new org.bukkit.scheduler.BukkitRunnable() {
+            int tick = 0;
+
+            @Override
+            public void run() {
+                if (tick > maxTicks) {
+                    cancel();
+                    return;
+                }
+                double radius = 0.4 + tick * 0.12;
+                double height = 0.3 + tick * 0.08;
+                for (int i = 0; i < points; i++) {
+                    double angle = 2 * Math.PI * i / points;
+                    double x = center.getX() + Math.cos(angle) * radius;
+                    double z = center.getZ() + Math.sin(angle) * radius;
+                    Location p = new Location(world, x, center.getY() + height, z);
+                    try {
+                        if (particle.name().equals("REDSTONE")) {
+                            int r = plugin.getConfigUtil().getInt("spawn.redstone-r", 255);
+                            int g = plugin.getConfigUtil().getInt("spawn.redstone-g", 255);
+                            int b = plugin.getConfigUtil().getInt("spawn.redstone-b", 255);
                             org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnDust(world, p, Math.max(1, count), r/255.0, g/255.0, b/255.0, 1.0f);
                         } else {
                             org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(world, particle, p, count, spread, spread, spread, 0.0);
@@ -315,6 +345,7 @@ public class SpawnManager {
                 tick++;
             }
         }.runTaskTimer(plugin, 0L, 1L);
+        registerTask(spawnAnimTask);
     }
 
     // Resolve particle enum safely for current server version
@@ -470,6 +501,7 @@ public class SpawnManager {
                     }
                 }
             }.runTaskTimer(plugin, 0L, 20L);
+            registerTask(freezeEnforcerTask);
         } catch (Throwable ignored) {
         }
     }
@@ -519,6 +551,7 @@ public class SpawnManager {
                 }
             }
         }.runTaskTimer(plugin, 0L, Math.max(1L, ticksPerCycle));
+        registerTask(continuousTask);
         plugin.getLogger().info("Continuous spawn started (ticks-per-cycle=" + ticksPerCycle + ")");
         ensureScalingTask();
         ensureAggroTask();
@@ -558,6 +591,8 @@ public class SpawnManager {
             scalingTask.cancel();
             scalingTask = null;
         }
+        // cancel any registered scheduled tasks related to spawn manager
+        try { cancelAllScheduled(); } catch (Throwable ignored) {}
     }
 
     public void cancelAllScheduledTasks() { cancelAllScheduled(); }

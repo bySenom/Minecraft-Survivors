@@ -233,6 +233,7 @@ public class GameManager {
             } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "applyMetaOnRunStart/enterContext failed for player: " + p.getUniqueId() + ": ", t); }
         }
         this.currentWaveNumber = 1;
+        try { var rsm = plugin.getRoundStatsManager(); if (rsm != null) rsm.startRound(); } catch (Throwable ignored) {}
         boolean continuous = plugin.getConfigUtil().getBoolean("spawn.continuous.enabled", true);
         if (continuous) {
             spawnManager.startContinuousIfEnabled();
@@ -289,6 +290,24 @@ public class GameManager {
                 try { if (sp != null) plugin.getPlayerDataManager().savePersistent(sp); } catch (Throwable ignored) {}
             }
         } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "savePersistent failed at stopGame: ", t); }
+        // finalize round stats and notify admins/OPs with a clickable report
+        try {
+            var rsm = plugin.getRoundStatsManager();
+            if (rsm != null) {
+                var snap = rsm.finishRoundAndSnapshot();
+                if (snap != null) {
+                    String label = "[Round-Stats] Click to open report GUI";
+                    for (org.bukkit.entity.Player pl : org.bukkit.Bukkit.getOnlinePlayers()) {
+                        if (pl.isOp() || pl.hasPermission("minecraftsurvivors.admin")) {
+                            try {
+                                // send an Adventure Component that runs the command when clicked
+                                pl.sendMessage(org.bysenom.minecraftSurvivors.util.TextUtil.clickableComponent(label, "/msroundstats show"));
+                            } catch (Throwable ignored) {}
+                        }
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
         plugin.getLogger().info("Game stopped");
     }
 

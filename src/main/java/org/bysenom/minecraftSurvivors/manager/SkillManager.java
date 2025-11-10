@@ -501,6 +501,8 @@ public class SkillManager {
         double damage = (2.2 + lvl * 0.9 + sp.getFlatDamage() * 0.5) * (1.0 + sp.getDamageMult());
         double durationSec = 2.0 + Math.min(6.0, lvl * 0.25);
         org.bukkit.Location center = p.getLocation();
+        // Ensure the round stats include this source even if no damage occurs
+        try { if (plugin.getRoundStatsManager() != null) plugin.getRoundStatsManager().recordSourceObserved("ab_void_nova"); } catch (Throwable ignored) {}
         java.util.List<org.bukkit.entity.LivingEntity> mobs = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(center, radius);
         // Glyphen
         java.util.List<String> glyphs = sp.getGlyphs("ab_void_nova");
@@ -531,6 +533,8 @@ public class SkillManager {
                     if (lingering) {
                         // Lingering Void: Feld speichert Besitzer -> Damage Attribution für DPS
                         lingeringVoidFields.add(new LingeringVoidField(center.clone(), System.currentTimeMillis() + 3500, Math.max(2.5, radius * 0.6), damage * 0.25, p.getUniqueId()));
+                        // record the lingering void source so it appears in breakdown even if no damage occurred
+                        try { if (plugin.getRoundStatsManager() != null) plugin.getRoundStatsManager().recordSourceObserved("ab_void_nova:lingering_void"); } catch (Throwable ignored) {}
                         glyphProcNotify(p, "ab_void_nova:lingering_void", center);
                     }
                     return;
@@ -572,8 +576,14 @@ public class SkillManager {
         boolean slowField = glyphs.contains("ab_time_rift:slow_field");
         boolean anchor = glyphs.contains("ab_time_rift:temporal_anchor");
         if (hasteBurst) glyphProcNotify(p, "ab_time_rift:haste_burst", center);
-        if (slowField) glyphProcNotify(p, "ab_time_rift:slow_field", center);
-        if (anchor) glyphProcNotify(p, "ab_time_rift:temporal_anchor", center);
+        if (slowField) {
+            glyphProcNotify(p, "ab_time_rift:slow_field", center);
+            try { if (plugin.getRoundStatsManager() != null) plugin.getRoundStatsManager().recordSourceObserved("ab_time_rift:slow_field"); } catch (Throwable ignored) {}
+        }
+        if (anchor) {
+            glyphProcNotify(p, "ab_time_rift:temporal_anchor", center);
+            try { if (plugin.getRoundStatsManager() != null) plugin.getRoundStatsManager().recordSourceObserved("ab_time_rift:temporal_anchor"); } catch (Throwable ignored) {}
+        }
         int ticks = (int)Math.round(durSec*20);
         // Speichere Anker-Positionen
         if (anchor) {
@@ -733,6 +743,8 @@ public class SkillManager {
 
     private void glyphProcNotify(org.bukkit.entity.Player p, String glyphKey, org.bukkit.Location where) {
         if (p == null || glyphKey == null) return;
+        // Ensure glyph activations appear in round reports even if they cause no direct damage
+        try { if (plugin.getRoundStatsManager() != null) plugin.getRoundStatsManager().recordSourceObserved(glyphKey); } catch (Throwable ignored) {}
         long now = System.currentTimeMillis();
         java.util.Map<String, Long> m = lastGlyphMsg.computeIfAbsent(p.getUniqueId(), k -> new java.util.HashMap<>());
         Long last = m.getOrDefault(glyphKey, 0L);

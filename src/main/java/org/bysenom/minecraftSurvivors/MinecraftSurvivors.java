@@ -37,6 +37,7 @@ public final class MinecraftSurvivors extends JavaPlugin {
     private org.bysenom.minecraftSurvivors.manager.TablistManager tablistManager;
     private org.bukkit.scheduler.BukkitTask autosaveTask;
     private org.bysenom.minecraftSurvivors.manager.ConfigEditSessionManager configEditSessionManager;
+    private org.bysenom.minecraftSurvivors.manager.RoundStatsManager roundStatsManager;
 
     @Override
     public void onLoad() {
@@ -66,6 +67,9 @@ public final class MinecraftSurvivors extends JavaPlugin {
         this.configEditSessionManager = new org.bysenom.minecraftSurvivors.manager.ConfigEditSessionManager(this);
         // Shop-NPC Manager
         this.shopNpcManager = new org.bysenom.minecraftSurvivors.manager.ShopNpcManager(this, guiManager);
+        this.roundStatsManager = new org.bysenom.minecraftSurvivors.manager.RoundStatsManager(this);
+        // Clear old auto-generated round reports from previous runs (preserve exported reports)
+        try { this.roundStatsManager.clearAutoReports(); } catch (Throwable ignored) {}
 
         // Registrierungen
         getLogger().info("onEnable thread: " + Thread.currentThread().getName());
@@ -106,6 +110,9 @@ public final class MinecraftSurvivors extends JavaPlugin {
 
             cmd = getCommand("msplayerdata");
             if (cmd != null) cmd.setExecutor(new org.bysenom.minecraftSurvivors.command.PlayerDataCommand(this));
+
+            cmd = getCommand("msroundstats");
+            if (cmd != null) { cmd.setExecutor(new org.bysenom.minecraftSurvivors.command.RoundStatsCommand(this)); getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.RoundStatsGuiListener(this), this); }
 
             getServer().getPluginManager().registerEvents(new org.bysenom.minecraftSurvivors.listener.EntityDeathListener(playerManager, guiManager, this.configUtil), this);
             getServer().getPluginManager().registerEvents(new PlayerDeathListener(gameManager, playerManager, this.playerDataManager), this);
@@ -203,6 +210,7 @@ public final class MinecraftSurvivors extends JavaPlugin {
     @SuppressWarnings("unused")
     public org.bysenom.minecraftSurvivors.manager.TablistManager getTablistManager() { return tablistManager; }
     public org.bysenom.minecraftSurvivors.util.PlayerDataManager getPlayerDataManager() { return playerDataManager; }
+    public org.bysenom.minecraftSurvivors.manager.RoundStatsManager getRoundStatsManager() { return roundStatsManager; }
     public org.bysenom.minecraftSurvivors.manager.ConfigEditSessionManager getConfigEditSessionManager() { return this.configEditSessionManager; }
     public org.bysenom.minecraftSurvivors.manager.ScoreboardManager getScoreboardManager() { return scoreboardManager; }
 }

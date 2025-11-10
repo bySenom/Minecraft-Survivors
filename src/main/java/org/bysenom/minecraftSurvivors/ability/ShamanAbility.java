@@ -100,7 +100,14 @@ public class ShamanAbility implements Ability {
             } catch (Throwable ignored) {}
 
             // visueller Effekt und gezielter Schaden nur auf das Ziel (SpawnManager sorgt für Thread-Safety)
-            spawnManager.strikeLightningAtTarget(target, damage, player);
+            try {
+                // mark player with ability key for damage attribution
+                try { player.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, "ab_lightning")); } catch (Throwable ignored) {}
+                spawnManager.strikeLightningAtTarget(target, damage, player);
+            } finally {
+                // remove metadata next tick to avoid leaking
+                try { org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> { try { player.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }); } catch (Throwable ignored) {}
+            }
 
             // optional: entferne getroffenen Mob aus Liste, damit nicht erneut getroffen wird
             mobs.remove(target);

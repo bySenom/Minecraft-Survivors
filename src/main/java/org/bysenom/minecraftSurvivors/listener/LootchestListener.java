@@ -522,6 +522,7 @@ public class LootchestListener implements Listener {
         }
         org.bysenom.minecraftSurvivors.model.StatModifier mod = new org.bysenom.minecraftSurvivors.model.StatModifier(st, val, "lootchest:"+nm);
         sp.addStatModifier(mod);
+        try { var rsm = org.bysenom.minecraftSurvivors.MinecraftSurvivors.getInstance().getRoundStatsManager(); if (rsm != null) rsm.recordLootChestPicked(p.getUniqueId()); } catch (Throwable ignored) {}
         try { plugin.getPlayerDataManager().saveAsync(sp); } catch (Throwable ignored) {}
         try { p.playSound(p.getLocation(), org.bukkit.Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.0f); } catch (Throwable ignored) {}
         p.sendMessage("§aGewonnen: "+nm+formatSuffix(st,val));

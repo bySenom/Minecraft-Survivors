@@ -31,7 +31,9 @@ public class EntityDeathListener implements Listener {
             killer = (Player) e.getEntity().getKiller();
             SurvivorPlayer sp = playerManager.get(killer.getUniqueId());
             sp.addKill();
+            try { var rsm = org.bysenom.minecraftSurvivors.MinecraftSurvivors.getInstance().getRoundStatsManager(); if (rsm != null) rsm.recordKill(killer.getUniqueId(), e.getEntity().getType().name()); } catch (Throwable ignored) {}
             sp.addCoins(1); // einfache Belohnung
+            try { var rsm = org.bysenom.minecraftSurvivors.MinecraftSurvivors.getInstance().getRoundStatsManager(); if (rsm != null) rsm.recordCoins(killer.getUniqueId(), 1); } catch (Throwable ignored) {}
             try { killer.sendActionBar(Component.text("Kills: " + sp.getKills() + "  Coins: " + sp.getCoins())); } catch (Throwable ignored) {}
 
             int xpGain = 1;

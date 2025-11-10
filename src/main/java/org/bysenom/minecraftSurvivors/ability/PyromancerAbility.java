@@ -118,7 +118,12 @@ public class PyromancerAbility implements Ability {
                 }
             } catch (Throwable ignored) {}
 
-            try { target.damage(damage, player); } catch (Throwable ignored) {}
+            try {
+                try { player.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, "ab_fire")); } catch (Throwable ignored) {}
+                target.damage(damage, player);
+            } finally {
+                try { org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> { try { player.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }); } catch (Throwable ignored) {}
+            }
             try { target.setFireTicks(Math.max(target.getFireTicks(), igniteTicks)); } catch (Throwable ignored) {}
             hit++;
         }

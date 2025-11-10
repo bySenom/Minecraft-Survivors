@@ -140,6 +140,24 @@ public final class CombatEngine {
                     double max = le.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH) != null ? le.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getBaseValue() : Math.max(1.0, le.getHealth());
                     plugin.getHoloHpManager().updateBar(le, hp, max);
                 } catch (Throwable ignored) {}
+                // New: Round stats recording
+                try {
+                    var rsm = plugin.getRoundStatsManager();
+                    if (rsm != null) {
+                        String src = "unknown";
+                        // check for explicit metadata set by abilities (e.g., ms_ability_key)
+                        try { if (damagerPlayer.hasMetadata("ms_ability_key")) { var mv = damagerPlayer.getMetadata("ms_ability_key"); if (!mv.isEmpty()) src = String.valueOf(mv.get(0).value()); } } catch (Throwable ignored) {}
+                        // fallback: held item or weapon
+                        if ("unknown".equals(src)) {
+                            try {
+                                var it = damagerPlayer.getInventory().getItemInMainHand();
+                                if (it != null && it.getType() != org.bukkit.Material.AIR) src = "item:" + it.getType().name();
+                                else src = "player:melee";
+                            } catch (Throwable ignored) { src = "player:melee"; }
+                        }
+                        rsm.recordDamage(damagerPlayer.getUniqueId(), src, amount);
+                    }
+                } catch (Throwable ignored) {}
             }
         }
 
