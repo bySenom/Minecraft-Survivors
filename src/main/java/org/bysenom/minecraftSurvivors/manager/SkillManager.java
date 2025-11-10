@@ -701,10 +701,12 @@ public class SkillManager {
                     }
                     // Schaden/Effects für Gegner in Spire-Nähe (fokussiert)
                     java.util.List<org.bukkit.entity.LivingEntity> near = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(c, spireRadius + 0.4);
+                    // Choose ability key: glyph-specific if toxicBloom glyph active
+                    String abilityKey = toxicBloom ? "ab_venom_spire:toxic_bloom" : "ab_venom_spire";
                     for (org.bukkit.entity.LivingEntity le : near) {
                         if (!le.isValid()) continue;
                         try {
-                            try { p.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, "ab_venom_spire")); } catch (Throwable ignored) {}
+                            try { p.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, abilityKey)); } catch (Throwable ignored) {}
                             try { le.damage(perTickDamage, p); } finally { try { p.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }
                         } catch (Throwable ignored) {}
                         try { le.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.POISON, 40, 0, false, false, true)); } catch (Throwable ignored) {}

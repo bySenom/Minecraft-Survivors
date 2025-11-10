@@ -266,29 +266,54 @@ public class RoundStatsManager {
             sb.append('{');
             sb.append("\"startMs\":").append(startMs).append(',');
             sb.append("\"endMs\":").append(endMs).append(',');
+            // damageBySource
             sb.append("\"damageBySource\":{");
             int i = 0;
             for (var en : damageBySource.entrySet()) {
                 if (i++ > 0) sb.append(',');
                 sb.append('"').append(escape(en.getKey())).append('"').append(':').append(String.format(Locale.ROOT, "%.3f", en.getValue()));
             }
-            sb.append("},");
-            // player name mapping
-            sb.append("\"playerNames\":{"); i = 0;
-            for (var en : playerNames.entrySet()) { if (i++>0) sb.append(','); sb.append('"').append(en.getKey().toString()).append('"').append(':').append('"').append(escape(en.getValue())).append('"'); }
-            sb.append("},");
-            sb.append("\"damageByPlayer\":{"); i = 0;
-            for (var en : damageByPlayer.entrySet()) { if (i++>0) sb.append(','); sb.append('"').append(en.getKey().toString()).append('"').append(':').append(String.format(Locale.ROOT, "%.3f", en.getValue())); }
-            sb.append("},");
-            sb.append("\"killsByPlayer\":{"); i = 0;
-            for (var en : killsByPlayer.entrySet()) { if (i++>0) sb.append(','); sb.append('"').append(en.getKey().toString()).append('"').append(':').append(en.getValue()); }
-            sb.append("},");
-            sb.append("\"coinsByPlayer\":{"); i = 0;
-            for (var en : coinsByPlayer.entrySet()) { if (i++>0) sb.append(','); sb.append('"').append(en.getKey().toString()).append('"').append(':').append(en.getValue()); }
-            sb.append("},");
-            sb.append("\"lootchestsByPlayer\":{"); i = 0;
-            for (var en : lootchestsByPlayer.entrySet()) { if (i++>0) sb.append(','); sb.append('"').append(en.getKey().toString()).append('"').append(':').append(en.getValue()); }
-            sb.append("}");
+            sb.append('}').append(',');
+            // playerNames
+            sb.append('"').append("playerNames").append('"').append(':').append('{');
+            i = 0;
+            for (var en : playerNames.entrySet()) {
+                if (i++ > 0) sb.append(',');
+                sb.append('"').append(en.getKey().toString()).append('"').append(':').append('"').append(escape(en.getValue())).append('"');
+            }
+            sb.append('}').append(',');
+            // damageByPlayer
+            sb.append('"').append("damageByPlayer").append('"').append(':').append('{');
+            i = 0;
+            for (var en : damageByPlayer.entrySet()) {
+                if (i++ > 0) sb.append(',');
+                sb.append('"').append(en.getKey().toString()).append('"').append(':').append(String.format(Locale.ROOT, "%.3f", en.getValue()));
+            }
+            sb.append('}').append(',');
+            // killsByPlayer
+            sb.append('"').append("killsByPlayer").append('"').append(':').append('{');
+            i = 0;
+            for (var en : killsByPlayer.entrySet()) {
+                if (i++ > 0) sb.append(',');
+                sb.append('"').append(en.getKey().toString()).append('"').append(':').append(en.getValue());
+            }
+            sb.append('}').append(',');
+            // coinsByPlayer
+            sb.append('"').append("coinsByPlayer").append('"').append(':').append('{');
+            i = 0;
+            for (var en : coinsByPlayer.entrySet()) {
+                if (i++ > 0) sb.append(',');
+                sb.append('"').append(en.getKey().toString()).append('"').append(':').append(en.getValue());
+            }
+            sb.append('}').append(',');
+            // lootchestsByPlayer
+            sb.append('"').append("lootchestsByPlayer").append('"').append(':').append('{');
+            i = 0;
+            for (var en : lootchestsByPlayer.entrySet()) {
+                if (i++ > 0) sb.append(',');
+                sb.append('"').append(en.getKey().toString()).append('"').append(':').append(en.getValue());
+            }
+            sb.append('}');
             sb.append('}');
             return sb.toString();
         }
@@ -407,13 +432,13 @@ public class RoundStatsManager {
         int i = 0;
         for (var en : map.entrySet()) {
             if (i++>0) sb.append(',');
-            sb.append('"').append(en.getKey()).append'"').append(':');
-            Object v = en.getValue();
-            if (v instanceof Number) sb.append(v);
-            else if (v instanceof Map) {
-                sb.append('{'); int j=0; for (var e2 : ((Map<?,?>)v).entrySet()) { if (j++>0) sb.append(','); sb.append('"').append(e2.getKey().toString()).append('"').append(':').append(e2.getValue().toString()); } sb.append('}');
-            } else sb.append('"').append(String.valueOf(v)).append('"');
-        }
+            sb.append('"').append(en.getKey()).append('"').append(':');
+             Object v = en.getValue();
+             if (v instanceof Number) sb.append(v);
+             else if (v instanceof Map) {
+                 sb.append('{'); int j=0; for (var e2 : ((Map<?,?>)v).entrySet()) { if (j++>0) sb.append(','); sb.append('"').append(e2.getKey().toString()).append('"').append(':').append(e2.getValue().toString()); } sb.append('}');
+             } else sb.append('"').append(String.valueOf(v)).append('"');
+         }
         sb.append('}');
         return sb.toString();
     }
