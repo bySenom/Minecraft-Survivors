@@ -10,7 +10,8 @@ Dies ist die Aufgabenliste für das Kernspiel (Minecraft Survivors). Das LobbySy
 
 ---
 Status-Update (2025-11-10)
-- P1.2: Abgeschlossen (2025-11-10) — Glyphen-UX, Persistenz-Basics, Replace-Flow und CI-Checks umgesetzt, formatiert und auf main gepusht.
+- P1.2: Geschlossen (2025-11-10) — Glyphen-UX, Persistenz-Basics, Replace-Flow und CI-Checks wurden implementiert und verifiziert.
+- P1.3: In Arbeit (2025-11-10) — Fokus: QA, Balancing, FX-Throttle-Finetuning, Tests & CI-Fixes.
 - Erledigt (Code): MAX_HEALTH Reset; CombatEngine zentralisiert; Endboss: Meteor-Cleanup, Telegraphs, ArmorStand-Name Fixes; Persistenz: `PlayerDataManager` & `SurvivorPlayer` (Grundlegende Felder + save/load) implemented; viele Particle-Aufrufe wurden auf `ParticleUtil` umgestellt; mehrere Hintergrund-Tasks (Lootchest, GlyphPickup, Skill charge, continuous spawn/wave tasks) werden beim Stop/Disable abgebrochen.
 - In Arbeit: FX-Throttling Rate-Limiter Feintuning; Wellen/Continuous Stabilität (Audit abgeschlossen, fixes eingepflegt — weiteres QA erforderlich); Dokumentation (README/Docs).
 
@@ -119,3 +120,31 @@ Beschreibung: Konfig-Presets für schnelle Server-Anpassung.
 5. Balancing
 
 Release, wenn P1 abgeschlossen.
+
+## P1.3 (In Arbeit - 2025-11-10)
+Ziel: Vorbereitung auf finalen Release-Block; Fokus auf QA, Balancing, CI-Stabilität, Tests und Doku.
+
+Priorisierte Tasks:
+1. QA & Bugfixes Endboss
+   - Finales Balancing prüfen (Spawn Counts, Schäden, Phase-Trigger).
+   - Visuelle Telegraphs und Cleanup verifizieren unter Last (inkl. Projectile/FallingBlock-Cleanup).
+   - Smoke-tests: Boss-Spawn + Kill unter 1–8 Spieler-Szenarien.
+2. FX / Particle Throttling
+   - Rate-Limiter Feintuning in `ParticleUtil` (per-player / per-world / distance-based throttling).
+   - Globaler Config-Regler + Spieler-Toggle testen.
+3. Wellen / Continuous Mode Stabilität
+   - Reproduzierbare QA-Szenarien für Continuous Mode erstellen; edge-cases (mid-run restart, player reconnect) prüfen.
+   - Verify: alle laufenden Schedulers werden beim Stop gecancelt (no leaking runnables).
+4. Tests & CI
+   - Stabilisierung von `SurvivorPlayerTest` und zentralen CombatEngine-Tests.
+   - Fix Spotless violations (lokal: `gradlew.bat :spotlessApply`) und sicherstellen, dass CI grün läuft.
+5. Dokumentation & Release-Checklist
+   - README: Getting Started, Config-Cheatsheet, neue Stats.
+   - Release-Checklist: smoke-tests, TPS-check, Endboss QA, DB/PlayerData Backup-Plan.
+6. Balancing-Iteration
+   - Konfigurierbare Caps (Crit/Lifesteal/Shield) in `ConfigUtil` prüfen und dokumentieren.
+
+Akzeptanzkriterien P1.3:
+- CI: Build, Tests & Spotless grün.
+- Keine kritischen Bugs in Endboss/Waves unter Last.
+- Minimale Dokumentation für Server-Admins vorhanden (README Update).
