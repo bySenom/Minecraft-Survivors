@@ -10,6 +10,7 @@ Dies ist die Aufgabenliste für das Kernspiel (Minecraft Survivors). Das LobbySy
 
 ---
 Status-Update (2025-11-10)
+- P1.2: Abgeschlossen (2025-11-10) — Glyphen-UX, Persistenz-Basics, Replace-Flow und CI-Checks umgesetzt, formatiert und auf main gepusht.
 - Erledigt (Code): MAX_HEALTH Reset; CombatEngine zentralisiert; Endboss: Meteor-Cleanup, Telegraphs, ArmorStand-Name Fixes; Persistenz: `PlayerDataManager` & `SurvivorPlayer` (Grundlegende Felder + save/load) implemented; viele Particle-Aufrufe wurden auf `ParticleUtil` umgestellt; mehrere Hintergrund-Tasks (Lootchest, GlyphPickup, Skill charge, continuous spawn/wave tasks) werden beim Stop/Disable abgebrochen.
 - In Arbeit: FX-Throttling Rate-Limiter Feintuning; Wellen/Continuous Stabilität (Audit abgeschlossen, fixes eingepflegt — weiteres QA erforderlich); Dokumentation (README/Docs).
 
