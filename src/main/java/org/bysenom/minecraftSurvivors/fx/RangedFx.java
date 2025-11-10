@@ -1,11 +1,11 @@
 package org.bysenom.minecraftSurvivors.fx;
 
-import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bysenom.minecraftSurvivors.MinecraftSurvivors;
 
 public final class RangedFx {
     private RangedFx() {}
@@ -23,7 +23,7 @@ public final class RangedFx {
         } catch (Throwable ignored) {}
     }
 
-    public static void onProjectileTrail(MinecraftSurvivors plugin, Player source, Location loc) {
+    public static void onProjectileTrail(MinecraftSurvivors plugin, Location loc) {
         if (plugin == null || loc == null) return;
         try {
             org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafe(loc.getWorld(), Particle.CRIT, loc, 1, 0.01,0.01,0.01, 0.0);

@@ -378,7 +378,7 @@ public class SkillManager {
                 if (!p.isOnline()) { cancel(); return; }
                 cur.add(dir.clone().multiply(speed));
                 try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRangedTrail(cur.getWorld(), cur, fancyAll && fancyRanged); } catch (Throwable ignored) {}
-                try { org.bysenom.minecraftSurvivors.fx.RangedFx.onProjectileTrail(plugin, p, cur); } catch (Throwable ignored) {}
+                try { org.bysenom.minecraftSurvivors.fx.RangedFx.onProjectileTrail(plugin, cur); } catch (Throwable ignored) {}
                 if (fancyAll && fancyRanged) {
                     try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSpiral(cur.getWorld(), cur.clone().add(0,-0.2,0), 0.35, 0.6, 10, org.bukkit.Particle.END_ROD, 1.0); } catch (Throwable ignored) {}
                     if (sonicTrail && t % sonicEvery == 0) {
