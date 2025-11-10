@@ -190,24 +190,46 @@ public class GlyphPickupListener implements Listener {
             try {
                 var sel = org.bukkit.Bukkit.createInventory(null, 9, net.kyori.adventure.text.Component.text("Wähle Glyph").color(net.kyori.adventure.text.format.NamedTextColor.LIGHT_PURPLE));
                 int si = 0;
-                for (String gk : hit.glyphChoices) {
-                    try {
-                        org.bysenom.minecraftSurvivors.glyph.GlyphCatalog.Def gd = org.bysenom.minecraftSurvivors.glyph.GlyphCatalog.get(gk);
-                        var gl = new java.util.ArrayList<net.kyori.adventure.text.Component>();
-                        if (gd != null) gl.add(net.kyori.adventure.text.Component.text(gd.desc).color(net.kyori.adventure.text.format.NamedTextColor.GRAY));
-                        String act = "glyph_pickup_select:" + gk;
-                        sel.setItem(si, org.bysenom.minecraftSurvivors.gui.GuiTheme.createAction(MinecraftSurvivors.getInstance(), gd != null ? gd.icon : org.bukkit.Material.PAPER, net.kyori.adventure.text.Component.text(gd != null ? gd.name : gk).color(net.kyori.adventure.text.format.NamedTextColor.GOLD), gl, act, false));
-                        try { MinecraftSurvivors.getInstance().getLogger().fine("Glyph pickup option shown: " + gk + " for player=" + p.getName()); } catch (Throwable ignored) {}
-                    } catch (Throwable ignored) {}
-                    si++; if (si >= sel.getSize()) break;
+                // Filter out glyphs the player already has for this ability
+                try {
+                    var sp = plugin.getPlayerManager().get(p.getUniqueId());
+                    java.util.Set<String> existing = sp != null ? new java.util.HashSet<>(sp.getGlyphs(hit.abilityKey)) : java.util.Collections.emptySet();
+                    for (String gk : hit.glyphChoices) {
+                        if (gk == null) continue;
+                        if (existing.contains(gk)) continue; // skip already-socketed glyphs
+                        try {
+                            org.bysenom.minecraftSurvivors.glyph.GlyphCatalog.Def gd = org.bysenom.minecraftSurvivors.glyph.GlyphCatalog.get(gk);
+                            var gl = new java.util.ArrayList<net.kyori.adventure.text.Component>();
+                            if (gd != null) gl.add(net.kyori.adventure.text.Component.text(gd.desc).color(net.kyori.adventure.text.format.NamedTextColor.GRAY));
+                            String act = "glyph_pickup_select:" + gk;
+                            sel.setItem(si, org.bysenom.minecraftSurvivors.gui.GuiTheme.createAction(MinecraftSurvivors.getInstance(), gd != null ? gd.icon : org.bukkit.Material.PAPER, net.kyori.adventure.text.Component.text(gd != null ? gd.name : gk).color(net.kyori.adventure.text.format.NamedTextColor.GOLD), gl, act, false));
+                            try { MinecraftSurvivors.getInstance().getLogger().fine("Glyph pickup option shown: " + gk + " for player=" + p.getName()); } catch (Throwable ignored) {}
+                        } catch (Throwable ignored) {}
+                        si++; if (si >= sel.getSize()) break;
+                    }
+                    // If no new choices are available, open replace UI directly for the first choice
+                    if (si == 0) {
+                        try {
+                            // open replace menu with first generated choice (fallback)
+                            String fallback = hit.glyphChoices.isEmpty() ? null : hit.glyphChoices.get(0);
+                            if (fallback != null) new org.bysenom.minecraftSurvivors.gui.GlyphReplaceMenu(p, sp, hit.abilityKey, fallback);
+                        } catch (Throwable ignored) {}
+                        return;
+                    }
+                } catch (Throwable t) {
+                    // Fallback to showing all choices if something goes wrong
+                    int ssi = 0;
+                    for (String gk : hit.glyphChoices) {
+                        try { org.bysenom.minecraftSurvivors.glyph.GlyphCatalog.Def gd = org.bysenom.minecraftSurvivors.glyph.GlyphCatalog.get(gk); var gl = new java.util.ArrayList<net.kyori.adventure.text.Component>(); if (gd != null) gl.add(net.kyori.adventure.text.Component.text(gd.desc).color(net.kyori.adventure.text.format.NamedTextColor.GRAY)); String act = "glyph_pickup_select:" + gk; sel.setItem(ssi, org.bysenom.minecraftSurvivors.gui.GuiTheme.createAction(MinecraftSurvivors.getInstance(), gd != null ? gd.icon : org.bukkit.Material.PAPER, net.kyori.adventure.text.Component.text(gd != null ? gd.name : gk).color(net.kyori.adventure.text.format.NamedTextColor.GOLD), gl, act, false)); } catch (Throwable ignored) {} ssi++; if (ssi >= sel.getSize()) break; }
+
                 }
-                sel.setItem(8, org.bysenom.minecraftSurvivors.gui.GuiTheme.createAction(MinecraftSurvivors.getInstance(), org.bukkit.Material.BARRIER, net.kyori.adventure.text.Component.text("Abbrechen").color(net.kyori.adventure.text.format.NamedTextColor.RED), java.util.List.of(net.kyori.adventure.text.Component.text("Schließe dieses Menü")), "back", false));
-                org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.setSelectionOpen(p.getUniqueId(), true);
-                org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.setSelectionContext(p.getUniqueId(), hit.abilityKey, 0);
-                p.openInventory(sel);
-                try { MinecraftSurvivors.getInstance().getLogger().fine("Opened glyph pickup selection for player=" + p.getName() + " choices=" + hit.glyphChoices); } catch (Throwable ignored) {}
-            } catch (Throwable ignored) {}
-        }
+                 sel.setItem(8, org.bysenom.minecraftSurvivors.gui.GuiTheme.createAction(MinecraftSurvivors.getInstance(), org.bukkit.Material.BARRIER, net.kyori.adventure.text.Component.text("Abbrechen").color(net.kyori.adventure.text.format.NamedTextColor.RED), java.util.List.of(net.kyori.adventure.text.Component.text("Schließe dieses Menü")), "back", false));
+                 org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.setSelectionOpen(p.getUniqueId(), true);
+                 org.bysenom.minecraftSurvivors.listener.GlyphPickupListener.setSelectionContext(p.getUniqueId(), hit.abilityKey, 0);
+                 p.openInventory(sel);
+                 try { MinecraftSurvivors.getInstance().getLogger().fine("Opened glyph pickup selection for player=" + p.getName() + " choices=" + hit.glyphChoices); } catch (Throwable ignored) {}
+             } catch (Throwable ignored) {}
+         }
     }
 
     // Hilfs-API zum Spawnen via Config oder Events

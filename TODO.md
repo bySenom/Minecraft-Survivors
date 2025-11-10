@@ -44,8 +44,11 @@ Offene/zu priorisierende Tasks (klein, gezielt):
 - QA: Verifizieren, dass Stat-Modifikatoren von Glyphen/Items korrekt wirken und in UI reflektiert werden (Mehrspieler, Disconnect/Reconnect).
 - Glyphen-Logik: Replacement-Flow implementiert (GlyphReplaceMenu, GuiClickListener handling). Manual QA recommended.
 
-Implementiert / Notes:
-- Persistenz & Reset: Basis-Persistenz + Run-Reset-Mechanik implementiert (PlayerDataManager.savePersistent, GameManager.stopGame entfernt transient modifiers + hotbar cleanup). Manual QA recommended.
+Erledigt (P1.2):
+ - Persistenz & Reset: Basis-Persistenz + Run-Reset-Mechanik implementiert (PlayerDataManager.savePersistent, GameManager.stopGame entfernt transient modifiers + hotbar cleanup).
+ - QA-Helper: `PlayerDataManager.logPlayerData(UUID)` + Admin-Command `/msplayerdata log <player|uuid>` hinzugefügt.
+ - Glyphen-Logik: Replacement-Flow implementiert (GlyphReplaceMenu, GuiClickListener handling); Glyph-Auswahl filtert nun bereits gesockelte Glyphen und öffnet Replace-UI wenn nötig.
+ - Unit-Tests: `SurvivorPlayerTest` hinzugefügt (Glyph/Ability logic).
 
 ### 3. Performance & FX-Throttling
 Beschreibung: FX abhängig von Distanz/FX-Setting drosseln.
@@ -59,7 +62,7 @@ Beschreibung: Sicheres Laden/Speichern aller neuen Stats + Reset bei Run-Beginn.
 Akzeptanzkriterien:
 - PlayerData migriert (Backward-Compat).  # (Grundlegende Migration & Backwards-Compat-Handling implementiert)
 - Start eines Runs setzt temporäre Boni korrekt zurück.  # (softReset / softResetPreserveSkills vorhanden und genutzt)
-- Bessere Glyphen-Logik: wenn alle Slots belegt, dann Levelup der Fähigkeit; nur Glyphen anzeigen, die noch nicht gesockelt sind. (OFFEN)
+- Bessere Glyphen-Logik: wenn alle Slots belegt, dann Levelup der Fähigkeit; nur Glyphen anzeigen, die noch nicht gesockelt sind. (ERLEDIGT - P1.2)
 - Clear Inventory: After Round End / playerDeath
 
 ### 5. (entfernt) Stabilität Wellen/Continuous Mode
