@@ -282,10 +282,34 @@ public class SkillManager {
         boolean fancyAll = plugin.getConfigUtil().getBoolean("visuals.fancy-enabled", true);
         boolean fancyFire = plugin.getConfigUtil().getBoolean("visuals.fire.fancy", true);
         List<org.bukkit.entity.LivingEntity> mobs = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(p.getLocation(), radius);
+        java.util.List<String> fireGlyphs = sp.getGlyphs("ab_fire");
+        boolean inferno = fireGlyphs != null && fireGlyphs.contains("ab_fire:inferno");
+        boolean combust = fireGlyphs != null && fireGlyphs.contains("ab_fire:combust");
+        double infernoExtraTicks = plugin.getConfigUtil().getDouble("skills.fire.inferno.extra-ticks", 40.0);
+        double combustChance = plugin.getConfigUtil().getDouble("skills.fire.combust.chance", 0.15);
         for (org.bukkit.entity.LivingEntity le : mobs) {
             try {
                 try { p.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, "w_fire")); } catch (Throwable ignored) {}
-                try { le.setFireTicks(Math.max(le.getFireTicks(), 40 + sp.getIgniteBonusTicks())); org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, le, damage * (1.0 + sp.getDamageMult()), "w_fire"); } finally { try { p.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }
+                try {
+                    int baseTicks = 40 + sp.getIgniteBonusTicks();
+                    if (inferno) baseTicks = (int)Math.max(baseTicks, baseTicks + infernoExtraTicks);
+                    try { le.setFireTicks(Math.max(le.getFireTicks(), baseTicks)); } catch (Throwable ignored) {}
+                    org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, le, damage * (1.0 + sp.getDamageMult()), "w_fire");
+                    // inferno small AoE nudge damage
+                    if (inferno) {
+                        try {
+                            for (org.bukkit.entity.LivingEntity n : plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(le.getLocation(), 1.2)) {
+                                if (n == null || !n.isValid()) continue;
+                                org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, n, Math.max(0.05, damage * 0.15), "ab_fire:inferno");
+                            }
+                            try { if (plugin.getRoundStatsManager() != null) plugin.getRoundStatsManager().recordSourceObserved("ab_fire:inferno"); } catch (Throwable ignored) {}
+                        } catch (Throwable ignored) {}
+                    }
+                    // combust proc: occasional burst
+                    if (combust && java.util.concurrent.ThreadLocalRandom.current().nextDouble() < combustChance) {
+                        try { org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, le, Math.max(0.2, damage * 0.6), "ab_fire:combust"); glyphProcNotify(p, "ab_fire:combust", le.getLocation()); } catch (Throwable ignored) {}
+                    }
+                } finally { try { p.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }
                 org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(le.getWorld(), Particle.FLAME, le.getLocation().add(0,1.0,0), 6, 0.25,0.25,0.25, 0.01);
             } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWFire effect failed for player " + p.getUniqueId() + ": ", t); }
         }
@@ -355,9 +379,21 @@ public class SkillManager {
                 }
                 if (cur.distanceSquared(tgt.getLocation()) < 1.0) {
                     try {
-                        org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, tgt, damage * singleMult * (1.0 + sp.getDamageMult()), "ab_ranged");
+                        double baseDmg = damage * singleMult * (1.0 + sp.getDamageMult());
+                        String abilityKey = "ab_ranged";
+                        try {
+                            java.util.List<String> rg = sp.getGlyphs("ab_ranged");
+                            double headChance = plugin.getConfigUtil().getDouble("skills.ranged.headshot.chance", 0.12);
+                            double headMult = plugin.getConfigUtil().getDouble("skills.ranged.headshot.mult", 2.0);
+                            if (rg != null && rg.contains("ab_ranged:headshot") && java.util.concurrent.ThreadLocalRandom.current().nextDouble() < headChance) {
+                                baseDmg *= headMult;
+                                abilityKey = "ab_ranged:headshot";
+                                glyphProcNotify(p, abilityKey, tgt.getLocation());
+                                try { if (plugin.getRoundStatsManager() != null) plugin.getRoundStatsManager().recordSourceObserved(abilityKey); } catch (Throwable ignored) {}
+                            }
+                        } catch (Throwable ignored) {}
+                        org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, tgt, baseDmg, abilityKey);
                     } catch (Throwable t1) { plugin.getLogger().log(java.util.logging.Level.FINE, "shootRangedProjectile hit damage failed for player " + p.getUniqueId() + ": ", t1); }
-                    try { p.playSound(cur, org.bukkit.Sound.ENTITY_ARROW_HIT_PLAYER, 0.5f, 1.6f); } catch (Throwable ignored) {}
                     // Bounce to next target if available
                     if (remainingBounces > 0) {
                         java.util.List<org.bukkit.entity.LivingEntity> near = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(cur, 8.0);
