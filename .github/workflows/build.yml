@@ -29,13 +29,13 @@ jobs:
         with:
           arguments: clean test build --no-daemon
       - name: Upload plugin jar (${{ matrix.os }})
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: minecraftsurvivors-jar-${{ matrix.os }}
           path: build/libs/*.jar
       - name: Upload test report (${{ matrix.os }})
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-report-${{ matrix.os }}
           path: |
