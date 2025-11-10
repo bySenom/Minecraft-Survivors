@@ -25,6 +25,9 @@ Package: `org.bysenom.minecraftSurvivors.util`
 - `String TABLIST_SHOW_ENEMY_POWER`
 - `String TABLIST_SHOW_PARTY_HP`
 - `String TABLIST_HEADER_TITLE`
+- `String BALANCING_CRIT_CAP_PERCENT`
+- `String BALANCING_LIFESTEAL_CAP`
+- `String BALANCING_SHIELD_REGEN_DELAY_TICKS`
 
 ## Public Methods
 
