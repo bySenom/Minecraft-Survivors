@@ -8,6 +8,7 @@ Package: `org.bysenom.minecraftSurvivors.manager`
 - `spawnWave(int waveNumber)`
 - `clearWaveMobs()`
 - `run()`
+- `run()`
 - `getNearbyWaveMobs(Location center, double radius)`
 - `strikeLightningAtTarget(LivingEntity target, double damage, Player source)`
 - `startContinuousIfEnabled()`
