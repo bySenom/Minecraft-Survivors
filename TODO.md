@@ -56,7 +56,7 @@ Beschreibung: FX abhängig von Distanz/FX-Setting drosseln.
 Akzeptanzkriterien:
 - Match new FX effects with player abilites and Glpyhs
 - Globaler Regler / Spieler-FX Toggle ergänzt um Rate-Limiter.  # (Basis implementiert: `ParticleUtil` verwendet; Feintuning offen)
-- Große Kämpfe verursachen keine Lags. (Verify under load)
+- Große Kämpfe verursachen keine Lags. (Verify under load / Debug simulate a full run at 100% Enrage (Give Abilites with full Glyphs and every abilite is level 20 + get some modifiers))
 
 ### 4. Persistenz & Reset der neuen Stats
 Beschreibung: Sicheres Laden/Speichern aller neuen Stats + Reset bei Run-Beginn.
