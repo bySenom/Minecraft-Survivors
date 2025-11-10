@@ -145,8 +145,14 @@ public final class CombatEngine {
                     var rsm = plugin.getRoundStatsManager();
                     if (rsm != null) {
                         String src = "unknown";
-                        // check for explicit metadata set by abilities (e.g., ms_ability_key)
-                        try { if (damagerPlayer.hasMetadata("ms_ability_key")) { var mv = damagerPlayer.getMetadata("ms_ability_key"); if (!mv.isEmpty()) src = String.valueOf(mv.get(0).value()); } } catch (Throwable ignored) {}
+                        // Prefer explicit metadata set on the projectile if present (e.g., ability projectiles)
+                        try {
+                            if (e.getDamager() instanceof org.bukkit.entity.Projectile proj && proj.hasMetadata("ms_ability_key")) {
+                                var mv = proj.getMetadata("ms_ability_key"); if (!mv.isEmpty()) src = String.valueOf(mv.get(0).value());
+                            } else if (damagerPlayer.hasMetadata("ms_ability_key")) {
+                                var mv = damagerPlayer.getMetadata("ms_ability_key"); if (!mv.isEmpty()) src = String.valueOf(mv.get(0).value());
+                            }
+                        } catch (Throwable ignored) {}
                         // fallback: held item or weapon
                         if ("unknown".equals(src)) {
                             try {

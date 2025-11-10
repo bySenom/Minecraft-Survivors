@@ -87,7 +87,7 @@ public class RoundStatsManager {
         Map<java.util.UUID, String> names = new HashMap<>();
         for (java.util.UUID id : snap.damageByPlayer.keySet()) {
             String name = null;
-            try { var pm = plugin.getPlayerManager().get(id); if (pm != null) name = pm.getName(); } catch (Throwable ignored) {}
+            try { var online = org.bukkit.Bukkit.getPlayer(id); if (online != null) name = online.getName(); } catch (Throwable ignored) {}
             if (name == null) {
                 try { var off = org.bukkit.Bukkit.getOfflinePlayer(id); if (off != null) name = off.getName(); } catch (Throwable ignored) {}
             }
@@ -407,7 +407,7 @@ public class RoundStatsManager {
         int i = 0;
         for (var en : map.entrySet()) {
             if (i++>0) sb.append(',');
-            sb.append('"').append(en.getKey()).append('"').append(':');
+            sb.append('"').append(en.getKey()).append'"').append(':');
             Object v = en.getValue();
             if (v instanceof Number) sb.append(v);
             else if (v instanceof Map) {
