@@ -179,5 +179,24 @@ public final class ParticleUtil {
         spawnHelix(w, base, radius, height, points, p, strands);
     }
 
+    /**
+     * Consistent ranged projectile trail effect used by both Weapons and Ranger ability.
+     * If fancy is true, we add an extra END_ROD/spiral accent; otherwise we keep it minimal.
+     */
+    public static void spawnRangedTrail(World w, Location loc, boolean fancy) {
+        if (w == null || loc == null) return;
+        try {
+            if (shouldThrottle(loc)) return;
+            // core impact sparkle
+            spawnSafe(w, Particle.CRIT, loc, 2, 0.02, 0.02, 0.02, 0.0);
+            // bright rod for visibility
+            spawnSafe(w, Particle.END_ROD, loc, 1, 0.02, 0.02, 0.02, 0.0);
+            if (fancy) {
+                // small spiral/ring to emphasize the hit
+                spawnSpiral(w, loc.clone().add(0, -0.15, 0), 0.28, 0.5, 10, Particle.END_ROD, 1.5);
+            }
+        } catch (Throwable t) { LogUtil.logFine("spawnRangedTrail failed: ", t); }
+    }
+
     private static double clamp(double v) { return Math.max(0.0, Math.min(1.0, v)); }
 }

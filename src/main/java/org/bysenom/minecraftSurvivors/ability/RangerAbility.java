@@ -108,16 +108,11 @@ public class RangerAbility implements Ability {
             Vector closest = dir.clone().multiply(proj);
             double dist = pe.clone().subtract(closest).length();
             if (dist <= 1.0) { // Trefferbreite ~1 Block
-                drawLine(from, from.clone().add(closest), Particle.CRIT, 14);
+                // draw a short ranged trail/impact at the hit location for visibility
+                try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRangedTrail(from.getWorld(), e.getLocation().add(0,1.0,0), sp == null || sp.isFxEnabled()); } catch (Throwable ignored) {}
                 try { org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(MinecraftSurvivors.getInstance(), src, e, damage, "ab_ranged"); } catch (Throwable ignored) {}
                 // knockback
                 try { e.setVelocity(e.getVelocity().add(dir.clone().multiply(0.2))); } catch (Throwable ignored) {}
-                // sonic ring at hit
-                try {
-                    if (sp == null || sp.isFxEnabled()) {
-                        org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRing(from.getWorld(), e.getLocation().add(0,0.2,0), 0.6, 18, org.bukkit.Particle.CRIT);
-                    }
-                } catch (Throwable ignored) {}
                 hit++;
             }
         }
@@ -130,7 +125,7 @@ public class RangerAbility implements Ability {
         for (int i = 0; i <= points; i++) {
             Vector off = dir.clone().multiply(step * i);
             Location p = from.clone().add(off);
-            try { from.getWorld().spawnParticle(particle, p, 2, 0.02, 0.02, 0.02, 0.0); } catch (Throwable ignored) {}
+            try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRangedTrail(from.getWorld(), p, true); } catch (Throwable ignored) {}
         }
     }
 }

@@ -245,17 +245,24 @@ public class SkillManager {
                     org.bukkit.Location l = center.clone().add((java.util.concurrent.ThreadLocalRandom.current().nextDouble()-0.5)*3, 8+i*0.6, (java.util.concurrent.ThreadLocalRandom.current().nextDouble()-0.5)*3);
                     try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(center.getWorld(), Particle.END_ROD, l, 6, 0.08, 0.08, 0.08, 0.0); } catch (Throwable ignored) {}
                 }
-                // stronger central visuals to ensure Genkidama is visible
-                try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(center.getWorld(), Particle.SONIC_BOOM, center, 3, 0.4,0.4,0.4, 0.0); } catch (Throwable ignored) {}
-                try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(center.getWorld(), Particle.CLOUD, center, 24, Math.min(2.0, 1.0), 0.6, Math.min(2.0, 1.0), 0.01); } catch (Throwable ignored) {}
-                // apply damage with explicit ability attribution so RoundStats picks this as genkidama
-                for (org.bukkit.entity.LivingEntity le : mobs) {
-                    if (le.getLocation().distanceSquared(center) < 6*6) {
-                        org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, le, damage * 2.2 * (1.0 + sp.getDamageMult()), "ab_lightning:genkidama");
+                // stronger central visuals: meteor shower + big final explosion
+                try {
+                    int count = Math.max(3, plugin.getConfigUtil().getInt("skills.genkidama.meteor-count", 5));
+                    for (int m=0;m<count;m++) {
+                        double ox = (java.util.concurrent.ThreadLocalRandom.current().nextDouble()-0.5) * 4.0;
+                        double oz = (java.util.concurrent.ThreadLocalRandom.current().nextDouble()-0.5) * 4.0;
+                        double h = 8.0 + m * 0.6 + java.util.concurrent.ThreadLocalRandom.current().nextDouble()*2.0;
+                        org.bysenom.minecraftSurvivors.fx.MeteorFx.spawnMeteor(plugin, center.clone().add(ox, 0, oz), h, 0.8 + m*0.05, 2.0 + m*0.3, damage * 1.0 * (1.0 + sp.getDamageMult()), p);
                     }
-                }
-                try { p.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 0.9f, 0.9f);} catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWLightning genkidama sound failed: ", t); }
+                    // big central impact visuals
+                    org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnBurstThrottled(center.getWorld(), center, Particle.SONIC_BOOM, 1, 0.6);
+                    org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(center.getWorld(), Particle.CLOUD, center, 48, 2.0, 1.0, 2.0, 0.01);
+                    try { p.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 0.9f);} catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWLightning genkidama sound failed: ", t); }
+                } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWLightning genkidama visual spawn failed: ", t); }
+                // glyph proc + ensure RoundStats records the source
                 glyphProcNotify(p, "ab_lightning:genkidama", target.getLocation());
+                try { if (plugin.getRoundStatsManager() != null) plugin.getRoundStatsManager().recordSourceObserved("ab_lightning:genkidama"); } catch (Throwable ignored) {}
+
             }
             // Sturmkette
             if (glyphs.contains("ab_lightning:storm_chain") && mobs.size() > 1) {
@@ -363,7 +370,7 @@ public class SkillManager {
             @Override public void run() {
                 if (!p.isOnline()) { cancel(); return; }
                 cur.add(dir.clone().multiply(speed));
-                try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(cur.getWorld(), org.bukkit.Particle.CRIT, cur, 2, 0.02,0.02,0.02, 0.0); } catch (Throwable ignored) {}
+                try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnRangedTrail(cur.getWorld(), cur, fancyAll && fancyRanged); } catch (Throwable ignored) {}
                 if (fancyAll && fancyRanged) {
                     try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSpiral(cur.getWorld(), cur.clone().add(0,-0.2,0), 0.35, 0.6, 10, org.bukkit.Particle.END_ROD, 1.0); } catch (Throwable ignored) {}
                     if (sonicTrail && t % sonicEvery == 0) {
