@@ -206,8 +206,7 @@ public class SkillManager {
         try {
             target.getWorld().strikeLightningEffect(target.getLocation());
             double singleMult = plugin.getConfigUtil().getDouble("skills.single_target.multiplier", 1.20);
-            try { p.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, "ab_lightning")); } catch (Throwable ignored) {}
-            try { target.damage(damage * singleMult * (1.0 + sp.getDamageMult()), p); } finally { try { p.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }
+            org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, target, damage * singleMult * (1.0 + sp.getDamageMult()), "ab_lightning");
             org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(target.getWorld(), Particle.ELECTRIC_SPARK, target.getLocation().add(0,1.0,0), 14, 0.3,0.3,0.3, 0.02);
             p.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.2f, 2.0f);
             if (fancyAll && fancyLightning) {
@@ -231,8 +230,7 @@ public class SkillManager {
             if (glyphs.contains("ab_lightning:overcharge") && hits % 100 == 0) {
                 try {
                     for (org.bukkit.entity.LivingEntity le : mobs) {
-                        try { p.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, "ab_lightning:overcharge")); } catch (Throwable ignored) {}
-                        try { le.damage(damage * 3.0 * (1.0 + sp.getDamageMult()), p); } finally { try { p.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }
+                        org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, le, damage * 3.0 * (1.0 + sp.getDamageMult()), "ab_lightning:overcharge");
                         org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(le.getWorld(), Particle.CRIT, le.getLocation().add(0,1.0,0), 8, 0.3,0.3,0.3, 0.02);
                     }
                     p.playSound(p.getLocation(), Sound.ITEM_TRIDENT_THUNDER, 0.6f, 0.6f);
@@ -253,10 +251,7 @@ public class SkillManager {
                 // apply damage with explicit ability attribution so RoundStats picks this as genkidama
                 for (org.bukkit.entity.LivingEntity le : mobs) {
                     if (le.getLocation().distanceSquared(center) < 6*6) {
-                        try {
-                            try { p.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, "ab_lightning:genkidama")); } catch (Throwable ignored) {}
-                            try { le.damage(damage * 2.2 * (1.0 + sp.getDamageMult()), p); } finally { try { p.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }
-                        } catch (Throwable ignored) {}
+                        org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, le, damage * 2.2 * (1.0 + sp.getDamageMult()), "ab_lightning:genkidama");
                     }
                 }
                 try { p.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 0.9f, 0.9f);} catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWLightning genkidama sound failed: ", t); }
@@ -266,7 +261,7 @@ public class SkillManager {
             if (glyphs.contains("ab_lightning:storm_chain") && mobs.size() > 1) {
                 org.bukkit.entity.LivingEntity extra = mobs.get(java.util.concurrent.ThreadLocalRandom.current().nextInt(mobs.size()));
                 if (!extra.equals(target)) {
-                    try { extra.damage(damage * 0.6 * (1.0 + sp.getDamageMult()), p); org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(extra.getWorld(), Particle.ELECTRIC_SPARK, extra.getLocation().add(0,1.0,0), 10, 0.2,0.2,0.2, 0.02);} catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWLightning storm_chain extra hit failed for player " + p.getUniqueId() + ": ", t); }
+                    try { org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, extra, damage * 0.6 * (1.0 + sp.getDamageMult()), "ab_lightning:storm_chain"); org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(extra.getWorld(), Particle.ELECTRIC_SPARK, extra.getLocation().add(0,1.0,0), 10, 0.2,0.2,0.2, 0.02);} catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWLightning storm_chain extra hit failed for player " + p.getUniqueId() + ": ", t); }
                 }
                 glyphProcNotify(p, "ab_lightning:storm_chain", target.getLocation());
             }
@@ -290,7 +285,7 @@ public class SkillManager {
         for (org.bukkit.entity.LivingEntity le : mobs) {
             try {
                 try { p.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, "w_fire")); } catch (Throwable ignored) {}
-                try { le.setFireTicks(Math.max(le.getFireTicks(), 40 + sp.getIgniteBonusTicks())); le.damage(damage * (1.0 + sp.getDamageMult()), p); } finally { try { p.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }
+                try { le.setFireTicks(Math.max(le.getFireTicks(), 40 + sp.getIgniteBonusTicks())); org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, le, damage * (1.0 + sp.getDamageMult()), "w_fire"); } finally { try { p.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }
                 org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(le.getWorld(), Particle.FLAME, le.getLocation().add(0,1.0,0), 6, 0.25,0.25,0.25, 0.01);
             } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWFire effect failed for player " + p.getUniqueId() + ": ", t); }
         }
@@ -317,15 +312,16 @@ public class SkillManager {
         bounceCount = Math.max(0, Math.min(5, bounceCount));
         double speed = 1.3 + 0.05 * lvl;
         org.bukkit.Location start = p.getEyeLocation();
+        double singleMult = plugin.getConfigUtil().getDouble("skills.single_target.multiplier", 1.20);
         for (int i=0; i<baseCount; i++) {
             org.bukkit.entity.LivingEntity target = mobs.get(Math.min(i, mobs.size()-1));
-            shootRangedProjectile(p, sp, start, target, damage, speed, 40, bounceCount);
+            shootRangedProjectile(p, sp, start, target, damage, speed, 40, bounceCount, singleMult);
         }
         try { p.playSound(p.getLocation(), org.bukkit.Sound.ITEM_CROSSBOW_SHOOT, 0.5f, 1.4f); } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runWRanged shoot sound failed for player " + p.getUniqueId() + ": ", t); }
     }
 
     // Launches a visual projectile towards target with optional bouncing to nearby enemies
-    private void shootRangedProjectile(Player p, SurvivorPlayer sp, org.bukkit.Location start, org.bukkit.entity.LivingEntity target, double damage, double speed, int maxTicks, int remainingBounces) {
+    private void shootRangedProjectile(Player p, SurvivorPlayer sp, org.bukkit.Location start, org.bukkit.entity.LivingEntity target, double damage, double speed, int maxTicks, int remainingBounces, double singleMult) {
         if (p == null || target == null || !target.isValid()) return;
         final org.bukkit.Location cur = start.clone();
         final boolean fancyAll = plugin.getConfigUtil().getBoolean("visuals.fancy-enabled", true);
@@ -359,9 +355,7 @@ public class SkillManager {
                 }
                 if (cur.distanceSquared(tgt.getLocation()) < 1.0) {
                     try {
-                        try { p.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, "ab_ranged")); } catch (Throwable ignored) {}
-                        double singleMult = plugin.getConfigUtil().getDouble("skills.single_target.multiplier", 1.20);
-                        try { tgt.damage(damage * singleMult * (1.0 + sp.getDamageMult()), p); } finally { try { p.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }
+                        org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, tgt, damage * singleMult * (1.0 + sp.getDamageMult()), "ab_ranged");
                     } catch (Throwable t1) { plugin.getLogger().log(java.util.logging.Level.FINE, "shootRangedProjectile hit damage failed for player " + p.getUniqueId() + ": ", t1); }
                     try { p.playSound(cur, org.bukkit.Sound.ENTITY_ARROW_HIT_PLAYER, 0.5f, 1.6f); } catch (Throwable ignored) {}
                     // Bounce to next target if available
@@ -371,7 +365,7 @@ public class SkillManager {
                         for (org.bukkit.entity.LivingEntity le : near) { if (le != null && le.isValid() && !le.equals(tgt)) { next = le; break; } }
                         if (next != null) {
                             try { org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnLine(cur.getWorld(), cur.clone().add(0,0.1,0), next.getLocation().clone().add(0,0.6,0), 12, org.bukkit.Particle.CRIT); } catch (Throwable ignored) {}
-                            shootRangedProjectile(p, sp, cur.clone(), next, damage, speed, Math.max(20, maxTicks/2), remainingBounces-1);
+                            shootRangedProjectile(p, sp, cur.clone(), next, damage, speed, Math.max(20, maxTicks/2), remainingBounces-1, singleMult);
                         }
                     }
                     cancel(); return;
@@ -392,7 +386,7 @@ public class SkillManager {
         boolean fancyHoly = plugin.getConfigUtil().getBoolean("visuals.holy.fancy", true);
         List<org.bukkit.entity.LivingEntity> mobs = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(loc, radius);
         for (org.bukkit.entity.LivingEntity le : mobs) {
-            try { le.damage(damage * (1.0 + sp.getDamageMult()), p); } catch (Throwable ignored) {}
+            try { org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, le, damage, "ab_holy"); } catch (Throwable ignored) {}
         }
         try {
             org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(p.getWorld(), Particle.END_ROD, loc.clone().add(0,1.0,0), 28, radius/2, 0.3, radius/2, 0.0);
@@ -417,10 +411,9 @@ public class SkillManager {
         java.util.List<org.bukkit.entity.LivingEntity> mobs = plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(loc, radius);
         for (org.bukkit.entity.LivingEntity le : mobs) {
             try {
-                try { p.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, "shockwave")); } catch (Throwable ignored) {}
-                try { le.damage(damage, p); } finally { try { p.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }
-                 org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(p.getWorld(), Particle.SWEEP_ATTACK, loc.clone().add(0,1.0,0), 18, 1.0, 0.2, 1.0, 0.0);
-                 p.playSound(loc, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.6f, 1.0f);
+                org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, le, damage, "shockwave");
+                org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(p.getWorld(), Particle.SWEEP_ATTACK, loc.clone().add(0,1.0,0), 18, 1.0, 0.2, 1.0, 0.0);
+                p.playSound(loc, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.6f, 1.0f);
              } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runShockwave hit failed for player " + p.getUniqueId() + ": ", t); }
          }
     }
@@ -498,7 +491,7 @@ public class SkillManager {
         for (org.bukkit.entity.LivingEntity le : mobs) {
             try {
                 try { p.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, "ab_frost_nova")); } catch (Throwable ignored) {}
-                try { le.damage(damage, p); } finally { try { p.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }
+                try { org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, le, damage, "ab_frost_nova"); } finally { try { p.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }
                 le.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS, 40 + lvl*10, 1, false, false, true));
                 org.bysenom.minecraftSurvivors.util.ParticleUtil.spawnSafeThrottled(le.getWorld(), org.bukkit.Particle.SNOWFLAKE, le.getLocation().add(0,1.0,0), 8, 0.2, 0.4, 0.2, 0.01);
             } catch (Throwable t) { plugin.getLogger().log(java.util.logging.Level.FINE, "runFrostNova effect failed for player " + p.getUniqueId() + ": ", t); }
@@ -537,10 +530,7 @@ public class SkillManager {
                         for (org.bukkit.entity.LivingEntity le : mobs) {
                             if (!le.isValid()) continue;
                             if (le.getLocation().distanceSquared(center) <= radius * radius) {
-                                try {
-                                    try { p.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, "ab_void_nova:rupture")); } catch (Throwable ignored) {}
-                                    try { le.damage(damage * 1.5, p); } finally { try { p.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }
-                                } catch (Throwable ignored) {}
+                                org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, le, damage * 1.5, "ab_void_nova:rupture");
                             }
                         }
                         try { p.playSound(center, org.bukkit.Sound.ENTITY_ENDERMAN_SCREAM, 0.7f, 0.6f); } catch (Throwable ignored) {}
@@ -716,8 +706,7 @@ public class SkillManager {
                     for (org.bukkit.entity.LivingEntity le : near) {
                         if (!le.isValid()) continue;
                         try {
-                            try { p.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, abilityKey)); } catch (Throwable ignored) {}
-                            try { le.damage(perTickDamage, p); } finally { try { p.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {} }
+                            org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttribution(plugin, p, le, perTickDamage, abilityKey);
                         } catch (Throwable ignored) {}
                         try { le.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.POISON, 40, 0, false, false, true)); } catch (Throwable ignored) {}
                         if (neurotoxin && java.util.concurrent.ThreadLocalRandom.current().nextInt(20) == 0) {
@@ -758,19 +747,9 @@ public class SkillManager {
             for (org.bukkit.entity.LivingEntity le : plugin.getGameManager().getSpawnManager().getNearbyWaveMobs(f.center, f.radius)) {
                 try {
                     double dmg = f.damage/2.0;
-                    if (ownerPl != null && ownerPl.isOnline()) {
-                        // Temporarily set ms_ability_key on owner so CombatEngine attributes damage to the ability source
-                        try {
-                            ownerPl.setMetadata("ms_ability_key", new org.bukkit.metadata.FixedMetadataValue(plugin, "ab_void_nova:lingering_void"));
-                        } catch (Throwable ignored) {}
-                        try {
-                            le.damage(dmg, ownerPl);
-                        } finally {
-                            try { ownerPl.removeMetadata("ms_ability_key", plugin); } catch (Throwable ignored) {}
-                        }
-                    } else {
-                        le.damage(dmg); // Fallback ohne Attribution
-                    }
+                    try {
+                        org.bysenom.minecraftSurvivors.util.DamageUtil.damageWithAttributionNullable(plugin, ownerPl, le, dmg, "ab_void_nova:lingering_void");
+                    } catch (Throwable ignored) {}
                 } catch (Throwable ignored) {}
             }
         }
