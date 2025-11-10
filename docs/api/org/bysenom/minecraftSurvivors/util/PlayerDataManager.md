@@ -9,4 +9,5 @@ Package: `org.bysenom.minecraftSurvivors.util`
 - `load(UUID uuid)`
 - `saveAll()`
 - `saveCoins(UUID uuid, int coins)`
+- `logPlayerData(java.util.UUID uuid)`
 - `saveAsync(SurvivorPlayer sp)`
