@@ -13,17 +13,17 @@ Status-Update (2025-11-10)
 - P1.2: Geschlossen — Glyphen-UX, Persistenz-Basics, Replace-Flow und CI-Checks implementiert.
 - P1.3: In Arbeit — Fokus: QA, Balancing, Tests & Doku.
 
-Erledigt (Code)
-- RoundStats: per-round exports (JSON/CSV/HTML) + `exports/YYYY-MM-DD/` folder.
-- RoundStats: `/msroundstats export|summary|show` + GUI skeleton implemented.
-- RoundStats: player name mapping added to exports (JSON/CSV/HTML) for offline-friendly reports.
-- RoundStats: lingering_void damage attribution implemented (ab_void_nova:lingering_void) via temporary metadata so DPS breakdown is accurate.
-- RoundStats: `openfile` command now searches `exports/` recursively; command uses recursive export lookup for recent JSONs.
-- Auto-report cleanup on plugin start for `roundstats_auto_*` files.
-- Balancing config keys added and applied: crit cap, lifesteal cap, shield regen delay (tick-based fallback to seconds).
+Erledigt (Kurz)
+- RoundStats core: per-round exports (JSON/CSV/HTML) in `exports/YYYY-MM-DD/`.
+- RoundStats commands: `/msroundstats export|summary|show` and a GUI skeleton.
+- RoundStats: player name mapping added to exports for offline-friendly reports.
+- RoundStats: lingering_void damage attribution implemented (owner attribution -> `ab_void_nova:lingering_void`).
+- RoundStats: auto-report cleanup on plugin start (`roundstats_auto_*` files cleared).
+- RoundStats: exports lookup (`openfile` command) now searches `exports/` recursively.
+- Balancing config keys added (crit cap, lifesteal cap, shield regen delay) and applied where relevant.
 - README: RoundStats admin documentation added.
 
-Kurz: Viele P1.3-Features wurden implementiert (siehe Erledigt). Unten stehen die verbleibenden, konkreten Tasks.
+Kurz: Viele P1.3-Features rund um RoundStats wurden implementiert; verbleibende P1-Aufgaben sind unten.
 
 ## Offene P1 (Release-kritisch) Tasks
 Diese Tasks müssen vor Release adressiert werden.
@@ -46,10 +46,40 @@ Diese Tasks müssen vor Release adressiert werden.
    - Release-Checklist: smoke-tests, TPS-check, Endboss QA, DB/PlayerData Backup-Plan.
 
 5) Balancing-Iteration (Konfigurierbar)
-   - Tuning: Crit/Lifesteal/Shield Caps (grundsätzliche keys implementiert). Weitere Feintuning + defaults prüfen.
+   - Tuning: Crit/Lifesteal/Shield Caps (defaults prüfen). Weitere Feintuning + defaults prüfen.
 
 ---
 
-Priorität für den Sprint: 1 → QA/Smoke (Endboss) + Tests/CI, danach Dokumentation und Balancing-Tuning.
+## P2 (Wichtig, nach erstem Release)
+- VIP-Prio
+- /queue gui (Lobby) – bleibt in `lobby/TODO.md`
+- messages.yml (Mehrsprachigkeit)
+- Webhook/Externes Logging
+- Performance/Profiler Hook
+- Konsolen-Command für Mass-Clear
 
-(Die Lobby-spezifischen TODOs sind in `lobby/TODO.md`.)
+## P3 (Nice-to-have / später)
+- Weighted Fair Queue / Segmentierung
+- Historie zuletzt zugelassener Spieler (/queue history)
+- Visuelle Admission-Effekte (konfigurierbar)
+- Freundeslisten-Bevorzugung (optional)
+- API Events (QueueJoinEvent, QueueLeaveEvent, QueueAdmitEvent)
+- Web-Dashboard / REST Status
+- Priority Re-Entry für zuletzt gespielte
+
+---
+
+## Tracking / Metriken (technisch)
+- Wartezeitstart = Zeitstempel beim `join()`
+- Wartezeitende = Zeit bei `admitNext()`
+- avgWaitTime = Summe / Anzahl
+
+---
+
+## Qualitätssicherung (QS)
+- Test: Offline während admission, Persistenz-Datei korrupt, Rejoin-Cooldown.
+
+---
+
+## Nächste Entscheidung
+Wähle 1–2 P1/P2 Features für den nächsten Sprint (Empfehlung: Endboss QA + Tests/CI oder Endboss QA + Balancing-Tuning).
