@@ -18,3 +18,4 @@ Package: `org.bysenom.minecraftSurvivors.util`
 - `spawnSpiralThrottled(World w, Location center, double radius, double height, int points, Particle p, double turns)`
 - `spawnHelix(World w, Location base, double radius, double height, int points, Particle p, int strands)`
 - `spawnHelixThrottled(World w, Location base, double radius, double height, int points, Particle p, int strands)`
+- `spawnRangedTrail(World w, Location loc, boolean fancy)`
