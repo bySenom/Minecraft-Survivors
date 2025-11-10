@@ -10,6 +10,7 @@ Zusätzlich: Continuous-Spawn (Vampire Survivors Style) mit Gewichtungen & Scali
 - `spawnWave(int waveNumber)`
 - `clearWaveMobs()`
 - `run()`
+- `run()`
 - `getNearbyWaveMobs(Location center, double radius)`
 - `strikeLightningAtTarget(LivingEntity target, double damage, Player source)`
 - `startContinuousIfEnabled()`
