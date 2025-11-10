@@ -176,6 +176,22 @@ public class SkillManager {
     }
 
     private void runAbility(Player p, SurvivorPlayer sp, String ab, int lvl) {
+        // If the player has a selected PlayerClass, class-specific abilities
+        // are handled by the AbilityManager (e.g. RangerAbility). To avoid
+        // double-executing the same ability (visual + logical), skip executing
+        // the class ability here when a class is selected.
+        try {
+            org.bysenom.minecraftSurvivors.model.PlayerClass pc = sp == null ? null : sp.getSelectedClass();
+            if (pc != null) {
+                if ((pc == org.bysenom.minecraftSurvivors.model.PlayerClass.RANGER && "ab_ranged".equals(ab))
+                        || (pc == org.bysenom.minecraftSurvivors.model.PlayerClass.SHAMAN && "ab_lightning".equals(ab))
+                        || (pc == org.bysenom.minecraftSurvivors.model.PlayerClass.PYROMANCER && "ab_fire".equals(ab))
+                        || (pc == org.bysenom.minecraftSurvivors.model.PlayerClass.PALADIN && "ab_holy".equals(ab))) {
+                    return; // class ability is handled separately
+                }
+            }
+        } catch (Throwable ignored) {}
+
         switch (ab) {
             case "ab_lightning": runWLightning(p, sp, lvl); break;
             case "ab_fire": runWFire(p, sp, lvl); break;
