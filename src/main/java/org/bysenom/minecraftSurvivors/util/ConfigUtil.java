@@ -34,6 +34,10 @@ public class ConfigUtil {
         public static final String TABLIST_SHOW_ENEMY_POWER = "tablist.show-enemy-power";
         public static final String TABLIST_SHOW_PARTY_HP = "tablist.show-party-hp";
         public static final String TABLIST_HEADER_TITLE = "tablist.header-title";
+        // Balancing keys (P1.3)
+        public static final String BALANCING_CRIT_CAP_PERCENT = "balancing.crit-cap-percent"; // percent (e.g. 200 => max 200%)
+        public static final String BALANCING_LIFESTEAL_CAP = "balancing.lifesteal-cap"; // fraction (e.g. 0.3)
+        public static final String BALANCING_SHIELD_REGEN_DELAY_TICKS = "balancing.shield-regen-delay-ticks"; // ticks delay before shield regen
     }
 
     private final MinecraftSurvivors plugin;

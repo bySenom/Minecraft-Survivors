@@ -154,7 +154,14 @@ public class GameManager {
                     try {
                         double shieldMax = sp.getShieldMax();
                         if (shieldMax > 0.0) {
-                            long delayMs = (long) (plugin.getConfigUtil().getDouble("combat.shield.regen-delay-seconds", 3.0) * 1000.0);
+                            // Prefer configured balancing tick value (new key), fallback to seconds-based legacy key
+                            int configuredTicks = plugin.getConfigUtil().getInt("balancing.shield-regen-delay-ticks", -1);
+                            long delayMs;
+                            if (configuredTicks > 0) {
+                                delayMs = configuredTicks * 50L; // 1 tick = 50 ms
+                            } else {
+                                delayMs = (long) (plugin.getConfigUtil().getDouble("combat.shield.regen-delay-seconds", 3.0) * 1000.0);
+                            }
                             double perSec = plugin.getConfigUtil().getDouble("combat.shield.regen-percentage-per-second", 0.15) * shieldMax;
                             long dt = System.currentTimeMillis() - sp.getLastDamagedAtMillis();
                             if (dt >= Math.max(0L, delayMs) && perSec > 0.0) {
@@ -715,7 +722,11 @@ public class GameManager {
             for (java.util.UUID u : vs.members) { org.bukkit.entity.Player pl = org.bukkit.Bukkit.getPlayer(u); if (pl != null && pl.isOnline()) pl.sendMessage(net.kyori.adventure.text.Component.text("Party-Start abgelehnt").color(net.kyori.adventure.text.format.NamedTextColor.RED)); }
             return;
         }
-        if (vs.yes.containsAll(vs.members)) { clearPartyVoteBar(leader); /* Ready-Check bestanden -> Wechsel in Klassenwahl-Phase */ partyVotes.remove(leader); if (vs.timeoutTask != null) try { vs.timeoutTask.cancel(); } catch (Throwable ignored) {}
+        if (vs.yes.containsAll(vs.members)) {
+            // Ready-Check bestanden -> Wechsel in Klassenwahl-Phase
+            clearPartyVoteBar(leader);
+            partyVotes.remove(leader);
+            try { if (vs.timeoutTask != null) vs.timeoutTask.cancel(); } catch (Throwable ignored) {}
             beginClassSelectionForParty(leader, vs.members);
         }
     }
