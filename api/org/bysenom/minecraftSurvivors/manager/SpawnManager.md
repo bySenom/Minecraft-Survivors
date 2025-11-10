@@ -18,6 +18,7 @@ Zusätzlich: Continuous-Spawn (Vampire Survivors Style) mit Gewichtungen & Scali
 - `pauseContinuous()`
 - `resumeContinuous()`
 - `stopContinuous()`
+- `cancelAllScheduledTasks()`
 - `getElapsedMinutes()`
 - `getEnrageProgress()`
 - `getEnemyPowerIndex()`

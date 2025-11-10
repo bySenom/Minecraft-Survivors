@@ -13,6 +13,7 @@ Package: `org.bysenom.minecraftSurvivors.manager`
 - `pauseContinuous()`
 - `resumeContinuous()`
 - `stopContinuous()`
+- `cancelAllScheduledTasks()`
 - `getElapsedMinutes()`
 - `getEnrageProgress()`
 - `getEnemyPowerIndex()`
