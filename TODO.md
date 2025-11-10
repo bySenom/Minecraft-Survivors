@@ -124,24 +124,26 @@ Release, wenn P1 abgeschlossen.
 ## P1.3 (In Arbeit - 2025-11-10)
 Ziel: Vorbereitung auf finalen Release-Block; Fokus auf QA, Balancing, CI-Stabilität, Tests und Doku.
 
-Priorisierte Tasks:
+Erledigt (P1.3 - laufende Arbeiten)
+- FX / Particle Throttling: per-player FX toggle berücksichtigt (Code: `org.bysenom.minecraftSurvivors.util.ParticleUtil.shouldThrottle` angepasst). (2025-11-10)
+- Boss UI / Scheduling Safety: Alle `runTaskLater`/`runTaskTimer` Aufrufe im `BossManager` werden jetzt in `scheduledTasks` registriert und sauber in `clearUi()` gecancelt; Meteor/FallingBlock-Cleanup verbessert. (2025-11-10)
+- Code-Formatierung (Spotless): `:spotlessApply` ausgeführt; `SurvivorPlayerTest` und Formatierungsprobleme behoben. (2025-11-10)
+
+Priorisierte verbleibende Tasks (P1.3):
 1. QA & Bugfixes Endboss
    - Finales Balancing prüfen (Spawn Counts, Schäden, Phase-Trigger).
-   - Visuelle Telegraphs und Cleanup verifizieren unter Last (inkl. Projectile/FallingBlock-Cleanup).
+   - Visuelle Telegraphs und Cleanup verifizieren unter Last (inkl. Projectile/FallingBlock-Cleanup).  # (Cleanup verbessert, QA noch offen)
    - Smoke-tests: Boss-Spawn + Kill unter 1–8 Spieler-Szenarien.
-2. FX / Particle Throttling (TEILWEISE ERLEDIGT)
-   - Rate-Limiter Feintuning in `ParticleUtil` (per-player / per-world / distance-based throttling).  # (Änderung: per-player FX toggle berücksichtigt — `ParticleUtil` aktualisiert)
-   - Globaler Config-Regler + Spieler-Toggle testen.
-3. Wellen / Continuous Mode Stabilität
+2. Wellen / Continuous Mode Stabilität
    - Reproduzierbare QA-Szenarien für Continuous Mode erstellen; edge-cases (mid-run restart, player reconnect) prüfen.
-   - Verify: alle laufenden Schedulers werden beim Stop gecancelt (no leaking runnables).
-4. Tests & CI
+   - Verify: alle laufenden Schedulers werden beim Stop gecancelt (no leaking runnables).  # (SpawnManager/ensureScalingTask/aggroTask/continuousTask nutzen tracking; QA notwendig)
+3. Tests & CI
    - Stabilisierung von `SurvivorPlayerTest` und zentralen CombatEngine-Tests.
-   - Fix Spotless violations (lokal: `gradlew.bat :spotlessApply`) und sicherstellen, dass CI grün läuft.
-5. Dokumentation & Release-Checklist
+   - Sicherstellen, dass CI (Build, Spotless, Tests) grün läuft.
+4. Dokumentation & Release-Checklist
    - README: Getting Started, Config-Cheatsheet, neue Stats.
    - Release-Checklist: smoke-tests, TPS-check, Endboss QA, DB/PlayerData Backup-Plan.
-6. Balancing-Iteration
+5. Balancing-Iteration
    - Konfigurierbare Caps (Crit/Lifesteal/Shield) in `ConfigUtil` prüfen und dokumentieren.
 
 Akzeptanzkriterien P1.3:
