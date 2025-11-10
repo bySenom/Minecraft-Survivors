@@ -95,6 +95,17 @@ public class RoundStatsManager {
             names.put(id, name);
         }
         snap.playerNames = names;
+        // round length in seconds
+        snap.roundLengthSec = (snap.endMs - snap.startMs) / 1000.0;
+        // collect player levels (class level) for players present in the round
+        Map<java.util.UUID, Integer> pLevels = new HashMap<>();
+        for (java.util.UUID id : snap.damageByPlayer.keySet()) {
+            try {
+                org.bysenom.minecraftSurvivors.model.SurvivorPlayer sp = plugin.getPlayerManager().get(id);
+                if (sp != null) pLevels.put(id, Math.max(0, sp.getClassLevel())); else pLevels.put(id, 0);
+            } catch (Throwable ignored) { pLevels.put(id, 0); }
+        }
+        snap.playerLevels = pLevels;
         lastSnapshot = snap;
         // write admin file (auto-generated, will be cleared on server start)
         try { writeJsonReportAuto(snap); } catch (Throwable ignored) {}
@@ -149,6 +160,8 @@ public class RoundStatsManager {
                     for (var en : snap.damageByPlayer.entrySet()) pw.println("damagePlayer," + en.getKey().toString() + "," + String.format(java.util.Locale.ROOT, "%.3f", en.getValue()));
                     // write player name mapping (uuid -> name) for easier parsing
                     for (var pn : snap.playerNames.entrySet()) pw.println("playerName," + pn.getKey().toString() + "," + escapeCsv(pn.getValue()));
+                    // write player levels
+                    for (var pl : snap.playerLevels.entrySet()) pw.println("playerLevel," + pl.getKey().toString() + "," + pl.getValue());
                     for (var en : snap.killsByPlayer.entrySet()) pw.println("kills," + en.getKey().toString() + "," + en.getValue());
                     for (var en : snap.coinsByPlayer.entrySet()) pw.println("coins," + en.getKey().toString() + "," + en.getValue());
                     for (var en : snap.lootchestsByPlayer.entrySet()) pw.println("lootchests," + en.getKey().toString() + "," + en.getValue());
@@ -195,14 +208,15 @@ public class RoundStatsManager {
                     pw.println("<br/>");
                     // Per-player table
                     pw.println("<h2>Per-player Damage / Kills / Coins</h2>");
-                    pw.println("<table><tr><th>Player UUID</th><th>Name</th><th>Damage</th><th>Kills</th><th>Coins</th><th>Lootchests</th></tr>");
+                    pw.println("<table><tr><th>Player UUID</th><th>Name</th><th>Level</th><th>Damage</th><th>Kills</th><th>Coins</th><th>Lootchests</th></tr>");
                     snap.damageByPlayer.entrySet().stream().sorted((a,b)-> Double.compare(b.getValue(), a.getValue())).forEach(en -> {
                         try {
                             String name = snap.playerNames != null ? snap.playerNames.getOrDefault(en.getKey(), "<unknown>") : "<unknown>";
                             int kills = snap.killsByPlayer.getOrDefault(en.getKey(), 0);
                             int coins = snap.coinsByPlayer.getOrDefault(en.getKey(), 0);
                             int loot = snap.lootchestsByPlayer.getOrDefault(en.getKey(), 0);
-                            pw.println("<tr><td>" + en.getKey().toString() + "</td><td>" + escapeHtml(name) + "</td><td>" + String.format(java.util.Locale.ROOT, "%.2f", en.getValue()) + "</td><td>" + kills + "</td><td>" + coins + "</td><td>" + loot + "</td></tr>");
+                            int lvl = snap.playerLevels != null ? snap.playerLevels.getOrDefault(en.getKey(), 0) : 0;
+                            pw.println("<tr><td>" + en.getKey().toString() + "</td><td>" + escapeHtml(name) + "</td><td>" + lvl + "</td><td>" + String.format(java.util.Locale.ROOT, "%.2f", en.getValue()) + "</td><td>" + kills + "</td><td>" + coins + "</td><td>" + loot + "</td></tr>");
                         } catch (Throwable ignored) {}
                     });
                     pw.println("</table>");
@@ -260,12 +274,15 @@ public class RoundStatsManager {
         public Map<UUID, Integer> coinsByPlayer = Collections.emptyMap();
         public Map<UUID, Integer> lootchestsByPlayer = Collections.emptyMap();
         public Map<UUID, String> playerNames = Collections.emptyMap(); // new field for player name mapping
+        public double roundLengthSec = 0.0;
+        public Map<UUID, Integer> playerLevels = Collections.emptyMap();
 
         public String toJson() {
             StringBuilder sb = new StringBuilder();
             sb.append('{');
             sb.append("\"startMs\":").append(startMs).append(',');
             sb.append("\"endMs\":").append(endMs).append(',');
+            sb.append("\"roundLengthSec\":").append(String.format(Locale.ROOT, "%.3f", roundLengthSec)).append(',');
             // damageBySource
             sb.append("\"damageBySource\":{");
             int i = 0;
@@ -274,45 +291,35 @@ public class RoundStatsManager {
                 sb.append('"').append(escape(en.getKey())).append('"').append(':').append(String.format(Locale.ROOT, "%.3f", en.getValue()));
             }
             sb.append('}').append(',');
-            // playerNames
+            // playerLevels
+            sb.append('"').append("playerLevels").append('"').append(':').append('{');
+            i = 0;
+            for (var en : playerLevels.entrySet()) { if (i++>0) sb.append(','); sb.append('"').append(en.getKey().toString()).append('"').append(':').append(en.getValue()); }
+            sb.append('}').append(',');
+            // player name mapping
             sb.append('"').append("playerNames").append('"').append(':').append('{');
             i = 0;
-            for (var en : playerNames.entrySet()) {
-                if (i++ > 0) sb.append(',');
-                sb.append('"').append(en.getKey().toString()).append('"').append(':').append('"').append(escape(en.getValue())).append('"');
-            }
+            for (var en : playerNames.entrySet()) { if (i++>0) sb.append(','); sb.append('"').append(en.getKey().toString()).append('"').append(':').append('"').append(escape(en.getValue())).append('"'); }
             sb.append('}').append(',');
             // damageByPlayer
             sb.append('"').append("damageByPlayer").append('"').append(':').append('{');
             i = 0;
-            for (var en : damageByPlayer.entrySet()) {
-                if (i++ > 0) sb.append(',');
-                sb.append('"').append(en.getKey().toString()).append('"').append(':').append(String.format(Locale.ROOT, "%.3f", en.getValue()));
-            }
+            for (var en : damageByPlayer.entrySet()) { if (i++>0) sb.append(','); sb.append('"').append(en.getKey().toString()).append('"').append(':').append(String.format(Locale.ROOT, "%.3f", en.getValue())); }
             sb.append('}').append(',');
             // killsByPlayer
             sb.append('"').append("killsByPlayer").append('"').append(':').append('{');
             i = 0;
-            for (var en : killsByPlayer.entrySet()) {
-                if (i++ > 0) sb.append(',');
-                sb.append('"').append(en.getKey().toString()).append('"').append(':').append(en.getValue());
-            }
+            for (var en : killsByPlayer.entrySet()) { if (i++>0) sb.append(','); sb.append('"').append(en.getKey().toString()).append('"').append(':').append(en.getValue()); }
             sb.append('}').append(',');
             // coinsByPlayer
             sb.append('"').append("coinsByPlayer").append('"').append(':').append('{');
             i = 0;
-            for (var en : coinsByPlayer.entrySet()) {
-                if (i++ > 0) sb.append(',');
-                sb.append('"').append(en.getKey().toString()).append('"').append(':').append(en.getValue());
-            }
+            for (var en : coinsByPlayer.entrySet()) { if (i++>0) sb.append(','); sb.append('"').append(en.getKey().toString()).append('"').append(':').append(en.getValue()); }
             sb.append('}').append(',');
             // lootchestsByPlayer
             sb.append('"').append("lootchestsByPlayer").append('"').append(':').append('{');
             i = 0;
-            for (var en : lootchestsByPlayer.entrySet()) {
-                if (i++ > 0) sb.append(',');
-                sb.append('"').append(en.getKey().toString()).append('"').append(':').append(en.getValue());
-            }
+            for (var en : lootchestsByPlayer.entrySet()) { if (i++>0) sb.append(','); sb.append('"').append(en.getKey().toString()).append('"').append(':').append(en.getValue()); }
             sb.append('}');
             sb.append('}');
             return sb.toString();
