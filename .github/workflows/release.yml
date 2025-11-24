@@ -24,13 +24,13 @@ jobs:
         with:
           arguments: clean test build --no-daemon
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: plugin-jar
           path: build/libs/*.jar
       - name: Upload test report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-report
           path: |
