@@ -1,7 +1,7 @@
 [versions]
 paper = "1.21.4-R0.1-SNAPSHOT"
 spotless = "6.25.0"
-runPaper = "2.3.1"
+runPaper = "3.0.2"
 commonsLang3 = "3.17.0"
 junit = "5.10.2"
 
